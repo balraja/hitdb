@@ -1,0 +1,52 @@
+/*
+    Hit is a high speed transactional database for handling millions
+    of updates with comfort and ease.
+
+    Copyright (C) 2013  Balraja Subbiah
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+package org.hit.registry;
+
+import org.hit.db.model.Schema;
+import org.hit.distribution.KeyPartitioner;
+import org.hit.topology.Topology;
+
+/**
+ * Defines the contract for the lookup service for accessing the
+ * server related information on the client side.
+ * 
+ * @author Balraja Subbiah
+ */
+public interface RegistryService
+{
+    /**
+     * Returns the <code>KeyPartitoner</code> that can be used for accessing
+     * the nodes that hosts the various parts of the key space.
+     */
+    public <K extends Comparable<K>> KeyPartitioner<K> getKeyPartitioner(
+        String tableName);
+    
+    /**
+     * Returns the table schema.
+     */
+    public Schema getSchema(String tableName);
+    
+    /**
+     * Returns the topology of hit server.
+     */
+    public Topology getTopology();
+}
+ 

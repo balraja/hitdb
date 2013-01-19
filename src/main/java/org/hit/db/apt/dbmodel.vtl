@@ -1,0 +1,63 @@
+package ${packageName};
+
+import org.hit.db.model.Column;
+
+/**
+ * Implementation to capture the row of ${tableName}
+ */
+public class ${tableName} implements Persistable<$keyClassName>
+{
+    private static List<Column> ourColumns = new ArrayList<>();
+    
+    static {
+        #foreach($meta_column in $meta_columns)
+            ourColumns.add(new Column(${meta_column.name},
+                                      ${meta_column.index},
+                                      ${meta_column.isPimary()},
+                                      ${meta_column.type}));
+        #end
+    }
+    
+#foreach($meta_column in $meta_columns)
+
+    private ${meta_column.type.simpleName} my${meta_column.name};
+
+#end   
+    
+    /** Returns the columns in this type */
+    public static List<Column> getColumns()
+    {
+        return ourColumns;
+    }
+    
+#foreach($meta_column in $meta_columns)
+
+    /**
+     * Returns the value of ${field.simpleName}.
+     */
+    public ${meta_coumn.type.simpleName} get${meta_column.name}() {
+        return my${meta_column.name};
+    }
+    
+    /**
+     * Returns the value of ${field.simpleName}.
+     */
+    public ${meta_coumn.type.simpleName} set${meta_column.name}(
+        ${meta_coumn.type.simpleName} ${meta_column.name}) 
+    {
+        my${meta_column.name} = ${meta_column.name};
+    }
+    
+#end
+
+    public Object getValue(Column column) 
+    {
+    
+        switch (column.getColIndex) {
+#foreach($meta_column in $meta_columns)
+            case $meta_column.index:
+                return my${meta_column.name}
+#end
+        }
+    }
+}
