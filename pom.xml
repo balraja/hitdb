@@ -1,20 +1,82 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <licenses>
+    <license>
+      <name>GNU General Public Licence</name>
+      <url>http://www.gnu.org/licenses/gpl.txt</url>
+      <distribution>repo</distribution>
+      <comments>A business-friendly OSS license</comments>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>Balraja Subbiah</name>
+      <email>balrajasubbiah@gmail.com</email>
+    </developer>
+  </developers>
+  
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.hit</groupId>
   <artifactId>hitdb</artifactId>
   <version>0.001</version>
   <name>Hit Database</name>
   <description>A new sql database to support huge volumes of data.</description>
+  
+  <build>
+    <directory>${project.basedir}/target</directory>
+    <outputDirectory>
+        ${project.build.directory}/classes
+    </outputDirectory>
+    <finalName>${project.artifactId}-${project.version}</finalName>
+    <testOutputDirectory>
+        ${project.build.directory}/test-classes
+    </testOutputDirectory>
+    <sourceDirectory>
+        ${project.basedir}/src/main/java
+    </sourceDirectory>
+    <scriptSourceDirectory>src/main/scripts</scriptSourceDirectory>
+    <testSourceDirectory>
+        ${project.basedir}/src/test/java
+    </testSourceDirectory>
+    <resources>
+        <resource>
+            <directory>${project.basedir}/src/main/resources</directory>
+        </resource>
+    </resources>
+    <testResources>
+        <testResource>
+            <directory>${project.basedir}/src/test/resources</directory>
+        </testResource>
+    </testResources>
+    <plugins>
+          <plugin>
+               <artifactId>maven-clean-plugin</artifactId>
+               <version>2.4.1</version>
+               <configuration>
+               </configuration>
+          </plugin>
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <version>3.0</version>
+              <configuration>
+                  <source>1.7</source>
+                  <target>1.7</target>
+              </configuration>
+          </plugin>
+          <plugin>
+              <groupId>org.codehaus.mojo</groupId>
+              <artifactId>apt-maven-plugin</artifactId>
+              <version>1.0-alpha-5</version>
+        </plugin>
+    </plugins>
+  </build>
+  
   <dependencies>
-      <dependency>
-	  <groupId>com.google.inject</groupId>
-	  <artifactId>guice</artifactId>
-	  <version>3.0</version>
-     </dependency>
 	      <dependency>
-	      <groupId>com.google.inject</groupId>
-	      <artifactId>guice</artifactId>
-	      <version>3.0</version>
+			  <groupId>com.google.inject</groupId>
+			  <artifactId>guice</artifactId>
+			  <version>3.0</version>
 	     </dependency>
 	     <dependency>
             <groupId>com.google.guava</groupId>
@@ -27,4 +89,5 @@
             <version>1.7</version>
          </dependency>
     </dependencies>
+    
 </project>

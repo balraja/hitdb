@@ -44,7 +44,7 @@ public class DBOperationSuccessMessage extends Message
      */
     public DBOperationSuccessMessage()
     {
-        this(null, null);
+        this(null, null, null);
     }
     
     /**

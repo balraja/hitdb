@@ -82,7 +82,6 @@ public class HitClient implements Application
     /**
      * {@inheritDoc}
      */
-    @Override
     public void start()
     {
         
@@ -91,7 +90,6 @@ public class HitClient implements Application
     /**
      * {@inheritDoc}
      */
-    @Override
     public void stop()
     {
     }
