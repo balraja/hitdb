@@ -1,8 +1,8 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,22 +18,22 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.di;
+package org.hit.facade;
+
+import org.hit.db.model.Mutation;
 
 /**
- * Extends <code>HitModule</code> to support adding bindings for the
- * client side.
+ * Defines the contract for the call back interface to be supplied 
+ * along with a mutation that can be used for notifying its success and 
+ * failure.
  * 
  * @author Balraja Subbiah
  */
-public class HitClientModule extends HitModule
+public interface MutationCallback
 {
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected Integer getBoundPort()
-    {
-        return Integer.valueOf(16000);
-    }
+    /** This method will be called on success */
+    public void onSuccess(Mutation mutation);
+    
+    /** The handler to be called on failure */
+    public void onFailure(Mutation mutation, String message, Throwable exception);
 }

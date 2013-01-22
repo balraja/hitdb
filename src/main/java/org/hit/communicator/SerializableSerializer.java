@@ -34,8 +34,6 @@ import java.nio.ByteBuffer;
  */
 public class SerializableSerializer implements MessageSerializer
 {
-    
-    
     /**
      * {@inheritDoc}
      */
