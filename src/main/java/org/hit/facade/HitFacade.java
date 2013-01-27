@@ -171,9 +171,7 @@ public class HitFacade implements Application
                         
                 }
             }
-
         }
-        
     }
     
     /**

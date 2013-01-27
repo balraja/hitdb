@@ -18,27 +18,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.examples.weather;
-
-import org.hit.db.apt.MetaColumns;
-import org.hit.db.apt.MetaColumn;
-import org.hit.db.apt.MetaTable;
-import org.hit.db.model.PartitioningType;
-
-import java.util.Date;
+package org.hit.zookeeper;
 
 /**
- * AN interface that defines the schema of the table.
+ * A simple class that acts as a client when accessing the zoo keeper.
  * 
  * @author Balraja Subbiah
  */
-@MetaTable(keyClass = Integer.class , tableName="NCDCData", partitioningType = PartitioningType.HASHABLE)
-public interface NCDCSchema
+public class ZooKeeperClient
 {
-    @MetaColumns(columns = {
-        @MetaColumn(index = 0, isPrimary = true, name = "StationNumber", type = Integer.class),
-        @MetaColumn(index = 1, isPrimary = false, name = "Date", type = Date.class),
-        @MetaColumn(index = 1, isPrimary = false, name = "MeanTemperature", type = Integer.class)
-    })
-    public void getColumns();
 }

@@ -96,8 +96,7 @@ public class WAL
                 myLogStream.close();
                 myLogStream =
                     myFacacde.createFile(
-                         makeFileName(myPersistedTransactionCount.get()),
-                         false);
+                         makeFileName(newTransactionID), false);
             }
             
             ByteArrayOutputStream byteStream = new ByteArrayOutputStream();

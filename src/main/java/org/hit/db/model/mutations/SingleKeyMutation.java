@@ -18,27 +18,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.examples.weather;
+package org.hit.db.model.mutations;
 
-import org.hit.db.apt.MetaColumns;
-import org.hit.db.apt.MetaColumn;
-import org.hit.db.apt.MetaTable;
-import org.hit.db.model.PartitioningType;
-
-import java.util.Date;
+import org.hit.db.model.Mutation;
 
 /**
- * AN interface that defines the schema of the table.
+ * Defines the contract for a single key mutation, that affects a single 
+ * row. Based on the row key mutations will be redirected appropriately.
  * 
  * @author Balraja Subbiah
  */
-@MetaTable(keyClass = Integer.class , tableName="NCDCData", partitioningType = PartitioningType.HASHABLE)
-public interface NCDCSchema
+public interface SingleKeyMutation<K extends Comparable<K>> extends Mutation
 {
-    @MetaColumns(columns = {
-        @MetaColumn(index = 0, isPrimary = true, name = "StationNumber", type = Integer.class),
-        @MetaColumn(index = 1, isPrimary = false, name = "Date", type = Date.class),
-        @MetaColumn(index = 1, isPrimary = false, name = "MeanTemperature", type = Integer.class)
-    })
-    public void getColumns();
+    /** Returns the key of the row that will be affected */
+    public K getKey();
 }
