@@ -52,7 +52,6 @@ public class HitServerModule extends HitModule
     @Override
     protected Integer getBoundPort()
     {
-        // TODO Auto-generated method stub
-        return null;
+        return Integer.valueOf(10000);
     }
 }

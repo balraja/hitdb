@@ -1,8 +1,8 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,35 +18,35 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.di;
-
-import org.hit.registry.RegistryService;
-import org.hit.registry.ZookeeperRegistryService;
+package org.hit.zookeeper;
 
 /**
- * Extends <code>HitModule</code> to support adding bindings for the
- * client side.
- * 
  * @author Balraja Subbiah
  */
-public class HitFacadeModule extends HitModule
+public class ZooKeeperClientPropertyConfig 
+    implements ZooKeeperClientConfig
 {
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void configure()
-    {
-        super.configure();
-        bind(RegistryService.class).to(ZookeeperRegistryService.class);
-    }
+    private static final String ZOOKEEPER_HOSTS_PROPERTY = 
+        "org.hit.zookeeper.hosts";
     
+    private static final String ZOOKEEPER_TIMEOUT_PROPERTY = 
+        "org.hit.zookeeper.timeout";
+
     /**
      * {@inheritDoc}
      */
     @Override
-    protected Integer getBoundPort()
+    public String getHosts()
     {
-        return Integer.valueOf(16000);
+        return System.getProperty(ZOOKEEPER_HOSTS_PROPERTY);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getSessionTimeout()
+    {
+        return Integer.parseInt(System.getProperty(ZOOKEEPER_TIMEOUT_PROPERTY));
     }
 }

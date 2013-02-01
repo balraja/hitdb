@@ -1,8 +1,8 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,35 +18,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.di;
-
-import org.hit.registry.RegistryService;
-import org.hit.registry.ZookeeperRegistryService;
+package org.hit.zookeeper;
 
 /**
- * Extends <code>HitModule</code> to support adding bindings for the
- * client side.
+ * Defines the contract for the configuration for the ZooKeeper client.
  * 
  * @author Balraja Subbiah
  */
-public class HitFacadeModule extends HitModule
-{
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void configure()
-    {
-        super.configure();
-        bind(RegistryService.class).to(ZookeeperRegistryService.class);
-    }
+public interface ZooKeeperClientConfig
+{ 
+    /** The host in which the zookeeper is running */
+    public String getHosts();
     
     /**
-     * {@inheritDoc}
+     * Returns the session timeout 
      */
-    @Override
-    protected Integer getBoundPort()
-    {
-        return Integer.valueOf(16000);
-    }
+    public int getSessionTimeout();
 }

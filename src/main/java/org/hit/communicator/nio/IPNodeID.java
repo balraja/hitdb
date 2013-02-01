@@ -24,6 +24,8 @@ import java.net.InetSocketAddress;
 
 import org.hit.communicator.NodeID;
 
+import com.google.common.net.InetAddresses;
+
 /**
  * An implementation of {@link NodeID} where each node is uniquely identified
  * by it's IPAddress.
@@ -32,6 +34,8 @@ import org.hit.communicator.NodeID;
  */
 public class IPNodeID implements NodeID
 {
+    private static final String SEPARATOR = ":";
+    
     private final InetSocketAddress myIPAddress;
     
     /**
@@ -96,5 +100,27 @@ public class IPNodeID implements NodeID
         result = prime * result
                  + ((myIPAddress == null) ? 0 : myIPAddress.hashCode());
         return result;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString()
+    {
+        return InetAddresses.toAddrString(myIPAddress.getAddress())
+               + SEPARATOR
+               + Integer.toString(myIPAddress.getPort());
+    }
+    
+    /** Parses the string representation of the nodeId */
+    public static IPNodeID parseString(String value)
+    {
+        String[] hostAndPort = value.split(SEPARATOR);
+        InetSocketAddress address = 
+            new InetSocketAddress(
+                InetAddresses.forString(hostAndPort[0]),
+                Integer.parseInt(hostAndPort[1]));
+        return new IPNodeID(address);
     }
 }

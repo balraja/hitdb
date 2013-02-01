@@ -195,11 +195,10 @@ public class HitFacade implements Application
      */
     public void createTable(Schema schema)
     {
-        Topology topology = myRegistryService.getTopology();
         CreateTableMessage message =
             new CreateTableMessage(myClientID, schema);
         
-        for (NodeID nodeID : topology.getNodes()) {
+        for (NodeID nodeID : myRegistryService.getServerNodes()) {
             myCommunicator.sendTo(nodeID, message);
         }
     }
@@ -222,7 +221,7 @@ public class HitFacade implements Application
                     new DistributedPartitioner<K>(hashRing)
                     : new LinearPartitioner<K>(hashRing);
                     
-            partitioner.distribute(myRegistryService.getTopology().getNodes());
+            partitioner.distribute(myRegistryService.getServerNodes());
             myTable2Partitoner.put(mutation.getTableName(), partitioner);
         }
         
@@ -245,6 +244,10 @@ public class HitFacade implements Application
                          new ResponseHandler(message));
                 }
             });
+        
+        while(!myRegistryService.isUp()) {
+            
+        }
     }
     
     /**

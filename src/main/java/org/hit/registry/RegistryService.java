@@ -20,6 +20,9 @@
 
 package org.hit.registry;
 
+import java.util.List;
+
+import org.hit.communicator.NodeID;
 import org.hit.db.model.Schema;
 import org.hit.distribution.KeyPartitioner;
 import org.hit.topology.Topology;
@@ -47,6 +50,9 @@ public interface RegistryService
     /**
      * Returns the topology of hit server.
      */
-    public Topology getTopology();
+    public List<NodeID> getServerNodes();
+    
+    /** Returns true if the registry service is up and running */
+    public boolean isUp();
 }
  
