@@ -45,7 +45,7 @@ import com.google.inject.name.Names;
  */
 public abstract class HitModule extends AbstractModule
 {
-  
+
 
     /**
      * {@inheritDoc}
