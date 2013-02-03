@@ -23,8 +23,11 @@ package org.hit.registry;
 import java.util.List;
 
 import org.hit.communicator.NodeID;
+import org.hit.db.model.PartitioningType;
 import org.hit.db.model.Schema;
 import org.hit.distribution.KeyPartitioner;
+import org.hit.distribution.KeySpace;
+import org.hit.util.Pair;
 import org.hit.zookeeper.ZooKeeperClient;
 
 import com.google.inject.Inject;
@@ -52,27 +55,6 @@ public class ZookeeperRegistryService implements RegistryService
      * {@inheritDoc}
      */
     @Override
-    public <K extends Comparable<K>> KeyPartitioner<K>
-        getKeyPartitioner(String tableName)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Schema getSchema(String tableName)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public List<NodeID> getServerNodes()
     {
         return myZooKeeperClient.getServerIDS();
@@ -85,5 +67,15 @@ public class ZookeeperRegistryService implements RegistryService
     public boolean isUp()
     {
         return myZooKeeperClient.isReady();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Pair<PartitioningType, KeySpace<?>>
+        getTableKeyMetaData(String tableName)
+    {
+        return myZooKeeperClient.getKeyMetaData(tableName);
     }
 }

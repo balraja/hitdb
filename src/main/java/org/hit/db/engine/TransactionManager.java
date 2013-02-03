@@ -49,6 +49,7 @@ import org.hit.event.SendMessageEvent;
 import org.hit.time.Clock;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
+import org.hit.zookeeper.ZooKeeperClient;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -170,6 +171,8 @@ public class TransactionManager
     
     private final WAL    myWriteAheadLog;
     
+    private final ZooKeeperClient myZooKeeperClient;
+    
     /**
      * CTOR
      */
@@ -178,7 +181,8 @@ public class TransactionManager
                               Clock                clock,
                               EventBus             eventBus,
                               NodeID               serverID,
-                              WAL                  writeAheadLog)
+                              WAL                  writeAheadLog,
+                              ZooKeeperClient      zooKeeperClient)
     {
         myDatabase = database;
         myClock = clock;
@@ -186,6 +190,7 @@ public class TransactionManager
         myServerID = serverID;
         myEventBus = eventBus;
         myWriteAheadLog = writeAheadLog;
+        myZooKeeperClient = zooKeeperClient;
         myExecutor =
             MoreExecutors.listeningDecorator(
                 Executors.newFixedThreadPool(
@@ -199,6 +204,7 @@ public class TransactionManager
     public void createTable(Schema schema)
     {
         myDatabase.createTable(schema);
+        myZooKeeperClient.addKeyMeta(schema);
     }
     
     /**

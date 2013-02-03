@@ -45,6 +45,10 @@ public interface KeySpace<T extends Comparable<? super T>>
     /** Returns the total number of elements in the hash ring */
     long getTotalElements();
     
+    public void setMinimum(Object min);
+    
+    public void setMaximum(Object max);
+    
     /**
      * Returns the value at the position offset from the given value.
      */

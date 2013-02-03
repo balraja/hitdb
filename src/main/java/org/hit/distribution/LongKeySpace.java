@@ -119,4 +119,21 @@ public class LongKeySpace implements KeySpace<Long>
         
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setMinimum(Object min)
+    {
+        myMinValue = ((Long) min);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setMaximum(Object max)
+    {
+        myMaxValue = ((Long) max);
+    }
 }

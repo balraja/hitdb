@@ -48,6 +48,7 @@ import org.hit.topology.Topology;
 import org.hit.util.Application;
 import org.hit.util.ApplicationLauncher;
 import org.hit.util.NamedThreadFactory;
+import org.hit.util.Pair;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -211,17 +212,18 @@ public class HitFacade implements Application
             (KeyPartitioner<K>) myTable2Partitoner.get(mutation.getTableName());
         
         if (partitioner == null) {
-            Schema schema = myRegistryService.getSchema(mutation.getTableName());
+            Pair<PartitioningType, KeySpace<?>> keyMeta = 
+                myRegistryService.getTableKeyMetaData(mutation.getTableName());
             
             @SuppressWarnings("unchecked")
-            KeySpace<K> hashRing = (KeySpace<K>) schema.getHashRing();
+            KeySpace<K> hashRing = (KeySpace<K>) keyMeta.getSecond();
             
             partitioner = 
-                schema.getKeyPartitioningType() == PartitioningType.HASHABLE ?
+                keyMeta.getFirst() == PartitioningType.HASHABLE ?
                     new DistributedPartitioner<K>(hashRing)
                     : new LinearPartitioner<K>(hashRing);
                     
-            partitioner.distribute(myRegistryService.getServerNodes());
+            partitioner.distribute(myRegistryService.getServerNodes() );
             myTable2Partitoner.put(mutation.getTableName(), partitioner);
         }
         
@@ -235,19 +237,20 @@ public class HitFacade implements Application
      */
     public void start()
     {
-        myCommunicator.addMessageHandler(
-            new MessageHandler() {
-                @Override
-                public void handle(Message message)
-                {
-                     myExecutorService.execute(
-                         new ResponseHandler(message));
-                }
-            });
+      
         
         while(!myRegistryService.isUp()) {
-            
+            // Wait till we connect to registry/zookeeper.
         }
+        myCommunicator.addMessageHandler(
+             new MessageHandler() {
+                 @Override
+                 public void handle(Message message)
+                 {
+                      myExecutorService.execute(
+                          new ResponseHandler(message));
+                 }
+             });
     }
     
     /**

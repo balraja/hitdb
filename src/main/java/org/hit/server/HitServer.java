@@ -22,10 +22,12 @@ package org.hit.server;
 
 import org.hit.communicator.CommunicatingActor;
 import org.hit.consensus.ConsensusManager;
+import org.hit.db.engine.DBEngine;
 import org.hit.di.HitServerModule;
 import org.hit.hms.HealthMonitor;
 import org.hit.util.Application;
 import org.hit.util.ApplicationLauncher;
+import org.hit.zookeeper.ZooKeeperClient;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -50,6 +52,10 @@ public class HitServer implements Application
     private final ConsensusManager   myConsensusManager;
     
     private final HealthMonitor      myHealthMonitor;
+    
+    private final DBEngine           myDBEngine;
+    
+    private final ZooKeeperClient    myZooKeeperClient;
 
     /**
      * CTOR
@@ -60,6 +66,8 @@ public class HitServer implements Application
         myCommunicatingActor = injector.getInstance(CommunicatingActor.class);
         myConsensusManager = injector.getInstance(ConsensusManager.class);
         myHealthMonitor = injector.getInstance(HealthMonitor.class);
+        myDBEngine      = injector.getInstance(DBEngine.class);
+        myZooKeeperClient = injector.getInstance(ZooKeeperClient.class);
     }
 
     /**
@@ -68,10 +76,13 @@ public class HitServer implements Application
     @Override
     public void start()
     {
+        while (!myZooKeeperClient.isReady()) {
+            //Wait till zookeeper client becomes ready.
+        }
         myCommunicatingActor.start();
         myConsensusManager.start();
         myHealthMonitor.start();
-        
+        myDBEngine.start();
     }
     
     /**
@@ -83,5 +94,6 @@ public class HitServer implements Application
         myCommunicatingActor.stop();
         myConsensusManager.stop();
         myHealthMonitor.stop();
+        myDBEngine.stop();
     }
 }

@@ -26,6 +26,8 @@ import org.hit.consensus.paxos.PaxosProvider;
 import org.hit.time.Clock;
 import org.hit.time.SimpleSystemClock;
 
+import com.google.inject.Provides;
+
 /**
  * Extends <code>HitModule</code> to support adding bindings for the server
  * side.
@@ -34,6 +36,16 @@ import org.hit.time.SimpleSystemClock;
  */
 public class HitServerModule extends HitModule
 {
+    private final EventBus myEventBus;
+    
+    /**
+     * CTOR
+     */
+    public HitServerModule()
+    {
+        myEventBus = new EventBus();
+    }
+    
     /**
      * {@inheritDoc}
      */
@@ -41,7 +53,6 @@ public class HitServerModule extends HitModule
     protected void configure()
     {
         super.configure();
-        bind(EventBus.class).toProvider(EventBusProvider.class);
         bind(ConsensusProtocolProvider.class).to(PaxosProvider.class);
         bind(Clock.class).to(SimpleSystemClock.class);
     }
@@ -53,5 +64,11 @@ public class HitServerModule extends HitModule
     protected Integer getBoundPort()
     {
         return Integer.valueOf(10000);
+    }
+    
+    @Provides
+    protected EventBus getEventBus()
+    {
+        return myEventBus;
     }
 }

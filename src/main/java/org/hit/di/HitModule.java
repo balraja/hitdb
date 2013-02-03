@@ -20,6 +20,7 @@
 
 package org.hit.di;
 
+import org.hit.actors.EventBus;
 import org.hit.communicator.Communicator;
 import org.hit.communicator.MessageSerializer;
 import org.hit.communicator.NodeID;
@@ -44,19 +45,22 @@ import com.google.inject.name.Names;
  */
 public abstract class HitModule extends AbstractModule
 {
+  
+
     /**
      * {@inheritDoc}
      */
     @Override
     protected void configure()
     {
-        bind(Integer.class).annotatedWith(Names.named("PreferredPort"))
-                           .toInstance(getBoundPort());
+        bindConstant().annotatedWith(Names.named("PreferredPort"))
+                      .to(getBoundPort());
 
         bind(MessageSerializer.class).to(SerializableSerializer.class);
         bind(Communicator.class).to(NIOCommunicator.class);
         bind(ZooKeeperClientConfig.class)
             .to(ZooKeeperClientPropertyConfig.class);
+        bind(ZooKeeperClient.class).toProvider(ZookeeperClientProvider.class);
     }
     
     protected abstract Integer getBoundPort();
@@ -65,12 +69,5 @@ public abstract class HitModule extends AbstractModule
     protected NodeID provideNodeID(@Named("PreferredPort") Integer port)
     {
         return new IPNodeID(port);
-    }
-    
-    @Provides
-    protected ZooKeeperClient provideZookeeperClient(
-        ZooKeeperClientConfig config)
-    {
-        return new ZooKeeperClient(config);
     }
 }

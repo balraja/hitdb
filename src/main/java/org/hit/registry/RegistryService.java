@@ -23,9 +23,12 @@ package org.hit.registry;
 import java.util.List;
 
 import org.hit.communicator.NodeID;
+import org.hit.db.model.PartitioningType;
 import org.hit.db.model.Schema;
 import org.hit.distribution.KeyPartitioner;
+import org.hit.distribution.KeySpace;
 import org.hit.topology.Topology;
+import org.hit.util.Pair;
 
 /**
  * Defines the contract for the lookup service for accessing the
@@ -36,16 +39,10 @@ import org.hit.topology.Topology;
 public interface RegistryService
 {
     /**
-     * Returns the <code>KeyPartitoner</code> that can be used for accessing
-     * the nodes that hosts the various parts of the key space.
-     */
-    public <K extends Comparable<K>> KeyPartitioner<K> getKeyPartitioner(
-        String tableName);
-    
-    /**
      * Returns the table schema.
      */
-    public Schema getSchema(String tableName);
+    public Pair<PartitioningType, KeySpace<?>> getTableKeyMetaData(
+        String tableName);
     
     /**
      * Returns the topology of hit server.

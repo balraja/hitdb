@@ -41,7 +41,6 @@ public class EventBusProvider implements Provider<EventBus>
     {
         myEventBus = new EventBus();
     }
-    
 
     /**
      * {@inheritDoc}
