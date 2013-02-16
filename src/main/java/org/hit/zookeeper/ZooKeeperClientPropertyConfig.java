@@ -20,6 +20,8 @@
 
 package org.hit.zookeeper;
 
+import org.hit.util.ApplicationProperties;
+
 /**
  * @author Balraja Subbiah
  */
@@ -38,7 +40,7 @@ public class ZooKeeperClientPropertyConfig
     @Override
     public String getHosts()
     {
-        return System.getProperty(ZOOKEEPER_HOSTS_PROPERTY);
+        return ApplicationProperties.getProperty(ZOOKEEPER_HOSTS_PROPERTY);
     }
 
     /**
@@ -47,6 +49,7 @@ public class ZooKeeperClientPropertyConfig
     @Override
     public int getSessionTimeout()
     {
-        return Integer.parseInt(System.getProperty(ZOOKEEPER_TIMEOUT_PROPERTY));
+        return Integer.parseInt(
+            ApplicationProperties.getProperty(ZOOKEEPER_TIMEOUT_PROPERTY));
     }
 }

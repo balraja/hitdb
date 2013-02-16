@@ -23,6 +23,8 @@ package org.hit.di;
 import org.hit.actors.EventBus;
 import org.hit.consensus.ConsensusProtocolProvider;
 import org.hit.consensus.paxos.PaxosProvider;
+import org.hit.db.transactions.journal.WALConfig;
+import org.hit.db.transactions.journal.WALPropertyConfig;
 import org.hit.time.Clock;
 import org.hit.time.SimpleSystemClock;
 
@@ -55,6 +57,7 @@ public class HitServerModule extends HitModule
         super.configure();
         bind(ConsensusProtocolProvider.class).to(PaxosProvider.class);
         bind(Clock.class).to(SimpleSystemClock.class);
+        bind(WALConfig.class).to(WALPropertyConfig.class);
     }
 
     /**

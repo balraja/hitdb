@@ -41,12 +41,17 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.JavaFileObject;
 
+import org.apache.log4j.Logger;
+import org.apache.log4j.BasicConfigurator;
+
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
+import org.apache.velocity.app.Velocity;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.exception.MethodInvocationException;
 import org.apache.velocity.exception.ParseErrorException;
 import org.apache.velocity.exception.ResourceNotFoundException;
+import org.apache.velocity.runtime.RuntimeConstants;
 
 /**
  * Extends the <code>AbstractProcessor</code> for processing the
@@ -60,6 +65,8 @@ import org.apache.velocity.exception.ResourceNotFoundException;
 @SupportedSourceVersion(SourceVersion.RELEASE_7)
 public class HitAnnotationProcessor extends AbstractProcessor
 {
+    private static final String LOGGER_NAME = "HitAnnotationProcessor";
+    
     private Template myClassTemplate;
     
     private ProcessingEnvironment myProcessingEnvironment = null;
@@ -73,19 +80,28 @@ public class HitAnnotationProcessor extends AbstractProcessor
     {
         
         try {
+            BasicConfigurator.configure();
+            Logger log = Logger.getLogger( LOGGER_NAME );
+            log.info("Log4jLoggerExample: ready to start velocity");
+            
             Properties props = new Properties();
-            props.put("runtime.log.logsystem.class",
-                      "org.apache.velocity.runtime.log.SystemLogChute");
+            props.put(RuntimeConstants.RUNTIME_LOG_LOGSYSTEM_CLASS,
+                      "org.apache.velocity.runtime.log.Log4JLogChute");
+            props.put("runtime.log.logsystem.log4j.logger",
+                     LOGGER_NAME);
             props.put("resource.loader", "classpath");
             props.put("classpath.resource.loader.class",
-                      "org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader");
+                      "org.apache.velocity.runtime.resource."
+                      + "loader.ClasspathResourceLoader");
             VelocityEngine ve = new VelocityEngine(props);
             ve.init();
-            myClassTemplate = ve.getTemplate("beaninfo.vm");
+            log.info("Velocity initialized");
+            myClassTemplate = ve.getTemplate("dbmodel.vtl");
         }
-        catch (ResourceNotFoundException | ParseErrorException e)
+        catch (Throwable e)
         {
-            myClassTemplate = null;
+            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
     

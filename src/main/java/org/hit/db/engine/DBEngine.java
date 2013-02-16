@@ -42,6 +42,7 @@ import org.hit.event.PerformDBOperationMessage;
 import org.hit.time.Clock;
 import org.hit.topology.Topology;
 import org.hit.util.LogFactory;
+import org.hit.zookeeper.ZooKeeperClient;
 
 import com.google.inject.Inject;
 
@@ -74,13 +75,15 @@ public class DBEngine extends Actor
                     NodeID               replicatedOnNodeID,
                     NodeID               replicatingNodeID,
                     Clock                clock,
-                    WAL                  wal)
+                    WAL                  wal,
+                    ZooKeeperClient      zooKeeperClient)
     {
         super(eventBus, new ActorID(DBEngine.class.getName()));
         TransactableDatabase dataStore =
             new TransactableHitDatabase(topology, nodeID);
         myTransactionManager =
-            new TransactionManager(dataStore, clock, eventBus, nodeID, wal);
+            new TransactionManager(
+                dataStore, clock, eventBus, nodeID, wal, zooKeeperClient);
         myReplicationManager = new ReplicationManager(replicatingNodeID);
         myReplicatingOnNodeID = replicatedOnNodeID;
         myNodeID = nodeID;

@@ -33,7 +33,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 
 /**
- * An instance of HIT database engine.
+ * The main application that starts the database engine.
  * 
  * @author Balraja Subbiah
  */

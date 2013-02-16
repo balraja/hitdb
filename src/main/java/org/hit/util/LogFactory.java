@@ -69,7 +69,7 @@ public class LogFactory
     public Logger getLogger(Class<?> namespaceClass)
     {
         Logger logger = 
-                LogManager.getLogManager().getLogger(namespaceClass.getName());
+            LogManager.getLogManager().getLogger(namespaceClass.getName());
         logger.addHandler(myHandler);
         return logger;
     }

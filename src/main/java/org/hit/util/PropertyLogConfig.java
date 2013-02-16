@@ -28,10 +28,10 @@ package org.hit.util;
  */
 public class PropertyLogConfig implements LogConfig
 {
-    private static final String CONST_LOG_FILE_NAME_PROPERTY = 
+    private static final String LOG_FILE_NAME_PROPERTY = 
             "org.hit.util.logFile";
     
-    private static final String CONST_LOG_CONFIG_FILE_NAME_PROPERTY = 
+    private static final String LOG_CONFIG_FILE_NAME_PROPERTY = 
             "org.hit.util.logConfigFile";
     
     /**
@@ -40,7 +40,7 @@ public class PropertyLogConfig implements LogConfig
     @Override
     public String getLogFile()
     {
-        return System.getProperty(CONST_LOG_FILE_NAME_PROPERTY);
+        return ApplicationProperties.getProperty(LOG_FILE_NAME_PROPERTY);
     }
 
     /**
@@ -49,7 +49,7 @@ public class PropertyLogConfig implements LogConfig
     @Override
     public String getLogPropertiesFile()
     {
-        return System.getProperty(CONST_LOG_CONFIG_FILE_NAME_PROPERTY);
+        return ApplicationProperties.getProperty(LOG_CONFIG_FILE_NAME_PROPERTY);
     }
 
 }

@@ -409,18 +409,12 @@ public class ZooKeeperClient
          catch (KeeperException 
                 | InterruptedException 
                 | IOException 
-                | ClassNotFoundException e) 
+                | ClassNotFoundException
+                | InstantiationException 
+                | IllegalAccessException e) 
          {
              LOG.log(Level.SEVERE, e.getMessage(), e);
              throw new RuntimeException(e);
          }
-        catch (InstantiationException e) {
-            LOG.log(Level.SEVERE, e.getMessage(), e);
-            throw new RuntimeException(e);
-        }
-        catch (IllegalAccessException e) {
-            LOG.log(Level.SEVERE, e.getMessage(), e);
-            throw new RuntimeException(e);
-        }
     }
 }
