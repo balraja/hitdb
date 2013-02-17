@@ -37,7 +37,7 @@ import org.hit.db.model.PartitioningType;
 public @interface MetaTable
 {
     /** The type  of the class that can be used as key for this table */
-    Class<?> keyClass();
+    String keyClassName();
     
     /** The type by which partitioning the key space should happen */
     PartitioningType partitioningType();

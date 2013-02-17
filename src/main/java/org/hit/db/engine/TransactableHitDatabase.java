@@ -29,7 +29,6 @@ import org.hit.db.model.Persistable;
 import org.hit.db.model.Schema;
 import org.hit.db.transactions.TransactableDatabase;
 import org.hit.db.transactions.TransactableTable;
-import org.hit.topology.Topology;
 
 /**
  * Defines an implementation for the hit database that stores the
@@ -46,7 +45,7 @@ public class TransactableHitDatabase implements TransactableDatabase
     /**
      * CTOR
      */
-    public TransactableHitDatabase(Topology topology, NodeID nodeID)
+    public TransactableHitDatabase(NodeID nodeID)
     {
         myDatabaseTables = new HashMap<>();
         myTable2Schema = new HashMap<>();

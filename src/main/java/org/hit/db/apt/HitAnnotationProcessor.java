@@ -34,24 +34,15 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeMirror;
 import javax.tools.JavaFileObject;
 
-import org.apache.log4j.Logger;
-import org.apache.log4j.BasicConfigurator;
-
-import org.apache.velocity.Template;
-import org.apache.velocity.VelocityContext;
-import org.apache.velocity.app.Velocity;
-import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.exception.MethodInvocationException;
-import org.apache.velocity.exception.ParseErrorException;
-import org.apache.velocity.exception.ResourceNotFoundException;
-import org.apache.velocity.runtime.RuntimeConstants;
+import org.stringtemplate.v4.ST;
+import org.stringtemplate.v4.STGroup;
+import org.stringtemplate.v4.STGroupFile;
 
 /**
  * Extends the <code>AbstractProcessor</code> for processing the
@@ -65,44 +56,66 @@ import org.apache.velocity.runtime.RuntimeConstants;
 @SupportedSourceVersion(SourceVersion.RELEASE_7)
 public class HitAnnotationProcessor extends AbstractProcessor
 {
-    private static final String LOGGER_NAME = "HitAnnotationProcessor";
-    
-    private Template myClassTemplate;
-    
-    private ProcessingEnvironment myProcessingEnvironment = null;
-    
-    private TypeMirror myMetaColumnsType = null;
+    public static class FormattedMetaColumn
+    {
+        private final MetaColumn myMetaColumn ;
+        
+        private final int myIndex;
+
+        /**
+         * CTOR
+         */
+        public FormattedMetaColumn(MetaColumn metaColumn, int index)
+        {
+            super();
+            myMetaColumn = metaColumn;
+            myIndex = index;
+        }
+        
+        public String getName()
+        {
+            return myMetaColumn.name();
+        }
+        
+        public String getVariableName()
+        {
+            return Character.toLowerCase(myMetaColumn.name().charAt(0))
+                   + myMetaColumn.name().substring(1);
+        }
+        
+        public boolean isPrimary()
+        {
+            return myMetaColumn.primary();
+        }
+        
+        public int getIndex()
+        {
+            return myIndex;
+        }
+        
+        public String getType()
+        {
+            int lastIndex = myMetaColumn.type().lastIndexOf('.');
+            return  lastIndex > -1 ? myMetaColumn.type().substring(lastIndex + 1)
+                                   : myMetaColumn.type();
+        }
+        
+        public boolean isImportNecessary()
+        {
+            return myMetaColumn.type().indexOf('.') > -1;
+        }
+        
+        public String getQualifiedType()
+        {
+            return myMetaColumn.type();
+        }
+    }
     
     /**
      * CTOR
      */
     public HitAnnotationProcessor()
     {
-        
-        try {
-            BasicConfigurator.configure();
-            Logger log = Logger.getLogger( LOGGER_NAME );
-            log.info("Log4jLoggerExample: ready to start velocity");
-            
-            Properties props = new Properties();
-            props.put(RuntimeConstants.RUNTIME_LOG_LOGSYSTEM_CLASS,
-                      "org.apache.velocity.runtime.log.Log4JLogChute");
-            props.put("runtime.log.logsystem.log4j.logger",
-                     LOGGER_NAME);
-            props.put("resource.loader", "classpath");
-            props.put("classpath.resource.loader.class",
-                      "org.apache.velocity.runtime.resource."
-                      + "loader.ClasspathResourceLoader");
-            VelocityEngine ve = new VelocityEngine(props);
-            ve.init();
-            log.info("Velocity initialized");
-            myClassTemplate = ve.getTemplate("dbmodel.vtl");
-        }
-        catch (Throwable e)
-        {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
     }
     
     /**
@@ -112,11 +125,6 @@ public class HitAnnotationProcessor extends AbstractProcessor
     public synchronized void init(ProcessingEnvironment processingEnv)
     {
         super.init(processingEnv);
-        myProcessingEnvironment = processingEnv;
-        Element metaColumnsElement =
-            myProcessingEnvironment.getElementUtils()
-                                   .getTypeElement(MetaColumns.class.getName());
-        myMetaColumnsType = metaColumnsElement.asType();
     }
     
     /**
@@ -132,33 +140,24 @@ public class HitAnnotationProcessor extends AbstractProcessor
                 
                 TypeElement typeElement = (TypeElement) e;
                 
-                typeElement.getEnclosingElement();
+                PackageElement packageElement = 
+                    (PackageElement) typeElement.getEnclosingElement();
 
                 MetaTable metaTable =
                     typeElement.getAnnotation(MetaTable.class);
                 
-                List<MetaColumn> columns = new ArrayList<>();
+                List<MetaColumn> metaColumns = new ArrayList<>();
                 
                 for (Element enclosedElement :
                         typeElement.getEnclosedElements())
                 {
                     if (enclosedElement.getKind() == ElementKind.METHOD) {
-                        for (AnnotationMirror annotation :
-                                enclosedElement.getAnnotationMirrors())
-                        {
-                            if (annotation.getAnnotationType().equals(
-                                    myMetaColumnsType))
-                            {
-                                MetaColumns metaColumns =
-                                   annotation.getAnnotationType()
-                                             .asElement()
-                                             .getAnnotation(MetaColumns.class);
-                                
-                                if (metaColumns != null) {
-                                    columns.addAll(
-                                        Arrays.asList(metaColumns.columns()));
-                                }
-                            }
+                        MetaColumns metaColumnsAnnotation =
+                            enclosedElement.getAnnotation(MetaColumns.class);
+                        
+                        if (metaColumnsAnnotation != null) {
+                            metaColumns.addAll(
+                                Arrays.asList(metaColumnsAnnotation.columns()));
                         }
                     }
                 }
@@ -170,17 +169,28 @@ public class HitAnnotationProcessor extends AbstractProcessor
 
                     Writer writer = jfo.openWriter();
 
-                    VelocityContext vc = new VelocityContext();
-                    vc.put("tableName", metaTable.tableName());
-                    vc.put("keyClassName", metaTable.keyClass().getSimpleName());
-                    vc.put("meta_columns", columns);
-                    myClassTemplate.merge(vc, writer);
+                    STGroup group = new STGroupFile("db_model_templates.stg");
+                    ST st = group.getInstanceOf("dbmodel");
+                    st.add("packageName", 
+                           packageElement.getQualifiedName().toString());
+                    st.add("tableName", metaTable.tableName());
+                    st.add("keyClassName", metaTable.keyClassName());
+                   
+                    List<FormattedMetaColumn> formattedColumns = 
+                        new ArrayList<>();
+                        int index = 0;
+                    for (MetaColumn column : metaColumns) {
+                        formattedColumns.add(new FormattedMetaColumn(column, 
+                                                                     index));
+                        index++;
+                    }
+                    st.add("metaColumns", formattedColumns);
 
+                    writer.write(st.render());
+                    writer.flush();
                     writer.close();
                 }
-                catch (ResourceNotFoundException | ParseErrorException
-                       | MethodInvocationException | IOException e1)
-                {
+                catch (IOException e1) {
                     e1.printStackTrace();
                 }
             }

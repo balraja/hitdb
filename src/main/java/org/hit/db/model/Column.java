@@ -33,20 +33,16 @@ public class Column
     
     private final boolean myIsPrimaryColumn;
     
-    private final Class<?> myColumnClass;
-    
     /**
      * CTOR
      */
     public Column(String columnName,
                   int colIndex,
-                  boolean isPrimaryColumn,
-                  Class<?> columnClass)
+                  boolean isPrimaryColumn)
     {
         myColumnName = columnName;
         myColIndex = colIndex;
         myIsPrimaryColumn = isPrimaryColumn;
-        myColumnClass = columnClass;
     }
 
     /**
@@ -55,14 +51,6 @@ public class Column
     public int getColIndex()
     {
         return myColIndex;
-    }
-
-    /**
-     * Returns the value of columnClass
-     */
-    public Class<?> getColumnClass()
-    {
-        return myColumnClass;
     }
 
     /**

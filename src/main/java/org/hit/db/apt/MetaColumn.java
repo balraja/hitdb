@@ -27,17 +27,14 @@ package org.hit.db.apt;
  */
 public @interface MetaColumn
 {
-    /** Returns the index of column in the table */
-    int index();
-    
     /**
      * Returns true if the column is a primary column.
      */
-    boolean isPrimary();
+    boolean primary() default false ;
     
     /** Returns the name of column */
     String name();
     
     /** Returns the type of column */
-    Class<?> type();
+    String type();
 }

@@ -1,0 +1,93 @@
+addColumn(metaColumn) ::= <<
+            ourColumns.add(new Column(<metaColumn.name>,
+                                      <metaColumn.index>,
+                                      <metaColumn.primary>));<\n><\n>
+>> 
+
+columnVariable(metaColumn) ::= <<
+    private <metaColumn.type> my<metaColumn.name>;
+>>
+
+primaryKey(metaColumn) ::= <<
+       <if(metaColumn.primary)> 
+       return <metaColumn.name>;
+       <endif>
+>>
+
+getterSetter(metaColumn) ::= <<
+     /**
+     * Returns the value of $metaColumn.name$.
+     */
+    public <metaColumn.type> get<metaColumn.name>() {
+        return my<metaColumn.name>;
+    }
+    <\n>
+    /**
+     * Sets the value of $metaColumn.name$.
+     */
+    public <metaColumn.type> set<metaColumn.name>(
+        <metaColumn.type> <metaColumn.variableName>) 
+    {
+        my<metaColumn.name> = <metaColumn.variableName>;
+    }
+    <\n>
+>>
+
+valueProvider(metaColumn) ::= <<
+    case <metaColumn.index>:
+        return my<metaColumn.name><\n>;
+>>
+
+importType(metaColumn) ::= <<
+<if(metaColumn.importNecessary)> 
+import <metaColumn.qualifiedType>;
+<endif>
+>>
+
+dbmodel(packageName, tableName, keyClassName, metaColumns) ::= <<
+
+package <packageName>;
+
+<metaColumns:importType()>
+
+import org.hit.db.model.Persistable;
+import org.hit.db.model.Column;
+
+import java.util.List;
+
+/**
+ * Implementation to capture the row of <tableName>
+ */
+public class <tableName> implements Persistable\<<keyClassName>\>
+{
+    private static List\<Column\> ourColumns = new ArrayList\<\>();
+    
+    static {
+       <metaColumns:addColumn()>
+    }
+    
+    <metaColumns:columnVariable()>
+    
+    
+    /** Returns the columns in this type */
+    public static List<Column> getColumns()
+    {
+        return ourColumns;
+    }
+    
+    <metaColumns:getterSetter()>
+    
+    public <keyClassName> primaryKey()
+    {
+        <metaColumns:primaryKey()>
+    }
+
+    public Object getValue(Column column) 
+    {
+    
+        switch (column.getColIndex) {
+            <metaColumns:valueProvider()>
+        }
+    }
+}
+>>

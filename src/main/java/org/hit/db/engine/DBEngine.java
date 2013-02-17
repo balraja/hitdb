@@ -70,7 +70,6 @@ public class DBEngine extends Actor
      */
     @Inject
     public DBEngine(EventBus             eventBus,
-                    Topology             topology,
                     NodeID               nodeID,
                     NodeID               replicatedOnNodeID,
                     NodeID               replicatingNodeID,
@@ -80,7 +79,7 @@ public class DBEngine extends Actor
     {
         super(eventBus, new ActorID(DBEngine.class.getName()));
         TransactableDatabase dataStore =
-            new TransactableHitDatabase(topology, nodeID);
+            new TransactableHitDatabase(nodeID);
         myTransactionManager =
             new TransactionManager(
                 dataStore, clock, eventBus, nodeID, wal, zooKeeperClient);
