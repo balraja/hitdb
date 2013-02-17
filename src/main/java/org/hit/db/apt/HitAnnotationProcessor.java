@@ -165,7 +165,9 @@ public class HitAnnotationProcessor extends AbstractProcessor
                 try {
                     JavaFileObject jfo =
                         processingEnv.getFiler().createSourceFile(
-                            metaTable.tableName());
+                            packageElement.getQualifiedName().toString()
+                            + "." + metaTable.tableName(),
+                            packageElement);
 
                     Writer writer = jfo.openWriter();
 

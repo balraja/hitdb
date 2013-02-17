@@ -20,15 +20,13 @@
 
 package org.hit.db.model;
 
-import org.hit.concurrent.Poolable;
-
 /**
  * Defines the contract for objects that can be stored in a table.
  * 
  * @author Balraja Subbiah
  */
 public interface Persistable<K extends Comparable<K>>
-    extends Poolable, Cloneable
+    extends Cloneable
 {
     /** Returns the value of the given column in this object */
     public Object getValue(Column column);

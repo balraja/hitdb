@@ -1,21 +1,21 @@
 addColumn(metaColumn) ::= <<
-            ourColumns.add(new Column(<metaColumn.name>,
-                                      <metaColumn.index>,
-                                      <metaColumn.primary>));<\n><\n>
+        ourColumns.add(new Column("<metaColumn.name>",
+                                  <metaColumn.index>,
+                                  <metaColumn.primary>));<\n><\n>
 >> 
 
 columnVariable(metaColumn) ::= <<
-    private <metaColumn.type> my<metaColumn.name>;
+    private <metaColumn.type> my<metaColumn.name>;<\n>
 >>
 
 primaryKey(metaColumn) ::= <<
        <if(metaColumn.primary)> 
-       return <metaColumn.name>;
+       return my<metaColumn.name>;
        <endif>
 >>
 
 getterSetter(metaColumn) ::= <<
-     /**
+    /**
      * Returns the value of $metaColumn.name$.
      */
     public <metaColumn.type> get<metaColumn.name>() {
@@ -25,7 +25,7 @@ getterSetter(metaColumn) ::= <<
     /**
      * Sets the value of $metaColumn.name$.
      */
-    public <metaColumn.type> set<metaColumn.name>(
+    public void set<metaColumn.name>(
         <metaColumn.type> <metaColumn.variableName>) 
     {
         my<metaColumn.name> = <metaColumn.variableName>;
@@ -35,7 +35,7 @@ getterSetter(metaColumn) ::= <<
 
 valueProvider(metaColumn) ::= <<
     case <metaColumn.index>:
-        return my<metaColumn.name><\n>;
+        return my<metaColumn.name>;<\n>
 >>
 
 importType(metaColumn) ::= <<
@@ -53,6 +53,7 @@ package <packageName>;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Column;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -60,7 +61,7 @@ import java.util.List;
  */
 public class <tableName> implements Persistable\<<keyClassName>\>
 {
-    private static List\<Column\> ourColumns = new ArrayList\<\>();
+    private static List\<Column\> ourColumns = new ArrayList\<Column\>();
     
     static {
        <metaColumns:addColumn()>
@@ -85,8 +86,10 @@ public class <tableName> implements Persistable\<<keyClassName>\>
     public Object getValue(Column column) 
     {
     
-        switch (column.getColIndex) {
+        switch (column.getColIndex()) {
             <metaColumns:valueProvider()>
+            default:
+                return null;
         }
     }
 }
