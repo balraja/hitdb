@@ -80,6 +80,8 @@ public class TransactionManager
         private final TransactionID myTransactionID;
         
         private final DBOperation myOperation;
+        
+        private final boolean myShouldReplicate;
 
         /**
          * CTOR
@@ -88,7 +90,8 @@ public class TransactionManager
                                 NodeID        serverID,
                                 EventBus      eventBus,
                                 TransactionID transactionID,
-                                DBOperation   operation)
+                                DBOperation   operation,
+                                boolean       shouldReplicate)
         {
             super();
             myClientID = clientID;
@@ -96,6 +99,7 @@ public class TransactionManager
             myEventBus = eventBus;
             myTransactionID = transactionID;
             myOperation = operation;
+            myShouldReplicate = shouldReplicate;
         }
 
         /**
@@ -126,7 +130,10 @@ public class TransactionManager
         public void onSuccess(TransactionResult result)
         {
             try {
-                if (result.isCommitted() && myOperation instanceof Mutation) {
+                if (result.isCommitted() 
+                    && myOperation instanceof Mutation
+                    && myShouldReplicate) 
+                {
                     myEventBus.publish(
                         new ConsensusRequestEvent(
                             new DBReplicaProposal(
@@ -173,6 +180,8 @@ public class TransactionManager
     
     private final ZooKeeperClient myZooKeeperClient;
     
+    private final boolean myShouldReplicate;
+    
     /**
      * CTOR
      */
@@ -182,7 +191,8 @@ public class TransactionManager
                               EventBus             eventBus,
                               NodeID               serverID,
                               WAL                  writeAheadLog,
-                              ZooKeeperClient      zooKeeperClient)
+                              ZooKeeperClient      zooKeeperClient,
+                              boolean              shouldReplicate)
     {
         myDatabase = database;
         myClock = clock;
@@ -191,6 +201,7 @@ public class TransactionManager
         myEventBus = eventBus;
         myWriteAheadLog = writeAheadLog;
         myZooKeeperClient = zooKeeperClient;
+        myShouldReplicate = shouldReplicate;
         myExecutor =
             MoreExecutors.listeningDecorator(
                 Executors.newFixedThreadPool(
@@ -230,6 +241,7 @@ public class TransactionManager
                                                  myServerID,
                                                  myEventBus,
                                                  id,
-                                                 operation));
+                                                 operation,
+                                                 myShouldReplicate));
     }
 }

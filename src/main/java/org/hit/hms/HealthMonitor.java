@@ -61,7 +61,7 @@ public class HealthMonitor extends Actor
     
     private final ScheduledExecutorService myScheduler;
     
-    private final Future<?> myScheduledFuture;
+    private Future<?> myScheduledFuture;
     
     private final Random myRandom;
     
@@ -82,47 +82,6 @@ public class HealthMonitor extends Actor
             Executors.newScheduledThreadPool(1,
                                              new NamedThreadFactory(getClass())
             );
-        
-        myScheduledFuture =
-             myScheduler.schedule(
-                 new Runnable() {
-                    /**
-                     * {@inheritDoc}
-                     */
-                    @Override
-                    public void run()
-                    {
-                        mySuspectMatrix.updateElapsedGossipCycles();
-                        int nextDestination =
-                            myRandom.nextInt(
-                                myTopology.getParticipatingNodes().size())
-                            % myTopology.getParticipatingNodes().size();
-                        
-                        NodeID target =
-                            myTopology.getParticipatingNodes()
-                                      .get(nextDestination);
-                        
-                        try {
-                            getEventBus().publish(
-                                new SendMessageEvent(
-                                    Collections.singleton(target),
-                                    new GossipMessage(
-                                        myNodeID,
-                                        mySuspectMatrix.getSuspectVector(
-                                            myNodeID))
-                                    )
-                                );
-                        }
-                        catch (EventBusException e) {
-                            LOG.log(Level.SEVERE,
-                                    e.getMessage(),
-                                    e);
-                        }
-                    }
-                 },
-                 GossipInformation.GOSSIP_INTERVAL_IN_SECONDS,
-                 TimeUnit.SECONDS);
-        
         myRandom = new Random();
     }
 
@@ -146,5 +105,65 @@ public class HealthMonitor extends Actor
     protected void registerEvents()
     {
         getEventBus().registerForEvent(GossipMessage.class, getActorID());
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void start()
+    {
+        super.start();
+        myScheduledFuture =
+            myScheduler.schedule(
+                new Runnable() {
+                   /**
+                    * {@inheritDoc}
+                    */
+                   @Override
+                   public void run()
+                   {
+                       mySuspectMatrix.updateElapsedGossipCycles();
+                       int nextDestination =
+                           myRandom.nextInt(
+                               myTopology.getParticipatingNodes().size())
+                           % myTopology.getParticipatingNodes().size();
+                       
+                       NodeID target =
+                           myTopology.getParticipatingNodes()
+                                     .get(nextDestination);
+                       
+                       try {
+                           getEventBus().publish(
+                               new SendMessageEvent(
+                                   Collections.singleton(target),
+                                   new GossipMessage(
+                                       myNodeID,
+                                       mySuspectMatrix.getSuspectVector(
+                                           myNodeID))
+                                   )
+                               );
+                       }
+                       catch (EventBusException e) {
+                           LOG.log(Level.SEVERE,
+                                   e.getMessage(),
+                                   e);
+                       }
+                   }
+                },
+                GossipInformation.GOSSIP_INTERVAL_IN_SECONDS,
+                TimeUnit.SECONDS);
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void stop()
+    {
+        super.stop();
+        if (myScheduledFuture != null) {
+            myScheduledFuture.cancel(true);
+        }
     }
 }

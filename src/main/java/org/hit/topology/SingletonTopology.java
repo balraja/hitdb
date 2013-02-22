@@ -2,7 +2,7 @@
     Hit is a high speed transactional database for handling millions
     of updates with comfort and ease. 
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,48 +18,66 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.util;
+package org.hit.topology;
 
-import java.io.File;
+import java.util.Collections;
+import java.util.List;
+
+import org.hit.communicator.NodeID;
+
+import com.google.inject.Inject;
 
 /**
- * The implementation of <code>LogConfig</code> which reads configuration 
- * information from the properties file.
+ * Implements <code>Topology</code> that wraps a single node.
  * 
  * @author Balraja Subbiah
  */
-public class PropertyLogConfig implements LogConfig
+public class SingletonTopology implements Topology
 {
-    private static final String LOG_FILE_NAME = "hit.log";
-    
-    private static final String LOG_FILE_NAME_PROPERTY = 
-            "org.hit.util.logFile";
-    
-    private static final String LOG_CONFIG_FILE_NAME_PROPERTY = 
-            "org.hit.util.logConfigFile";
+    private final NodeID myNodeID;
     
     /**
-     * {@inheritDoc}
+     * CTOR
      */
-    @Override
-    public String getLogFile()
+    @Inject
+    public SingletonTopology(NodeID nodeID)
     {
-        String file = ApplicationProperties.getProperty(LOG_FILE_NAME_PROPERTY);
-        
-        if (file == null) {
-            file = System.getProperty("java.io.tmpdir");
-            file += (File.separator + LOG_FILE_NAME);
-        }
-        return file;
+        myNodeID = nodeID;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public String getLogPropertiesFile()
+    public List<NodeID> getNodes()
     {
-        return ApplicationProperties.getProperty(LOG_CONFIG_FILE_NAME_PROPERTY);
+        return Collections.singletonList(myNodeID);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<NodeID> getParticipatingNodes()
+    {
+        return Collections.emptyList();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public NodeID getReplicatingNodeID(NodeID nodeID)
+    {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public NodeID getReplicaSource(NodeID nodeID)
+    {
+        return null;
+    }
 }

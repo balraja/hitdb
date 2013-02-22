@@ -35,7 +35,7 @@ import org.hit.communicator.NodeID;
 public interface Topology
 {
     /**
-     * Returns the list of all nodes that are currently part of hit cluster.
+     * Returns the list of nodes that are currently part of hit cluster.
      */
     public List<NodeID> getNodes();
     
@@ -46,7 +46,12 @@ public interface Topology
     public List<NodeID> getParticipatingNodes();
     
     /**
-     * The node on which the given node's data is replicated.
+     * Returns the node on which the given node's data is replicated.
      */
     public NodeID getReplicatingNodeID(NodeID nodeID);
+    
+    /**
+     * Returns the node whose data is replicated on the given node.
+     */
+    public NodeID getReplicaSource(NodeID nodeID);
 }

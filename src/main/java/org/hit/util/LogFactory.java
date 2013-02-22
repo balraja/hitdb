@@ -20,8 +20,8 @@
 
 package org.hit.util;
 
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.LogManager;
@@ -47,9 +47,15 @@ public class LogFactory
     {
         myConfig = config;
         try {
-            LogManager.getLogManager().readConfiguration(
-                new FileInputStream(myConfig.getLogPropertiesFile()));
+            InputStream configStream = 
+                 LogFactory.class.getClassLoader().getResourceAsStream(
+                     myConfig.getLogPropertiesFile());
+            
+            LogManager.getLogManager().readConfiguration(configStream);
+            
             myHandler = new FileHandler(myConfig.getLogFile());
+            
+            System.out.println("Please check the logfile " + myConfig.getLogFile());
         }
         catch (SecurityException | IOException e) {
             throw new RuntimeException(e);
@@ -68,8 +74,7 @@ public class LogFactory
     /** Returns <cdoe>Logger</code> for this namespace */
     public Logger getLogger(Class<?> namespaceClass)
     {
-        Logger logger = 
-            LogManager.getLogManager().getLogger(namespaceClass.getName());
+        Logger logger = Logger.getLogger(namespaceClass.getName());
         logger.addHandler(myHandler);
         return logger;
     }

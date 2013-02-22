@@ -71,7 +71,7 @@ public class <tableName> implements Persistable\<<keyClassName>\>
     
     
     /** Returns the columns in this type */
-    public static List<Column> getColumns()
+    public static List\<Column\> getColumns()
     {
         return ourColumns;
     }

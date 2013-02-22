@@ -71,21 +71,36 @@ public class DBEngine extends Actor
     @Inject
     public DBEngine(EventBus             eventBus,
                     NodeID               nodeID,
-                    NodeID               replicatedOnNodeID,
-                    NodeID               replicatingNodeID,
                     Clock                clock,
                     WAL                  wal,
+                    Topology             topology,
                     ZooKeeperClient      zooKeeperClient)
     {
         super(eventBus, new ActorID(DBEngine.class.getName()));
+        
         TransactableDatabase dataStore =
             new TransactableHitDatabase(nodeID);
+        
+        myNodeID = nodeID;
+        myReplicatingOnNodeID = topology.getReplicatingNodeID(myNodeID);
+        NodeID replicaSource = topology.getReplicaSource(myNodeID);
+        if (replicaSource != null) {
+            myReplicationManager = 
+                new ReplicationManager(replicaSource);
+        }
+        else {
+            myReplicationManager = null;
+        }
+        
         myTransactionManager =
             new TransactionManager(
-                dataStore, clock, eventBus, nodeID, wal, zooKeeperClient);
-        myReplicationManager = new ReplicationManager(replicatingNodeID);
-        myReplicatingOnNodeID = replicatedOnNodeID;
-        myNodeID = nodeID;
+                dataStore, 
+                clock, 
+                eventBus, 
+                nodeID, 
+                wal, 
+                zooKeeperClient,
+                myReplicatingOnNodeID != null);
     }
 
     /**
@@ -106,7 +121,9 @@ public class DBEngine extends Actor
             myTransactionManager.processOperation(
                 message.getNodeId(), operation);
         }
-        else if (event instanceof ApplyToReplicaEvent) {
+        else if (event instanceof ApplyToReplicaEvent 
+                 && myReplicationManager != null) 
+        {
             ApplyToReplicaEvent applyToReplicaEvent =
                 (ApplyToReplicaEvent) event;
             myReplicationManager.applyReplicationProposal(
@@ -120,7 +137,6 @@ public class DBEngine extends Actor
     @Override
     protected void registerEvents()
     {
-        
     }
 
     /**
@@ -131,16 +147,20 @@ public class DBEngine extends Actor
     {
         super.start();
         try {
-            getEventBus().publish(
-                new CreateConsensusLeaderEvent(
-                    new ReplicatedDatabaseID(myNodeID),
-                    Collections.singleton(myReplicatingOnNodeID)));
+            if (myReplicatingOnNodeID != null) {
+                getEventBus().publish(
+                    new CreateConsensusLeaderEvent(
+                        new ReplicatedDatabaseID(myNodeID),
+                        Collections.singleton(myReplicatingOnNodeID)));
+            }
             
-            getEventBus().publish(
-              new CreateConsensusAcceptorEvent(
-                  new ReplicatedDatabaseID(
-                      myReplicationManager.getReplicatedDbsNode()),
-                  myReplicationManager.getReplicatedDbsNode()));
+            if (myReplicationManager != null) {
+                getEventBus().publish(
+                    new CreateConsensusAcceptorEvent(
+                         new ReplicatedDatabaseID(
+                             myReplicationManager.getReplicatedDbsNode()),
+                         myReplicationManager.getReplicatedDbsNode()));
+            }
         }
         catch (EventBusException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);

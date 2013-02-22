@@ -20,6 +20,8 @@
 
 package org.hit.server;
 
+import java.util.logging.Logger;
+
 import org.hit.communicator.CommunicatingActor;
 import org.hit.consensus.ConsensusManager;
 import org.hit.db.engine.DBEngine;
@@ -27,6 +29,7 @@ import org.hit.di.HitServerModule;
 import org.hit.hms.HealthMonitor;
 import org.hit.util.Application;
 import org.hit.util.ApplicationLauncher;
+import org.hit.util.LogFactory;
 import org.hit.zookeeper.ZooKeeperClient;
 
 import com.google.inject.Guice;
@@ -39,6 +42,9 @@ import com.google.inject.Injector;
  */
 public class HitServer implements Application
 {
+    private static final Logger LOG = LogFactory.getInstance()
+                                                .getLogger(HitServer.class);
+                    
     /** The main method that launches the system */
     public static void main(String[] args)
     {
@@ -76,13 +82,19 @@ public class HitServer implements Application
     @Override
     public void start()
     {
+        LOG.info("Hit db server starting up");
         while (!myZooKeeperClient.isReady()) {
             //Wait till zookeeper client becomes ready.
         }
+        LOG.info("Connected to zookeeper");
         myCommunicatingActor.start();
+        LOG.info("Communicator started");
         myConsensusManager.start();
+        LOG.info("Consensus manager started");
         myHealthMonitor.start();
+        LOG.info("Health monitor started");
         myDBEngine.start();
+        LOG.info("Database engine started");
     }
     
     /**

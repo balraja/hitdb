@@ -24,6 +24,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.URL;
 import java.util.Properties;
 
 /**
@@ -47,7 +51,11 @@ public final class ApplicationProperties
         String file = System.getProperty(APP_FILE_NAME_PROPERTY);
         if (file != null) {
             try {
-                FileReader reader = new FileReader(new File(file));
+                InputStream fileStream = 
+                    ApplicationProperties.class.getClassLoader()
+                                               .getResourceAsStream(file);
+                Reader reader = 
+                    new InputStreamReader(fileStream);
                 ourAppProperties.load(reader);
             }
             catch (FileNotFoundException e) {
