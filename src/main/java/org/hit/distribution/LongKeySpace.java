@@ -52,15 +52,6 @@ public class LongKeySpace implements KeySpace<Long>
      * {@inheritDoc}
      */
     @Override
-    public Long ceiling(Long currentValue)
-    {
-        return currentValue;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public Long getMaximum()
     {
         return myMaxValue;

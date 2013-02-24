@@ -24,7 +24,8 @@ import org.hit.db.model.Mutation;
 
 /**
  * Defines the contract for a single key mutation, that affects a single 
- * row. Based on the row key mutations will be redirected appropriately.
+ * row. Based on the row key, mutations will be redirected to the appropriate
+ * server.
  * 
  * @author Balraja Subbiah
  */

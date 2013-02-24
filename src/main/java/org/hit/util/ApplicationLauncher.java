@@ -20,6 +20,9 @@
 
 package org.hit.util;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * Defines the contract for an ApplicationLauncher that can be used for
  * launching applications.
@@ -28,6 +31,9 @@ package org.hit.util;
  */
 public class ApplicationLauncher
 {
+    private static final Logger LOG = 
+        LogFactory.getInstance().getLogger(ApplicationLauncher.class);
+    
     private final Application myApplication;
     
     /**
@@ -43,7 +49,19 @@ public class ApplicationLauncher
      */
     public void launch()
     {
+        Thread.setDefaultUncaughtExceptionHandler(
+            new Thread.UncaughtExceptionHandler() {
+                @Override
+                public void uncaughtException(Thread t, Throwable e)
+                {
+                    LOG.severe("Uncaught exception in thread " + t.getName());
+                    LOG.log(Level.SEVERE, e.getMessage(), e);
+                    myApplication.stop();
+                }
+            });;
+            
         myApplication.start();
+        
         Runtime.getRuntime().addShutdownHook(
             new Thread()
             {
@@ -53,5 +71,9 @@ public class ApplicationLauncher
                     myApplication.stop();
                 }
             });
+        
+        while(true) {
+            // Add an infinite loop so that main application doesn't stop.
+        }
     }
 }

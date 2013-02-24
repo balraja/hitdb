@@ -98,12 +98,30 @@
 	                <maxStackSize>512M</maxStackSize>
 	                <systemProperties>
 	                  <systemProperty>app.properties.file=hitserver.properties</systemProperty>
+	                  <systemProperty>org.hit.util.logFile=C:\hitdbtest\server.log</systemProperty>
+	                  <systemProperty>org.hit.wal.basePath=C:\hitdbtest\server.log</systemProperty>
 	                </systemProperties>
 	                <extraArguments>
 	                  <extraArgument>-server</extraArgument>
 	                </extraArguments>
 	              </jvmSettings>
 	            </program>
+	            <program>
+                  <mainClass>org.hit.example.HitDbTest</mainClass>
+                  <name>hit_db_test</name>
+                  <jvmSettings>
+                    <initialMemorySize>128M</initialMemorySize>
+                    <maxMemorySize>1024M</maxMemorySize>
+                    <maxStackSize>512M</maxStackSize>
+                    <systemProperties>
+                      <systemProperty>app.properties.file=hitfacade.properties</systemProperty>
+                      <systemProperty>org.hit.util.logFile=C:\hitdbtest\test.log</systemProperty>
+                    </systemProperties>
+                    <extraArguments>
+                      <extraArgument>-server</extraArgument>
+                    </extraArguments>
+                  </jvmSettings>
+                </program>
 	            </programs>
 	        </configuration>
 	       </execution>

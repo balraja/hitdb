@@ -20,7 +20,8 @@
 
 package org.hit.facade;
 
-import org.hit.db.model.Mutation;
+import org.hit.db.model.DBOperation;
+import org.hit.db.model.Schema;
 
 /**
  * Defines the contract for the call back interface to be supplied 
@@ -29,11 +30,19 @@ import org.hit.db.model.Mutation;
  * 
  * @author Balraja Subbiah
  */
-public interface MutationCallback
+public interface FacadeCallback
 {
-    /** This method will be called on success */
-    public void onSuccess(Mutation mutation);
+    /** This method will be called on success of {@link DBOperation} */
+    public void onDBOperationSuccess(DBOperation operation);
     
-    /** The handler to be called on failure */
-    public void onFailure(Mutation mutation, String message, Throwable exception);
+    /** The handler to be called on failure of {@link DBOperation} */
+    public void onDBOperationFailure(DBOperation operation, 
+                                     String      message, 
+                                     Throwable   exception);
+    
+    /** This method will be called on successful creation of the table */
+    public void onTableCreationSuccess(String tableName);
+    
+    /** This method will be called when cration of the table failed */
+    public void onTableCreationFailure(String tableName, String message);
 }

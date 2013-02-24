@@ -31,11 +31,6 @@ import java.io.Externalizable;
 public interface KeySpace<T extends Comparable<? super T>>
     extends Externalizable
 {
-    /**
-     * Returns the value closest to the current value in the HashRing
-     */
-    T ceiling(T currentValue);
-    
     /** Returns the maximum value of the hash range */
     T getMaximum();
     
@@ -45,8 +40,10 @@ public interface KeySpace<T extends Comparable<? super T>>
     /** Returns the total number of elements in the hash ring */
     long getTotalElements();
     
+    /** A helper method to set the minimum value of this hash ring */
     public void setMinimum(Object min);
     
+    /** A helper method to set the maximum value of this hash ring */
     public void setMaximum(Object max);
     
     /**

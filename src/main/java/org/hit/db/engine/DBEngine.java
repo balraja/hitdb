@@ -110,8 +110,9 @@ public class DBEngine extends Actor
     protected void processEvent(Event event)
     {
         if (event instanceof CreateTableMessage) {
-            Schema schema = ((CreateTableMessage) event).getTableSchema();
-            myTransactionManager.createTable(schema);
+            CreateTableMessage ctm = (CreateTableMessage) event;
+            Schema schema = ctm.getTableSchema();
+            myTransactionManager.createTable(ctm.getNodeId(), schema);
         }
         else if (event instanceof PerformDBOperationMessage) {
             PerformDBOperationMessage message =

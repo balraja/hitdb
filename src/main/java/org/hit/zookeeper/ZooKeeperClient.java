@@ -145,6 +145,11 @@ public class ZooKeeperClient
         }
         try {
             if (myZooKeeper.exists(ZK_HIT_HOSTS_ROOT, false) == null) {
+                
+                LOG.info("Created path " 
+                          + ZK_HIT_HOSTS_ROOT 
+                          + " in the zookeeper");
+                
                 myZooKeeper.create(ZK_HIT_HOSTS_ROOT,
                                    null, 
                                    Ids.OPEN_ACL_UNSAFE,
@@ -168,6 +173,11 @@ public class ZooKeeperClient
         }
         try {
             if (myZooKeeper.exists(ZK_HIT_TABLES_ROOT, false) == null) {
+                
+                LOG.info("Created path " 
+                         + ZK_HIT_TABLES_ROOT 
+                         + " in the zookeeper");
+                
                 myZooKeeper.create(ZK_HIT_TABLES_ROOT,
                                    null, 
                                    Ids.OPEN_ACL_UNSAFE,
@@ -192,6 +202,7 @@ public class ZooKeeperClient
                 ZK_HIT_HOSTS_ROOT + PATH_SEPARATOR + nodeID.toString();
             
             if (myZooKeeper.exists(path, false) == null) {
+                LOG.info("Adding node under path " + path + "to zoo keeper");
                 myZooKeeper.create(path, 
                                    null, 
                                    Ids.OPEN_ACL_UNSAFE, 
@@ -398,7 +409,7 @@ public class ZooKeeperClient
                          (KeySpace<?>) Class.forName(keySpaceClassName)
                                             .newInstance();
                      keySpace.setMaximum(maxValue);
-                     keySpace.setMinimum(minStat);
+                     keySpace.setMinimum(minValue);
                      
                      return new Pair<PartitioningType, KeySpace<?>>(type, 
                                                                     keySpace);

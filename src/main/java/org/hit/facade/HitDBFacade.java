@@ -21,9 +21,13 @@
 package org.hit.facade;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 
 import org.hit.communicator.Communicator;
 import org.hit.communicator.Message;
@@ -40,13 +44,12 @@ import org.hit.distribution.KeyPartitioner;
 import org.hit.distribution.KeySpace;
 import org.hit.distribution.LinearPartitioner;
 import org.hit.event.CreateTableMessage;
+import org.hit.event.CreateTableResponseMessage;
 import org.hit.event.DBOperationFailureMessage;
 import org.hit.event.DBOperationSuccessMessage;
 import org.hit.event.PerformDBOperationMessage;
 import org.hit.registry.RegistryService;
-import org.hit.topology.Topology;
-import org.hit.util.Application;
-import org.hit.util.ApplicationLauncher;
+import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
 import org.hit.util.Pair;
 
@@ -60,16 +63,10 @@ import com.google.inject.Injector;
  * 
  * @author Balraja Subbiah
  */
-public class HitFacade implements Application
+public class HitDBFacade
 {
-    /**
-     * The main method that launches the client.
-     */
-    public static void main(String[] args)
-    {
-        ApplicationLauncher launcher = new ApplicationLauncher(new HitFacade());
-        launcher.launch();
-    }
+    private static final Logger LOG = 
+        LogFactory.getInstance().getLogger(HitDBFacade.class);
     
     private final Communicator myCommunicator;
     
@@ -77,31 +74,38 @@ public class HitFacade implements Application
     
     private final NodeID myClientID;
     
-    private final Map<String,  KeyPartitioner<? extends Comparable<?>>> 
+    private final Map<String, KeyPartitioner<? extends Comparable<?>>> 
         myTable2Partitoner;
     
-    private final Map<Mutation, MutationCallback> myMutationCallbackMap;
+    private final Map<DBOperation, FacadeCallback> myDBOperationCallbackMap;
+    
+    private final Map<String, Pair<Set<NodeID>, FacadeCallback>> 
+        myTableCreationCallbackMap;
     
     private final ExecutorService myExecutorService;
     
-    private class SendMutationRunnable implements Runnable
+    /**
+     * A helper class that wraps the task of sending mutation to the 
+     * server.
+     */
+    private class DBOperationExecutable implements Runnable
     {
-        private final Mutation myMutation;
+        private final DBOperation myOperation;
         
         private final NodeID myNodeID;
         
-        private final MutationCallback myMutationCallback;
+        private final FacadeCallback myMutationCallback;
 
         /**
          * CTOR
          */
-        public SendMutationRunnable(NodeID nodeId, 
-                                    Mutation mutation,
-                                    MutationCallback callback)
+        public DBOperationExecutable(NodeID         nodeId, 
+                                     DBOperation    operation,
+                                     FacadeCallback callback)
         {
             super();
             myNodeID = nodeId;
-            myMutation = mutation;
+            myOperation = operation;
             myMutationCallback = callback;
         }
 
@@ -111,14 +115,66 @@ public class HitFacade implements Application
         @Override
         public void run()
         {
-            myMutationCallbackMap.put(myMutation, myMutationCallback);
+            myDBOperationCallbackMap.put(myOperation, myMutationCallback);
             myCommunicator.sendTo(myNodeID, 
                                   new PerformDBOperationMessage(
-                                      myClientID, myMutation));
+                                      myClientID, 
+                                      myOperation));
             
         }
     }
     
+    /**
+     * A helper class that wraps the task of sending mutation to the 
+     * server.
+     */
+    private class TableCreationExecutable implements Runnable
+    {
+        private final Schema mySchema;
+        
+        private final FacadeCallback myCallback;
+
+        /**
+         * CTOR
+         */
+        public TableCreationExecutable(Schema         schema,
+                                       FacadeCallback callback)
+        {
+            mySchema = schema;
+            myCallback = callback;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void run()
+        {
+            LOG.info("Processing request for creating  table with schema " + 
+                     mySchema);
+            
+            Pair<Set<NodeID>, FacadeCallback> facadeCallback = 
+                new Pair<Set<NodeID>, FacadeCallback>(
+                    new HashSet<>(myRegistryService.getServerNodes()),
+                    myCallback);
+           
+            myTableCreationCallbackMap.put(mySchema.getTableName(), 
+                                           facadeCallback);
+            
+            CreateTableMessage message =
+                new CreateTableMessage(myClientID, mySchema);
+            
+            for (NodeID nodeID : myRegistryService.getServerNodes()) {
+                LOG.info("Sending create table request to " + nodeID);
+                myCommunicator.sendTo(nodeID, message);
+            }
+        }
+    }
+    
+    /**
+     * A simple class that wraps the functionality of handling the 
+     * response from the server.
+     */
     private class ResponseHandler implements Runnable
     {
         private final Message myMessage;
@@ -138,19 +194,40 @@ public class HitFacade implements Application
         @Override
         public void run()
         {
-            if (myMessage instanceof DBOperationSuccessMessage) {
+            if (myMessage instanceof CreateTableResponseMessage) {
+                CreateTableResponseMessage createTableResponse =
+                    (CreateTableResponseMessage) myMessage;
+                
+                LOG.info("Creating table " + createTableResponse.getTableName()
+                         + " on " + createTableResponse.getNodeId()
+                         + " succedded ");
+                
+                Pair<Set<NodeID>, FacadeCallback> creationCallback = 
+                    myTableCreationCallbackMap.get(
+                        createTableResponse.getTableName());
+                
+                creationCallback.getFirst().remove(
+                    createTableResponse.getNodeId());
+                
+                if (creationCallback.getFirst().isEmpty()) {
+                    myTableCreationCallbackMap.remove(
+                        createTableResponse.getTableName());
+                    creationCallback.getSecond().onTableCreationSuccess(
+                        createTableResponse.getTableName());
+                }
+            }
+            else if (myMessage instanceof DBOperationSuccessMessage) {
                 DBOperationSuccessMessage dbOperationSuccessMessage = 
                     (DBOperationSuccessMessage) myMessage;
                 
                 if (dbOperationSuccessMessage.getAppliedDBOperation()
                         instanceof Mutation)
                 {
-                    MutationCallback mutationCallback = 
-                        myMutationCallbackMap.get(
+                    FacadeCallback callback = 
+                        myDBOperationCallbackMap.get(
                             dbOperationSuccessMessage.getAppliedDBOperation());
                     
-                    mutationCallback.onSuccess(
-                        (Mutation) 
+                    callback.onDBOperationSuccess(
                             dbOperationSuccessMessage.getAppliedDBOperation());
                         
                 }
@@ -162,14 +239,14 @@ public class HitFacade implements Application
                 if (dbOperationFlreMessage.getDBOperation()
                         instanceof Mutation)
                 {
-                    MutationCallback mutationCallback = 
-                        myMutationCallbackMap.get(
+                    FacadeCallback mutationCallback = 
+                        myDBOperationCallbackMap.get(
                             dbOperationFlreMessage.getDBOperation());
                     
-                    mutationCallback.onSuccess(
-                        (Mutation) 
-                            dbOperationFlreMessage.getDBOperation());
-                        
+                    mutationCallback.onDBOperationFailure(
+                            dbOperationFlreMessage.getDBOperation(),
+                            dbOperationFlreMessage.getMessage(),
+                            dbOperationFlreMessage.getException());
                 }
             }
         }
@@ -178,34 +255,41 @@ public class HitFacade implements Application
     /**
      * CTOR
      */
-    public HitFacade()
+    public HitDBFacade()
     {
         Injector injector = Guice.createInjector(new HitFacadeModule());
         myCommunicator = injector.getInstance(Communicator.class);
         myRegistryService = injector.getInstance(RegistryService.class);
         myClientID = injector.getInstance(NodeID.class);
         myTable2Partitoner = new HashMap<>();
-        myMutationCallbackMap = new HashMap<>();
+        myDBOperationCallbackMap = new HashMap<>();
+        myTableCreationCallbackMap = new HashMap<>();
         myExecutorService = 
             Executors.newFixedThreadPool(4,
-                                         new NamedThreadFactory(HitFacade.class));
+                                         new NamedThreadFactory(
+                                             HitDBFacade.class));
+        
     }
 
     /**
      * Creates a new table in the database with the given <code>Schema</code>
      */
-    public void createTable(Schema schema)
+    public void createTable(Schema schema, FacadeCallback callback)
     {
-        CreateTableMessage message =
-            new CreateTableMessage(myClientID, schema);
-        
-        for (NodeID nodeID : myRegistryService.getServerNodes()) {
-            myCommunicator.sendTo(nodeID, message);
+        try {
+            myExecutorService.execute(
+                new TableCreationExecutable(schema, callback));
+        }
+        catch (Exception e) {
+            e.printStackTrace();
         }
     }
     
-    public <K extends Comparable<K>>void apply(SingleKeyMutation<K> mutation,
-                                               MutationCallback callback)
+    /**
+     * Applies the mutation to the database.
+     */
+    public <K extends Comparable<K>> void apply(SingleKeyMutation<K> mutation,
+                                                FacadeCallback       callback)
     {
         @SuppressWarnings("unchecked")
         KeyPartitioner<K> partitioner = 
@@ -228,7 +312,7 @@ public class HitFacade implements Application
         }
         
         NodeID serverNode = partitioner.getNode(mutation.getKey());
-        myExecutorService.execute(new SendMutationRunnable(
+        myExecutorService.submit(new DBOperationExecutable(
             serverNode, mutation, callback));
     }
     
@@ -237,11 +321,13 @@ public class HitFacade implements Application
      */
     public void start()
     {
-      
-        
         while(!myRegistryService.isUp()) {
             // Wait till we connect to registry/zookeeper.
         }
+        
+        LOG.info("Connection to the registry " +
+                 "service successfully established");
+        
         myCommunicator.addMessageHandler(
              new MessageHandler() {
                  @Override
@@ -250,7 +336,10 @@ public class HitFacade implements Application
                       myExecutorService.execute(
                           new ResponseHandler(message));
                  }
-             });
+             }
+        );
+        
+        LOG.info("Facade successfully started");
     }
     
     /**
@@ -259,5 +348,6 @@ public class HitFacade implements Application
     public void stop()
     {
         myExecutorService.shutdown();
+        LOG.info("Facade successfully stopped");
     }
 }

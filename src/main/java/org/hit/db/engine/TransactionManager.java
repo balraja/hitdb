@@ -43,6 +43,7 @@ import org.hit.db.transactions.TransactionResult;
 import org.hit.db.transactions.WriteTransaction;
 import org.hit.db.transactions.journal.WAL;
 import org.hit.event.ConsensusRequestEvent;
+import org.hit.event.CreateTableResponseMessage;
 import org.hit.event.DBOperationFailureMessage;
 import org.hit.event.DBOperationSuccessMessage;
 import org.hit.event.SendMessageEvent;
@@ -212,10 +213,38 @@ public class TransactionManager
     /**
      * Creates a table with the given <code>Schema</code>
      */
-    public void createTable(Schema schema)
+    public void createTable(NodeID clientId, Schema schema)
     {
-        myDatabase.createTable(schema);
-        myZooKeeperClient.addKeyMeta(schema);
+        LOG.info("Received request from " + clientId + " for creating new table"
+                 + " with schema " + schema); 
+        CreateTableResponseMessage response = null;
+        try {
+            myDatabase.createTable(schema);
+            myZooKeeperClient.addKeyMeta(schema);
+            response = 
+                new CreateTableResponseMessage(myServerID, 
+                                               schema.getTableName(), 
+                                               true, 
+                                               null);
+            LOG.info("Schema for " + schema.getTableName() + " was successfully"
+                     + " added to the database");
+        }
+        catch (Exception e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+            response = 
+                new CreateTableResponseMessage(myServerID, 
+                                               schema.getTableName(), 
+                                               false, 
+                                               e.getMessage());
+        }
+        try {
+            myEventBus.publish(new SendMessageEvent(
+                                   Collections.singleton(clientId),
+                                   response));
+        }
+        catch (EventBusException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+        }
     }
     
     /**

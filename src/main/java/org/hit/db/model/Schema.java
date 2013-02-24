@@ -140,4 +140,24 @@ public class Schema implements Externalizable
         out.writeObject(myColumns);
         out.writeObject(myKeyPartitioningType);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString()
+    {
+        return "Schema [myTableName=" + myTableName
+               + ", myPersistableClass="
+               + myPersistableClass
+               + ", myKeyClass="
+               + myKeyClass
+               + ", myColumns="
+               + myColumns
+               + ", myKeyPartitioningType="
+               + myKeyPartitioningType
+               + ", myHashRing="
+               + myHashRing
+               + "]";
+    }
 }

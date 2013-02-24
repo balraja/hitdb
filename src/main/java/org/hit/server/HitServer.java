@@ -23,6 +23,7 @@ package org.hit.server;
 import java.util.logging.Logger;
 
 import org.hit.communicator.CommunicatingActor;
+import org.hit.communicator.NodeID;
 import org.hit.consensus.ConsensusManager;
 import org.hit.db.engine.DBEngine;
 import org.hit.di.HitServerModule;
@@ -62,6 +63,8 @@ public class HitServer implements Application
     private final DBEngine           myDBEngine;
     
     private final ZooKeeperClient    myZooKeeperClient;
+    
+    private final NodeID             myServerNodeID;
 
     /**
      * CTOR
@@ -69,6 +72,7 @@ public class HitServer implements Application
     public HitServer()
     {
         Injector injector = Guice.createInjector(new HitServerModule());
+        myServerNodeID = injector.getInstance(NodeID.class);
         myCommunicatingActor = injector.getInstance(CommunicatingActor.class);
         myConsensusManager = injector.getInstance(ConsensusManager.class);
         myHealthMonitor = injector.getInstance(HealthMonitor.class);
@@ -95,6 +99,12 @@ public class HitServer implements Application
         LOG.info("Health monitor started");
         myDBEngine.start();
         LOG.info("Database engine started");
+        
+        myZooKeeperClient.check_and_create_root_node();
+        myZooKeeperClient.check_and_create_tables_root_node();
+        myZooKeeperClient.addHostNode(myServerNodeID);
+        
+        LOG.info("Node registered with the zookeeper");
     }
     
     /**

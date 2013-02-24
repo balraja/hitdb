@@ -93,7 +93,7 @@ public abstract class Actor
     public void start()
     {
         myEventBus.register(myActorID, DEFAULT_EVENT_QUEUE_SIZE);
-        myActorExecutor.execute(new Runnable() {
+        myActorExecutor.submit(new Runnable() {
             @Override
             public void run() {
                 while (!myShouldStop.get()) {

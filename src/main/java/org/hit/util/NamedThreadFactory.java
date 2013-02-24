@@ -59,6 +59,7 @@ public class NamedThreadFactory implements ThreadFactory
     {
         myCounter++;
         return new Thread(new TerminatingThreadGroup(myName),
+                          r,
                           myName + " - " + myCounter);
     }
 }
