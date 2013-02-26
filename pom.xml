@@ -78,6 +78,9 @@
 			              <value>hittestlogconfig.properties</value>
 			            </property>
                     </systemProperties>
+                     <excludes>
+                         <exclude>**/NIOCommunicatorTest.java</exclude>
+                     </excludes>
 		        </configuration>
          </plugin>
           

@@ -24,10 +24,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import org.hit.communicator.nio.NIOCommunicator;
 import org.hit.concurrent.epq.EventPassingQueue;
 import org.hit.concurrent.epq.WaitStrategy;
 import org.hit.event.Event;
+import org.hit.util.LogFactory;
 
 /**
  * An event bus used for communication between various actors of the
@@ -42,6 +46,9 @@ import org.hit.event.Event;
  */
 public class EventBus
 {
+    private static final Logger LOG = 
+        LogFactory.getInstance().getLogger(NIOCommunicator.class);
+    
     private final Map<ActorID, EventPassingQueue> myActorToEPQ;
     
     private final Map<Class<? extends Event>, List<ActorID>> myEvent2Actors;
@@ -88,6 +95,11 @@ public class EventBus
         List<ActorID> actors = myEvent2Actors.get(event.getClass());
         if (actors != null) {
             for (ActorID actor : actors) {
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("Publishing the event " 
+                             + event.getClass().getSimpleName()
+                             + " to " + actor.getIdentifier());
+                }
                 publish(actor, event);
             }
         }

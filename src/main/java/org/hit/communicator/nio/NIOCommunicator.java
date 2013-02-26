@@ -21,7 +21,6 @@
 package org.hit.communicator.nio;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -30,11 +29,6 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -134,8 +128,8 @@ public class NIOCommunicator implements Communicator
         socketChannel.close();
     }
 
-    private void registerChannel(SocketChannel channel, int key,
-            Object attachment) throws IOException
+    private void registerChannel(
+        SocketChannel channel, int key, Object attachment) throws IOException
     {
         channel.configureBlocking(false);
         SelectionKey sKey = channel.register(mySelector, key);
@@ -162,7 +156,11 @@ public class NIOCommunicator implements Communicator
             if (LOG.isLoggable(Level.FINE)) {
                 LOG.fine("Sending message " + m + " to node"  + node);
             }
-            
+            ByteBuffer serializedData = mySerializer.serialize(m);
+            if (serializedData == null) {
+                LOG.info("Unable to serialize the message");
+                return;
+            }
             IPNodeID targetNode = (IPNodeID) node;
             SocketChannel writableChannel = SocketChannel.open();
             writableChannel.configureBlocking(true);
@@ -173,9 +171,15 @@ public class NIOCommunicator implements Communicator
                          + writableChannel.getRemoteAddress()
                          + " is established ");
             }
-            writeData(writableChannel, 
-                      Collections.singletonList(mySerializer.serialize(m)));
-           
+            
+            writableChannel.write(serializedData);
+            
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Has written data to  " 
+                          + writableChannel.getRemoteAddress());
+            }
+            writableChannel.close();
+          
         }
         catch (IOException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
@@ -243,20 +247,6 @@ public class NIOCommunicator implements Communicator
                 }
             }
         });
-    }
-
-    /** Reads data from the <code>SocketChannel</code> */
-    private void writeData(SocketChannel    socketChannel,
-                           List<ByteBuffer> writableBuffers) throws IOException
-    {
-        for (ByteBuffer writableBuffer : writableBuffers) {
-            socketChannel.write(writableBuffer);
-        }
-        if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine("Has written data to  " 
-                      + socketChannel.getRemoteAddress());
-        }
-        socketChannel.close();
     }
 
     /**
