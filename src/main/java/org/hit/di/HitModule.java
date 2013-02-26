@@ -24,7 +24,7 @@ import org.hit.actors.EventBus;
 import org.hit.communicator.Communicator;
 import org.hit.communicator.MessageSerializer;
 import org.hit.communicator.NodeID;
-import org.hit.communicator.SerializableSerializer;
+import org.hit.communicator.ObjectStreamSerializer;
 import org.hit.communicator.nio.IPNodeID;
 import org.hit.communicator.nio.NIOCommunicator;
 import org.hit.zookeeper.ZooKeeperClient;
@@ -54,7 +54,7 @@ public abstract class HitModule extends AbstractModule
         bindConstant().annotatedWith(Names.named("PreferredPort"))
                       .to(getBoundPort());
 
-        bind(MessageSerializer.class).to(SerializableSerializer.class);
+        bind(MessageSerializer.class).to(ObjectStreamSerializer.class);
         bind(Communicator.class).to(NIOCommunicator.class);
         bind(ZooKeeperClientConfig.class)
             .to(ZooKeeperClientPropertyConfig.class);

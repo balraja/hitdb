@@ -32,4 +32,10 @@ public interface Communicator
     
     /** Sends the given message to the target node */
     public void sendTo(NodeID targetNode, Message m);
+    
+    /** Starts the communicator */
+    public void start();
+    
+    /** Stops the communicator */
+    public void stop();
 }

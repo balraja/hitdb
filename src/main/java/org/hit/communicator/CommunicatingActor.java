@@ -83,4 +83,24 @@ public class CommunicatingActor extends Actor
     {
         getEventBus().registerForEvent(SendMessageEvent.class, getActorID());
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void start()
+    {
+        super.start();
+        myCommunicator.start();
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void stop()
+    {
+        super.stop();
+        myCommunicator.stop();
+    }
 }

@@ -32,14 +32,24 @@ public class NamedThreadFactory implements ThreadFactory
 {
     private final String myName;
     
+    private final boolean myIsDeamon;
+    
     private int myCounter;
+    
+    /**
+     * CTOR
+     */
+    public NamedThreadFactory(Class<?> classType, boolean isDaemon)
+    {
+        this(classType.getSimpleName(), isDaemon);
+    }
     
     /**
      * CTOR
      */
     public NamedThreadFactory(Class<?> classType)
     {
-        this(classType.getSimpleName());
+        this(classType.getSimpleName(), false);
     }
     
     /**
@@ -47,7 +57,16 @@ public class NamedThreadFactory implements ThreadFactory
      */
     public NamedThreadFactory(String name)
     {
+        this(name, false);
+    }
+    
+    /**
+     * CTOR
+     */
+    public NamedThreadFactory(String name, boolean isDaemon)
+    {
         myName = name;
+        myIsDeamon = isDaemon;
         myCounter = 0;
     }
 
@@ -58,8 +77,11 @@ public class NamedThreadFactory implements ThreadFactory
     public Thread newThread(Runnable r)
     {
         myCounter++;
-        return new Thread(new TerminatingThreadGroup(myName),
-                          r,
-                          myName + " - " + myCounter);
+        Thread t =  new Thread(new TerminatingThreadGroup(myName),
+                               r,
+                               myName + " - " + myCounter);
+        
+        t.setDaemon(myIsDeamon);
+        return t;
     }
 }

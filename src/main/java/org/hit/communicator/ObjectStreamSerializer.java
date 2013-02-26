@@ -25,6 +25,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.hit.util.LogFactory;
 
 /**
  * An implementation of <code>MessageSerializer</code> that uses the
@@ -32,8 +36,11 @@ import java.nio.ByteBuffer;
  * 
  * @author Balraja Subbiah
  */
-public class SerializableSerializer implements MessageSerializer
+public class ObjectStreamSerializer implements MessageSerializer
 {
+    private static final Logger LOG = 
+        LogFactory.getInstance().getLogger(ObjectStreamSerializer.class);
+    
     /**
      * {@inheritDoc}
      */
@@ -47,6 +54,7 @@ public class SerializableSerializer implements MessageSerializer
             return (Message) oStream.readObject();
         }
         catch (Exception e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
             return null;
         }
     }
@@ -64,6 +72,7 @@ public class SerializableSerializer implements MessageSerializer
             return ByteBuffer.wrap(byteStream.toByteArray());
         }
         catch (Exception e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
             return null;
         }
     }

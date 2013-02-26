@@ -20,6 +20,9 @@
 
 package org.hit.communicator.nio;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.net.InetSocketAddress;
 
 import org.hit.communicator.NodeID;
@@ -36,7 +39,16 @@ public class IPNodeID implements NodeID
 {
     private static final String SEPARATOR = ":";
     
-    private final InetSocketAddress myIPAddress;
+    private InetSocketAddress myIPAddress;
+    
+    /**
+     * CTOR
+     */
+    public IPNodeID()
+    {
+        myIPAddress = null;
+    }
+
     
     /**
      * CTOR
@@ -122,5 +134,24 @@ public class IPNodeID implements NodeID
                 InetAddresses.forString(hostAndPort[0]),
                 Integer.parseInt(hostAndPort[1]));
         return new IPNodeID(address);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeObject(myIPAddress);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readExternal(ObjectInput in)
+        throws IOException, ClassNotFoundException
+    {
+        myIPAddress = (InetSocketAddress) in.readObject();
     }
 }

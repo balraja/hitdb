@@ -30,10 +30,14 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -43,6 +47,7 @@ import org.hit.communicator.MessageHandler;
 import org.hit.communicator.MessageSerializer;
 import org.hit.communicator.NodeID;
 import org.hit.util.LogFactory;
+import org.hit.util.NamedThreadFactory;
 
 import com.google.inject.Inject;
 
@@ -68,9 +73,11 @@ public class NIOCommunicator implements Communicator
 
     private final Collection<MessageHandler> myHandlers;
 
-    private final Map<InetSocketAddress, List<ByteBuffer>> myAddressToData;
-    
     private final IPNodeID myId;
+    
+    private final ExecutorService myNIOExecutor;
+    
+    private final AtomicBoolean myShouldStop;
 
     /** CTOR */
     @Inject
@@ -82,16 +89,14 @@ public class NIOCommunicator implements Communicator
             mySelector = Selector.open();
             mySerializer = serializer;
             myHandlers = new ArrayList<>();
-            myAddressToData = new ConcurrentHashMap<>();
-            myId            = (IPNodeID) nodeID;
-
-            ServerSocket serverSocket = myServerSocketChannel.socket();
-            serverSocket.bind(myId.getIPAddress());
-            myServerSocketChannel.configureBlocking(false);
-            myServerSocketChannel.register(mySelector, SelectionKey.OP_ACCEPT);
+            myId       = (IPNodeID) nodeID;
+            myNIOExecutor =
+                Executors.newSingleThreadExecutor(
+                    new NamedThreadFactory(NIOCommunicator.class, true));
+            myShouldStop = new AtomicBoolean(false);
         }
         catch (IOException e) {
-            LOG.log(Level.INFO, e.getMessage(), e);
+            LOG.log(Level.SEVERE, e.getMessage(), e);
             throw new RuntimeException(e);
         }
     }
@@ -122,7 +127,10 @@ public class NIOCommunicator implements Communicator
         for (MessageHandler handler : myHandlers) {
             handler.handle(message);
         }
-        
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Received the message " + message + " from "
+                     + socketChannel.getRemoteAddress());
+        }
         socketChannel.close();
     }
 
@@ -151,23 +159,26 @@ public class NIOCommunicator implements Communicator
     public void sendTo(NodeID node, Message m)
     {
         try {
-            IPNodeID targetNode = (IPNodeID) node;
-            List<ByteBuffer> data =
-                myAddressToData.get(targetNode.getIPAddress());
-            if (data == null) {
-                data = new CopyOnWriteArrayList<>();
-                myAddressToData.put(targetNode.getIPAddress(), data);
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Sending message " + m + " to node"  + node);
             }
-            data.add(mySerializer.serialize(m));
+            
+            IPNodeID targetNode = (IPNodeID) node;
             SocketChannel writableChannel = SocketChannel.open();
-            writableChannel.configureBlocking(false);
-            SelectionKey key =
-                writableChannel.register(mySelector,
-                                         SelectionKey.OP_CONNECT);
-            key.attach(targetNode.getIPAddress());
+            writableChannel.configureBlocking(true);
             writableChannel.connect(targetNode.getIPAddress());
+           
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Connection with " 
+                         + writableChannel.getRemoteAddress()
+                         + " is established ");
+            }
+            writeData(writableChannel, 
+                      Collections.singletonList(mySerializer.serialize(m)));
+           
         }
         catch (IOException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
             throw new RuntimeException(e);
         }
     }
@@ -175,56 +186,63 @@ public class NIOCommunicator implements Communicator
     /** Starts the communicator */
     public void start()
     {
-        try {
-            while (true) {
-                int n = mySelector.select();
-                if (n == 0) {
-                    continue;
-                }
-                else {
-                    for (SelectionKey sKey : mySelector.selectedKeys()) {
-                        if (sKey.isAcceptable()) {
-                            ServerSocketChannel serverSocketChannel =
-                                (ServerSocketChannel) sKey.channel();
-                            SocketChannel channel =
-                                serverSocketChannel.accept();
-
-                            registerChannel(channel,
-                                            SelectionKey.OP_READ
-                                            | SelectionKey.OP_WRITE,
-                                            null);
+        LOG.info("Starting NIO communicator");
+        myNIOExecutor.execute(new Runnable() {
+            public void run() {
+                try {
+                    ServerSocket serverSocket = myServerSocketChannel.socket();
+                    serverSocket.bind(myId.getIPAddress());
+                    myServerSocketChannel.configureBlocking(false);
+                    myServerSocketChannel.register(mySelector, 
+                                                   SelectionKey.OP_ACCEPT);
+                    LOG.info("Bound server to the address " 
+                             + myId.getIPAddress());
+                    
+                    while (!myShouldStop.get()) {
+                        int n = mySelector.select();
+                        if (n == 0) {
+                            continue;
                         }
-                        else if (sKey.isReadable()) {
-                            readData((SocketChannel) sKey.channel());
-                        }
-                        else if (sKey.isWritable()) {
-                            SocketChannel socketChannel =
-                                (SocketChannel) sKey.channel();
-                            
-                            @SuppressWarnings("unchecked")
-                            List<ByteBuffer> writableBuffers =
-                                (List<ByteBuffer>) sKey.attachment();
-                            writeData(socketChannel, writableBuffers);
-                        }
-                        else if (sKey.isConnectable()) {
-                            SocketChannel socketChannel =
-                                (SocketChannel) sKey.channel();
-                            List<ByteBuffer> writableBuffers =
-                                myAddressToData.get(sKey.attachment());
-                            
-                            if (writableBuffers != null) {
-                                registerChannel(socketChannel,
-                                                SelectionKey.OP_WRITE,
-                                                writableBuffers);
+                        else {
+                            for (SelectionKey sKey : mySelector.selectedKeys()) 
+                            {
+                                if (!sKey.isValid()) {
+                                    continue;
+                                }
+                                if (sKey.isAcceptable()) {
+                                    
+                                    ServerSocketChannel serverSocketChannel =
+                                        (ServerSocketChannel) sKey.channel();
+                                    
+                                    SocketChannel channel =
+                                        serverSocketChannel.accept();
+                                    
+                                    if (channel == null) {
+                                        continue;
+                                    }
+                                    
+                                    if (LOG.isLoggable(Level.FINE)) {
+                                        LOG.fine("Acceping connection from "
+                                                 + channel.getRemoteAddress());
+                                    }
+                                    registerChannel(channel,
+                                                    SelectionKey.OP_READ
+                                                    | SelectionKey.OP_WRITE,
+                                                    null);
+                                }
+                                else if (sKey.isReadable()) {
+                                    readData((SocketChannel) sKey.channel());
+                                }
                             }
                         }
                     }
                 }
+                catch (IOException e) {
+                    LOG.log(Level.SEVERE, e.getMessage(), e);
+                    throw new RuntimeException(e);
+                }
             }
-        }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        });
     }
 
     /** Reads data from the <code>SocketChannel</code> */
@@ -234,6 +252,29 @@ public class NIOCommunicator implements Communicator
         for (ByteBuffer writableBuffer : writableBuffers) {
             socketChannel.write(writableBuffer);
         }
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Has written data to  " 
+                      + socketChannel.getRemoteAddress());
+        }
         socketChannel.close();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void stop()
+    {
+        LOG.info("Stopping NIO communicator bound to " + 
+                 myId.getIPAddress());
+        try {
+            myShouldStop.set(true);
+            myNIOExecutor.shutdownNow();
+            mySelector.close();
+            myServerSocketChannel.close();
+        }
+        catch (IOException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+        }
     }
 }

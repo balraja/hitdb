@@ -20,6 +20,11 @@
 
 package org.hit.distribution.test;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.io.Serializable;
+
 import org.hit.communicator.NodeID;
 
 /**
@@ -29,14 +34,21 @@ import org.hit.communicator.NodeID;
  */
 public class StringNodeID implements NodeID
 {
-    private final String myName;
+    private String myName;
+    
+    /**
+     * CTOR
+     */
+    public StringNodeID()
+    {
+        myName = null;
+    }
 
     /**
      * CTOR
      */
     public StringNodeID(String name)
     {
-        super();
         myName = name;
     }
 
@@ -94,5 +106,24 @@ public class StringNodeID implements NodeID
     public String toString()
     {
         return "NodeID [" + myName + "]";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeUTF(myName);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readExternal(ObjectInput in)
+        throws IOException, ClassNotFoundException
+    {
+        myName = in.readUTF();
     }
 }

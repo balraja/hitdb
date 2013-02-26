@@ -20,6 +20,8 @@
 
 package org.hit.communicator;
 
+import java.io.Externalizable;
+
 /**
  * Encapsulates the identity of node in a distributed database. This is
  * a marker interface that allows us to chose the appropriate implementation
@@ -27,6 +29,6 @@ package org.hit.communicator;
  * 
  * @author Balraja Subbiah
  */
-public interface NodeID
+public interface NodeID extends Externalizable
 {
 }
