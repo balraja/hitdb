@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2012  Balraja Subbiah
 
@@ -20,45 +20,55 @@
 
 package org.hit.concurrent.test;
 
+import static junit.framework.Assert.assertEquals;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.hit.util.NamedThreadFactory;
+import org.junit.Test;
+
 /**
  * Defines the abstract testing infrastructure for concurrent data structures.
- * 
+ *
  * @author Balraja Subbiah
  */
 public abstract class AbstractConcurrentTest<T>
 {
-    private final List<Object> myThread1ExpectedResult;
-    
-    private final List<Object> myThread2ExpectedResult;
-    
-    private final T myTestedStructure;
-    
-    private final ExecutorService myTestingExecutorService;
-    
     /**
      * An abstract Callable for testing the given data structure.
      */
     public abstract class TestCallable implements Callable<List<Object>>
     {
-        private final T myTestedStructure;
-        
         private final List<Object> myActualResult;
-        
+
+        private final T myTestedStructure;
+
         /** CTOR */
         public TestCallable(T testedStructure)
         {
             myTestedStructure = testedStructure;
             myActualResult = new ArrayList<>();
         }
-        
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public List<Object> call() throws Exception
+        {
+            doTest();
+            return myActualResult;
+        }
+
+        public abstract void doTest();
+
         /**
          * Returns the value of testedStructure
          */
@@ -72,71 +82,69 @@ public abstract class AbstractConcurrentTest<T>
         {
             myActualResult.add(result);
         }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public List<Object> call() throws Exception
-        {
-            doTest();
-            return myActualResult;
-        }
-        
-        public abstract void doTest();
     }
+
+    private final CountDownLatch myDataLoadPoint;
+
+    private final T myTestedStructure;
+
+    private final ExecutorService myTestingExecutorService;
+
+    private final List<Object> myThread1ExpectedResult;
+
+    private final List<Object> myThread2ExpectedResult;
 
     /**
      * CTOR
      */
     public AbstractConcurrentTest(
         List<Object> thread1ExpectedResult,
-        List<Object> thread2ExpectedResult, 
+        List<Object> thread2ExpectedResult,
         T testedStructure)
     {
         myThread1ExpectedResult = thread1ExpectedResult;
         myThread2ExpectedResult = thread2ExpectedResult;
         myTestedStructure = testedStructure;
-        myTestingExecutorService = Executors.newFixedThreadPool(2);
+        myTestingExecutorService =
+            Executors.newFixedThreadPool(5, new NamedThreadFactory("TEST"));
+        myDataLoadPoint = new CountDownLatch(2);
     }
-    
-    /** 
-     * Performs testing of concurrent data structures by invoking them on 
+
+    protected abstract TestCallable makeCallable1(T ds, CountDownLatch latch);
+
+    protected abstract TestCallable makeCallable2(T ds, CountDownLatch latch);
+
+    /**
+     * Performs testing of concurrent data structures by invoking them on
      * two different threads and comparing the registered results with the
      * expected results.
      */
+    @Test
     public void test()
     {
-        TestCallable callable1 = makeCallable1(myTestedStructure);
-        TestCallable callable2 = makeCallable2(myTestedStructure);
-        Future<List<Object>> result1 = 
-                myTestingExecutorService.submit(callable1);
+        TestCallable callable1 =
+            makeCallable1(myTestedStructure, myDataLoadPoint);
+        TestCallable callable2 =
+            makeCallable2(myTestedStructure, myDataLoadPoint);
+
+        Future<List<Object>> result1 =
+            myTestingExecutorService.submit(callable1);
         Future<List<Object>> result2 =
-                myTestingExecutorService.submit(callable2);
-        
+            myTestingExecutorService.submit(callable2);
+
+
         List<Object> actualResult1;
         List<Object> actualResult2;
         try {
             actualResult1 = result1.get();
             actualResult2 = result2.get();
-            System.out.println(
-                "The expected result from thread 1 " + 
-                 myThread1ExpectedResult.toString()
-                + " got " + actualResult1
-                + " matches " + myThread1ExpectedResult.equals(actualResult1));
-            System.out.println(
-                "The expected result from thread 2 " + 
-                myThread2ExpectedResult.toString()
-                + " got " + actualResult2
-                + " matches " + myThread2ExpectedResult.equals(actualResult2));
+
+            assertEquals(myThread1ExpectedResult, actualResult1);
+            assertEquals(myThread2ExpectedResult, actualResult2);
         }
         catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
     }
-    
-    protected abstract TestCallable makeCallable1(T ds);
-    
-    protected abstract TestCallable makeCallable2(T ds);
 
 }

@@ -165,18 +165,21 @@ public class EventBusTest
         Thread receiverThread = new Thread(new ActorLauncher(consumer));
         
         EventConsumer consumer1 = new EventConsumer(eventBus, 2);
-        Thread receiverThread1 = new Thread(new ActorLauncher(consumer));
+        Thread receiverThread1 = new Thread(new ActorLauncher(consumer1));
         
         receiverThread.start();
+        receiverThread1.start();
         senderThread.start();
+        
         try {
             senderThread.join();
             receiverThread.join();
+            receiverThread1.join();
         }
         catch (InterruptedException e) {
         }
         
         assertNotNull(consumer.getReceivedEvent());
-        assertNotNull(consumer.getReceivedEvent());
+        assertNotNull(consumer1.getReceivedEvent());
     }
 }

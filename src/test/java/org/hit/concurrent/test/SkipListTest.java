@@ -21,13 +21,15 @@
 package org.hit.concurrent.test;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 import org.hit.concurrent.LocklessSkipList;
+
 import com.google.common.collect.Lists;
 
 /**
  * The test case for verifying the correctness of concurrent skip list.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class SkipListTest extends
@@ -38,18 +40,12 @@ public class SkipListTest extends
                                    Boolean.TRUE,
                                    Integer.valueOf(3),
                                    Integer.valueOf(4));
-    
+
     private static final List<Object> CONST_RESULT2 =
         Lists.<Object>newArrayList(Boolean.TRUE,
                                    Boolean.TRUE,
                                    Integer.valueOf(1),
                                    Integer.valueOf(2));
-
-    public static void main(String[] args)
-    {
-        SkipListTest test = new SkipListTest();
-        test.test();
-    }
 
     /**
      * CTOR
@@ -65,89 +61,80 @@ public class SkipListTest extends
      * {@inheritDoc}
      */
     @Override
-    protected TestCallable makeCallable1(LocklessSkipList<Integer, Integer> ds)
+    protected TestCallable makeCallable1(LocklessSkipList<Integer, Integer> ds,
+                                         final CountDownLatch dataLoadPont)
     {
          return  new TestCallable(ds) {
-            
+
             /**
              * {@inheritDoc}
              */
             @Override
             public void doTest()
             {
-                try {
-                    Thread.sleep(100);
-                }
-                catch (InterruptedException e) {
-                    // ignore
-                }
-                
+
                 register(Boolean.valueOf(
                     getTestedStructure().add(Integer.valueOf(1),
                                              Integer.valueOf(1))));
-                
+
                 register(Boolean.valueOf(
                     getTestedStructure().add(Integer.valueOf(2),
                                              Integer.valueOf(2))));
-                
+
+                dataLoadPont.countDown();
                 try {
-                    Thread.sleep(100);
+                    dataLoadPont.await();
                 }
                 catch (InterruptedException e) {
-                    // ignore
+                    e.printStackTrace();
                 }
-                
+
                 register(
                     getTestedStructure().lookupValue(Integer.valueOf(3))
                                         .get(0));
-                    
+
                 register(
                      getTestedStructure().lookupValue(Integer.valueOf(4))
                                          .get(0));
             }
         };
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
-    protected TestCallable makeCallable2(LocklessSkipList<Integer, Integer> ds)
+    protected TestCallable makeCallable2(LocklessSkipList<Integer, Integer> ds,
+                                         final CountDownLatch dataLoadPoint)
     {
         return  new TestCallable(ds) {
-            
+
             /**
              * {@inheritDoc}
              */
             @Override
             public void doTest()
             {
-                try {
-                    Thread.sleep(100);
-                }
-                catch (InterruptedException e) {
-                    // ignore
-                }
-                
                 register(Boolean.valueOf(
                     getTestedStructure().add(Integer.valueOf(3),
                                              Integer.valueOf(3))));
-                
+
                 register(Boolean.valueOf(
                     getTestedStructure().add(Integer.valueOf(4),
                                              Integer.valueOf(4))));
-                
+
+                dataLoadPoint.countDown();
                 try {
-                    Thread.sleep(100);
+                    dataLoadPoint.await();
                 }
                 catch (InterruptedException e) {
-                    // ignore
+                    e.printStackTrace();
                 }
-                
+
                 register(
                     getTestedStructure().lookupValue(Integer.valueOf(1))
                                         .get(0));
-                    
+
                 register(
                      getTestedStructure().lookupValue(Integer.valueOf(2))
                                          .get(0));

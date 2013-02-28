@@ -16,7 +16,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ */
 
 package org.hit.communicator;
 
@@ -38,9 +38,9 @@ import org.hit.util.LogFactory;
  */
 public class ObjectStreamSerializer implements MessageSerializer
 {
-    private static final Logger LOG = 
-        LogFactory.getInstance().getLogger(ObjectStreamSerializer.class);
-    
+    private static final Logger LOG =
+                    LogFactory.getInstance().getLogger(ObjectStreamSerializer.class);
+
     /**
      * {@inheritDoc}
      */
@@ -49,7 +49,7 @@ public class ObjectStreamSerializer implements MessageSerializer
     {
         try {
             ByteArrayInputStream byteStream =
-                new ByteArrayInputStream(binaryMessage.array());
+                            new ByteArrayInputStream(binaryMessage.array());
             ObjectInputStream oStream = new ObjectInputStream(byteStream);
             return (Message) oStream.readObject();
         }

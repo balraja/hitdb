@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2012  Balraja Subbiah
 
@@ -21,6 +21,7 @@
 package org.hit.concurrent.test;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 import org.hit.concurrent.LocklessSortedList;
 
@@ -28,20 +29,20 @@ import com.google.common.collect.Lists;
 
 /**
  * Tests the <code>LocklessSortedList<Integer>
- * 
+ *
  * @author Balraja Subbiah
  */
-public class LocklessSortedListTest 
+public class LocklessSortedListTest
     extends AbstractConcurrentTest<LocklessSortedList<Integer>>
 {
-    private static final List<Object> CONST_RESULT1 = 
-            Lists.<Object>newArrayList(Boolean.valueOf(true), 
+    private static final List<Object> CONST_RESULT1 =
+            Lists.<Object>newArrayList(Boolean.valueOf(true),
                                        Boolean.valueOf(true),
                                        Boolean.valueOf(true),
                                        Boolean.valueOf(true));
-    
-    private static final List<Object> CONST_RESULT2 = 
-            Lists.<Object>newArrayList(Boolean.valueOf(true), 
+
+    private static final List<Object> CONST_RESULT2 =
+            Lists.<Object>newArrayList(Boolean.valueOf(true),
                     Boolean.valueOf(true),
                     Boolean.valueOf(true),
                     Boolean.valueOf(true));
@@ -55,39 +56,33 @@ public class LocklessSortedListTest
     }
 
     @Override
-    protected TestCallable makeCallable1(LocklessSortedList<Integer> ds)
+    protected TestCallable makeCallable1(LocklessSortedList<Integer> ds,
+                                         final CountDownLatch dataLoadPoint)
     {
         return  new TestCallable(ds) {
-            
             /**
              * {@inheritDoc}
              */
             @Override
             public void doTest()
             {
-                try {
-                    Thread.sleep(100);
-                }
-                catch (InterruptedException e) {
-                    // ignore
-                }
-                
                 register(Boolean.valueOf(
                     getTestedStructure().add(Integer.valueOf(1))));
-                
+
                 register(Boolean.valueOf(
                     getTestedStructure().add(Integer.valueOf(2))));
-                
+
+                dataLoadPoint.countDown();
                 try {
-                    Thread.sleep(100);
+                    dataLoadPoint.await();
                 }
                 catch (InterruptedException e) {
-                    // ignore
+                    e.printStackTrace();
                 }
-                
+
                 register(Boolean.valueOf(
                     getTestedStructure().contains(Integer.valueOf(3))));
-                    
+
                 register(Boolean.valueOf(
                     getTestedStructure().contains(Integer.valueOf(4))));
             }
@@ -95,48 +90,35 @@ public class LocklessSortedListTest
     }
 
     @Override
-    protected TestCallable makeCallable2(LocklessSortedList<Integer> ds)
+    protected TestCallable makeCallable2(LocklessSortedList<Integer> ds,
+                                         final CountDownLatch dataLoadPoint)
     {
         return  new TestCallable(ds) {
-            
             /**
              * {@inheritDoc}
              */
             @Override
             public void doTest()
             {
-                try {
-                    Thread.sleep(100);
-                }
-                catch (InterruptedException e) {
-                    // ignore
-                }
-                
                 register(Boolean.valueOf(
                     getTestedStructure().add(Integer.valueOf(3))));
-                
+
                 register(Boolean.valueOf(
                     getTestedStructure().add(Integer.valueOf(4))));
-                
+
+                dataLoadPoint.countDown();
                 try {
-                    Thread.sleep(100);
+                    dataLoadPoint.await();
                 }
                 catch (InterruptedException e) {
-                    // ignore
+                    e.printStackTrace();
                 }
-                
                 register(Boolean.valueOf(
                     getTestedStructure().contains(Integer.valueOf(1))));
-                    
+
                 register(Boolean.valueOf(
                     getTestedStructure().contains(Integer.valueOf(2))));
             }
         };
-    }
-    
-    public static void main(String[] args)
-    {
-        LocklessSortedListTest test = new LocklessSortedListTest();
-        test.test();
     }
 }

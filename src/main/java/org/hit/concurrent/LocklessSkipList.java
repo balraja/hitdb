@@ -36,7 +36,7 @@ import com.google.common.collect.Lists;
  * maintained always. An element is considered to be in the set if it's
  * contained in the bottom level list and that defines the linearization point
  * for add.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class LocklessSkipList<K extends Comparable<? super K>,V>
@@ -46,13 +46,13 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
      */
     public static class Node<K extends Comparable<? super K>,V>
     {
-        private final List<AtomicMarkableReference<Node<K,V>>> myNext;
-        
         private final K myKey;
-        
-        private final List<V> myValues;
-        
+
         private final int myLevel;
+
+        private final List<AtomicMarkableReference<Node<K,V>>> myNext;
+
+        private final List<V> myValues;
 
         /**
          * CTOR
@@ -102,9 +102,22 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
         {
             return myValues;
         }
-        
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public String toString()
+        {
+            return "Node [myKey=" + myKey
+                   + ", myLevel="
+                   + myLevel
+                   + ", myValues="
+                   + myValues
+                   + "]";
+        }
     }
-    
+
     /**
      * Implements <code>Iterator</code> to iterate over elements of the
      * skip list.
@@ -112,7 +125,7 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
     public class SkipListIterator implements Iterator<List<V>>
     {
         private Node<K, V> myNode;
-        
+
         /**
          * CTOR
          */
@@ -120,7 +133,7 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
         {
             myNode = node;
         }
-        
+
         protected Node<K,V> getMyNode()
         {
             return myNode;
@@ -142,7 +155,7 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
         public List<V> next()
         {
             List<V> result = myNode.getValues();
-            
+
             Node<K,V> pred = myNode;
             Node<K,V> curr = null;
             while (true) {
@@ -169,7 +182,7 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
             throw new IllegalArgumentException();
         }
     }
-    
+
     /**
      * Implements <code>Iterator</code> to iterate over elements of the
      * skip list.
@@ -177,7 +190,7 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
     public class SkipListRangeIterator extends SkipListIterator
     {
         private final K myEndValue;
-        
+
         /**
          * CTOR
          */
@@ -197,12 +210,12 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
                 && getMyNode().getKey().compareTo(myEndValue) <= 0;
         }
     }
-    
+
+    private final Node<K,V> myHead;
+
     /** Defines the level of the skip list */
     private final int myListLevel;
-    
-    private final Node<K,V> myHead;
-    
+
     private ThreadLocal<Random> myLocalRandom;
 
     /**
@@ -220,10 +233,10 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
             }
         };
     }
-    
+
     /**
      * Adds a given key value pair to the skip list.
-     * 
+     *
      * @param key The key to be added to the skip list.
      * @param value The value to be added to the skip list
      * @return true if the addition is successful, false otherwise.
@@ -232,6 +245,7 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
     {
         List<Node<K,V>> preds = Lists.newArrayListWithExpectedSize(myListLevel);
         List<Node<K,V>> succs = Lists.newArrayListWithExpectedSize(myListLevel);
+
         for (int i = 0; i < myListLevel; i++) {
             preds.add(null);
             succs.add(null);
@@ -242,13 +256,14 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
            return true;
         }
         else {
-            int nodeLevel = myLocalRandom.get().nextInt() % myListLevel;
+            int nodeLevel = Math.abs(myLocalRandom.get().nextInt()) % myListLevel;
             Node<K,V> newNode = new Node<>(key, value, nodeLevel, myListLevel);
             for (int i = 0; i < nodeLevel; i++) {
                 newNode.getNext()
                        .get(i)
                        .compareAndSet(null, succs.get(i), false, false);
             }
+
             if (!preds.get(0)
                       .getNext()
                       .get(0)
@@ -260,12 +275,12 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
                 for (int i = 1; i < nodeLevel; i++) {
                     while (true) {
                         if (preds.get(i)
-                                 .getNext()
-                                 .get(i)
-                                 .compareAndSet(succs.get(i),
-                                                newNode,
-                                                false,
-                                                false))
+                                  .getNext()
+                                  .get(i)
+                                  .compareAndSet(succs.get(i),
+                                                 newNode,
+                                                 false,
+                                                 false))
                         {
                             break;
                         }
@@ -275,7 +290,7 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
             return true;
         }
     }
-    
+
     /**
      * A helper method to find predecessors and successors for a given key
      * at various levels of the skip list.
@@ -299,22 +314,22 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
                                        succ.getNext().get(level).isMarked());
                     continue;
                 }
-                
+
                 if (curr != null && curr.getKey().compareTo(key) < 0) {
                     pred = curr;
                     curr = curr.getNext().get(level).getReference();
                 }
                 else {
-                    preds.add(level, pred);
-                    succs.add(level, curr);
+                    preds.set(level, pred);
+                    succs.set(level, curr);
                     break;
                 }
             }
-          
+
         }
         return succs.get(0) != null && succs.get(0).getKey().compareTo(key) == 0;
     }
-    
+
     /**
      * Returns an <code>Iterator</code> over all values in this skip list
      */
@@ -322,7 +337,7 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
     {
         return new SkipListIterator(lookupFirstNode());
     }
-    
+
     /**
      * Returns the first node in the skip list.
      */
@@ -343,15 +358,17 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
         }
         return curr;
     }
-    
+
     /**
      * Returns node less than or equal to the given key.
      */
     private Node<K,V> lookupNode(K key)
     {
+        //System.out.println(Thread.currentThread().getName() + " LOOKING FOR " + key);
         Node<K,V> pred = myHead;
         Node<K,V> curr = null;
         for (int level = myListLevel - 1; level >= 0; level--) {
+           // System.out.println(Thread.currentThread().getName() + " EXAMING LIST " + level);
             while (true) {
                 curr = pred.getNext().get(level).getReference();
                 // if the reference is marked just skip through it.
@@ -359,19 +376,38 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
                     pred = curr;
                     continue;
                 }
-                // Else compare the values.
-                if (curr != null && curr.getKey().compareTo(key) < 0) {
-                    pred = curr;
-                    curr = curr.getNext().get(level).getReference();
+
+                if (curr != null) {
+                    //System.out.println(Thread.currentThread().getName()
+                   //                    + " Examining value " + curr.myKey);
+
+                    if (curr.getKey().compareTo(key) < 0) {
+                        // Current value is less than the searched key
+                        // continue searching in this level.
+                        pred = curr;
+                    }
+                    else if (curr.getKey().compareTo(key) > 0) {
+                        // current value is greater than the searched value
+                        // hence move to the next level
+                        break;
+                    }
+                    else if (curr.getKey().compareTo(key) == 0) {
+                        return curr;
+                    }
                 }
                 else {
+                    //System.out.println(Thread.currentThread().getName() + " CURR IS NULL");
+                    // THis refers to the case where there are no matching nodes
+                    // at the given level
                     break;
                 }
             }
+
+           // System.out.println(Thread.currentThread().getName() + " BREAKING OUT OF LEVEL " + level);
         }
         return curr;
     }
-    
+
     /**
      * Returns the value corresponding to the given key if it's present, null
      * otherwise.
@@ -379,10 +415,13 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
     public List<V> lookupValue(K key)
     {
         Node<K,V> curr = lookupNode(key);
+       /* if (curr != null) {
+            System.out.println(Thread.currentThread().getName()  + " RECEIVED " + curr.getKey());
+        }*/
         return (curr != null && curr.getKey().compareTo(key) == 0) ?
                    curr.getValues() : null;
     }
-    
+
     /**
      * Returns an <code>Iterator</code> over values in the given range
      * specified by the start and end values.
@@ -391,10 +430,10 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
     {
         return new SkipListRangeIterator(start, end);
     }
-    
+
     /**
      * Removes the given key value pair from the skip list.
-     * 
+     *
      * @param key The key whose value is to be removed from the skip list.
      * @param value The value that has to be removed from the skip list.
      * @return true if the removal is successful, false otherwise.
@@ -427,14 +466,14 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
                                                .get(marked);
                     }
                 }
-                
+
                 while (true) {
                     boolean[] marked = new boolean[] {false};
                     Node<K, V> succ =
                             nodeToBeRemoved.getNext()
                                            .get(0)
                                            .get(marked);
-                    
+
                     if (nodeToBeRemoved.getNext()
                                         .get(0)
                                         .compareAndSet(succ, succ, false, true))

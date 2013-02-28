@@ -21,7 +21,6 @@
 package org.hit.facade;
 
 import org.hit.db.model.DBOperation;
-import org.hit.db.model.Schema;
 
 /**
  * Defines the contract for the call back interface to be supplied 

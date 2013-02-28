@@ -21,6 +21,7 @@
 package org.hit.concurrent.test;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 import org.hit.concurrent.HashTable;
 import org.hit.concurrent.RefinableHashTable;
@@ -30,7 +31,7 @@ import com.google.common.collect.Lists;
 /**
  * The test case for verifying the correctness of
  * <code>RefinableHashTable</code>
- * 
+ *
  * @author Balraja Subbiah
  */
 public class HashTableTest extends
@@ -41,18 +42,12 @@ public class HashTableTest extends
                                    Boolean.TRUE,
                                    Integer.valueOf(3),
                                    Integer.valueOf(4));
-    
+
     private static final List<Object> CONST_RESULT2 =
         Lists.<Object>newArrayList(Boolean.TRUE,
                                    Boolean.TRUE,
                                    Integer.valueOf(1),
                                    Integer.valueOf(2));
-
-    public static void main(String[] args)
-    {
-        HashTableTest test = new HashTableTest();
-        test.test();
-    }
 
     /**
      * CTOR
@@ -68,93 +63,81 @@ public class HashTableTest extends
      * {@inheritDoc}
      */
     @Override
-    protected TestCallable makeCallable1(HashTable<Integer, Integer> ds)
+    protected TestCallable makeCallable1(HashTable<Integer, Integer> ds,
+                                         final CountDownLatch dataLoadPoint)
     {
          return  new TestCallable(ds) {
-            
+
             /**
              * {@inheritDoc}
              */
             @Override
             public void doTest()
             {
-                try {
-                    Thread.sleep(100);
-                }
-                catch (InterruptedException e) {
-                    // ignore
-                }
-                
                 register(Boolean.valueOf(
                     getTestedStructure().add(Integer.valueOf(1),
                                              Integer.valueOf(1))));
-                
+
                 register(Boolean.valueOf(
                     getTestedStructure().add(Integer.valueOf(2),
                                              Integer.valueOf(2))));
-                
+
+                dataLoadPoint.countDown();
                 try {
-                    Thread.sleep(100);
+                    dataLoadPoint.await();
                 }
                 catch (InterruptedException e) {
-                    // ignore
+                    e.printStackTrace();
                 }
-                
+
                 register(
                     getTestedStructure().get(Integer.valueOf(3))
                                         .get(0));
-                    
+
                 register(
                      getTestedStructure().get(Integer.valueOf(4))
                                          .get(0));
             }
         };
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
-    protected TestCallable makeCallable2(HashTable<Integer, Integer> ds)
+    protected TestCallable makeCallable2(HashTable<Integer, Integer> ds,
+                                         final CountDownLatch dataLoadPoint)
     {
         return  new TestCallable(ds) {
-            
+
             /**
              * {@inheritDoc}
              */
             @Override
             public void doTest()
             {
+                register(Boolean.valueOf(
+                    getTestedStructure().add(Integer.valueOf(3),
+                                             Integer.valueOf(3))));
+
+                register(Boolean.valueOf(
+                    getTestedStructure().add(Integer.valueOf(4),
+                                             Integer.valueOf(4))));
+
+                dataLoadPoint.countDown();
                 try {
-                    Thread.sleep(100);
+                    dataLoadPoint.await();
                 }
                 catch (InterruptedException e) {
-                    // ignore
+                    e.printStackTrace();
                 }
-                
-                register(Boolean.valueOf(
-                    getTestedStructure().add(Integer.valueOf(1),
-                                             Integer.valueOf(1))));
-                
-                register(Boolean.valueOf(
-                    getTestedStructure().add(Integer.valueOf(2),
-                                             Integer.valueOf(2))));
-                
-                try {
-                    Thread.sleep(100);
-                }
-                catch (InterruptedException e) {
-                    // ignore
-                }
-                
-                System.out.println(getTestedStructure().get(Integer.valueOf(3)));
-                
+
                 register(
-                    getTestedStructure().get(Integer.valueOf(3))
+                    getTestedStructure().get(Integer.valueOf(1))
                                         .get(0));
-                    
+
                 register(
-                     getTestedStructure().get(Integer.valueOf(4))
+                     getTestedStructure().get(Integer.valueOf(2))
                                          .get(0));
             }
         };

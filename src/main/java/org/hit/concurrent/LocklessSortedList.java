@@ -28,7 +28,7 @@ import org.hit.util.Pair;
  * Implementation of list like data structure without any locks. This is
  * based on the reference implementation from the book "Art of multiprocessor
  * programming".
- * 
+ *
  * @author Balraja Subbiah
  */
 public class LocklessSortedList<T extends Comparable<? super T>>
@@ -37,9 +37,9 @@ public class LocklessSortedList<T extends Comparable<? super T>>
     protected static class Node<T>
     {
         private final T myData;
-        
+
         private final AtomicMarkableReference<Node<T>> myNext;
-        
+
         /**
          * CTOR
          */
@@ -74,20 +74,20 @@ public class LocklessSortedList<T extends Comparable<? super T>>
             return myNext;
         }
     }
-    
+
     /** Refers to the head of linked list */
     private final Node<T> myHead;
-    
+
     /** CTOR */
     public LocklessSortedList()
     {
         myHead = new Node<T>(null,
                              new AtomicMarkableReference<Node<T>>(null, false));
     }
-    
+
     /**
      * Adds a given value to the list
-     * 
+     *
      * @param dataNode The dataNode to be added to the list
      * @return Returns true if the value is successfully added to the list,
      *         false if the value is already present.
@@ -108,16 +108,26 @@ public class LocklessSortedList<T extends Comparable<? super T>>
             {
                 return false;
             }
-            position.getFirst()
-                    .getNext()
-                    .compareAndSet(position.getSecond(), dataNode, false, false);
-            return true;
+
+            boolean insertedIntoTheList =
+                dataNode.getNext()
+                        .compareAndSet(null, position.getSecond(), false, false);
+
+            boolean listPointedToNewNode =
+                position.getFirst()
+                        .getNext()
+                        .compareAndSet(position.getSecond(),
+                                       dataNode,
+                                       false,
+                                       false);
+
+            return insertedIntoTheList && listPointedToNewNode;
         }
     }
-    
+
     /**
      * Adds a given value to the list
-     * 
+     *
      * @param value The value to be added to the list
      * @return Returns true if the value is successfully added to the list,
      *         false if the value is already present.
@@ -128,7 +138,7 @@ public class LocklessSortedList<T extends Comparable<? super T>>
                                new AtomicMarkableReference<Node<T>>(null, false)
         ));
     }
-    
+
     /**
      * Returns true if the value is present in the list, false otherwise.
      */
@@ -138,7 +148,7 @@ public class LocklessSortedList<T extends Comparable<? super T>>
         return (   position.getSecond() != null
                 && position.getSecond().getData().compareTo(value) == 0);
     }
-    
+
     /**
      * A helper method to iterate through the sorted list and finds the
      * pair of nodes between which a value is to be inserted. While traversing
@@ -149,13 +159,13 @@ public class LocklessSortedList<T extends Comparable<? super T>>
     {
         return find(value, myHead);
     }
-    
+
     /**
      * A helper method to iterate through the sorted list and finds the
      * pair of nodes between which a value is to be inserted. While traversing
      * the list it cleans the marked nodes (i.e. those that are logically
      * deleted).
-     * 
+     *
      * @param value The value searched for.
      * @param pred  The node from which we will start out searching.
      */
@@ -195,13 +205,13 @@ public class LocklessSortedList<T extends Comparable<? super T>>
             }
         }
     }
-    
+
     /** Returns true if the list is empty, false otherwise */
     public boolean isEmpty()
     {
         return myHead.getNext().getReference() == null;
     }
-    
+
     /**
      * Returns true if the value is present in the list, false otherwise.
      */
@@ -217,10 +227,10 @@ public class LocklessSortedList<T extends Comparable<? super T>>
             return null;
         }
     }
-    
+
     /**
      * Removes the given value from the list.
-     * 
+     *
      * @param value The value to be removed.
      * @return Returns true if the value is present and removed, false otherwise.
      */

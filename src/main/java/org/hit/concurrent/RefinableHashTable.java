@@ -34,19 +34,16 @@ import com.google.common.collect.ListMultimap;
 /**
  * An implementation of linked hash table which minimizes the locking overhead
  * when accessing the data in the hash table.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class RefinableHashTable<K, V> implements HashTable<K, V>
 {
-    private static final int INIT_TABLE_SIZE = 100;
-
     private static final int INIT_LOCK_SIZE = 10;
 
-    private static final int NO_POSITION = -1;
+    private static final int INIT_TABLE_SIZE = 100;
 
-    /** The list of locks that gaurds various portion of the tables */
-    private List<ReentrantLock> myLocks;
+    private static final int NO_POSITION = -1;
 
     /**
      * The data stored in the hash map. We allow multiple keys with the same
@@ -54,6 +51,9 @@ public class RefinableHashTable<K, V> implements HashTable<K, V>
      * should be unique.
      */
     private List<ListMultimap<K, V>> myData;
+
+    /** The list of locks that gaurds various portion of the tables */
+    private List<ReentrantLock> myLocks;
 
     /** The thread that has acquired permission for resizing the table */
     private final AtomicMarkableReference<Thread> myOwner;
@@ -138,7 +138,7 @@ public class RefinableHashTable<K, V> implements HashTable<K, V>
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * Please note that this is a very costly operation to be performed.
      */
     @Override
@@ -152,7 +152,7 @@ public class RefinableHashTable<K, V> implements HashTable<K, V>
                 while (lock.isLocked()) {
                 }
             }
-            
+
             for (ListMultimap<K, V> multimap : myData) {
                 values.addAll(multimap.values());
             }
