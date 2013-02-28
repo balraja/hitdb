@@ -35,7 +35,7 @@ import com.google.common.collect.Collections2;
  * Defines the contract for adaptor that adapts {@link Table} to read/write data
  * from {@link TransactableTable}. In that process it keeps track of the version
  * numbers of the objects read/written by the {@link Transaction}.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
@@ -59,12 +59,12 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
         }
     }
 
+    private final long                        myStartTime;
+
     private final TransactableTable<K, P>     myTable;
 
-    private final long                        myStartTime;
-    
     private final TransactionTableTrail<K, P> myTableTrail;
-    
+
     private final long                        myTransactionID;
 
     /**
@@ -83,7 +83,7 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
 
     /**
      * A helper method to commit the updates made by the transaction.
-     * 
+     *
      * @param commitTime The time to which end time of a record is set to.
      */
     public void commit(long commitTime)
@@ -158,7 +158,7 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
     {
         return myStartTime;
     }
-    
+
     /**
      * Returns the value of tableTrail
      */
@@ -173,31 +173,34 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
     @Override
     public boolean update(P old, P updated)
     {
-        if (!old.primaryKey().equals(updated.primaryKey())) {
-            return false;
+        if (old != null) {
+            if (!old.primaryKey().equals(updated.primaryKey())) {
+                return false;
+            }
+            Transactable<K, P> tableOld =
+                 myTable.getRow(updated.primaryKey(), myStartTime, myTransactionID);
+
+            if (!tableOld.getPersistable().equals(old)
+                || !tableOld.isValid(myStartTime, myTransactionID))
+            {
+                return false;
+            }
+            // Now lock the row for this transaction
+            tableOld.setEnd(TransactionHelper.toVersionID(myTransactionID));
+            myTableTrail.getWriteSet().add(tableOld);
         }
-        Transactable<K, P> tableOld =
-             myTable.getRow(updated.primaryKey(), myStartTime, myTransactionID);
-        
-        if (!tableOld.getPersistable().equals(old)
-            || !tableOld.isValid(myStartTime, myTransactionID))
-        {
-            return false;
-        }
-        
-        // Now lock the row for this transaction
-        tableOld.setEnd(TransactionHelper.toVersionID(myTransactionID));
+
         Transactable<K,P> updatedTransactable =
             new Transactable<K, P>(updated);
         updatedTransactable.setStart(
             TransactionHelper.toVersionID(myTransactionID));
         updatedTransactable.setEnd(TransactionHelper.INFINITY);
-        myTableTrail.getWriteSet().add(tableOld);
+
         myTableTrail.getWriteSet().add(updatedTransactable);
         myTable.addToTable(updatedTransactable);
         return true;
     }
-    
+
     /**
      * Returns true if the <code>TransactionTableTrail</code> is valid.
      */

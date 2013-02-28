@@ -23,7 +23,6 @@ package org.hit.db.engine;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.hit.communicator.NodeID;
 import org.hit.db.model.PartitioningType;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Schema;
@@ -33,19 +32,19 @@ import org.hit.db.transactions.TransactableTable;
 /**
  * Defines an implementation for the hit database that stores the
  * <code>Table</code>s
- * 
+ *
  * @author Balraja Subbiah
  */
 public class TransactableHitDatabase implements TransactableDatabase
 {
     private final Map<String, TransactableTable<?, ?>> myDatabaseTables;
-    
+
     private final Map<String, Schema> myTable2Schema;
-    
+
     /**
      * CTOR
      */
-    public TransactableHitDatabase(NodeID nodeID)
+    public TransactableHitDatabase()
     {
         myDatabaseTables = new HashMap<>();
         myTable2Schema = new HashMap<>();
@@ -73,14 +72,14 @@ public class TransactableHitDatabase implements TransactableDatabase
     {
         TransactableTable<K,P> table =
             (TransactableTable<K,P>) myDatabaseTables.get(tableName);
-        
+
         if (table == null) {
             table = makeTable(myTable2Schema.get(tableName));
             myDatabaseTables.put(tableName, table);
         }
         return table;
     }
-    
+
     private <K extends Comparable<K>, P extends Persistable<K>>
         TransactableTable<K, P> makeTable(Schema schema)
     {

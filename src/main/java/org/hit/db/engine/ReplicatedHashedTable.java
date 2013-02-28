@@ -34,7 +34,7 @@ import org.hit.db.model.Schema;
 /**
  * Defines the contract for the hashed table that's replicated across a
  * dfifferent node.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class ReplicatedHashedTable <K extends Comparable<K>,
@@ -97,9 +97,10 @@ public class ReplicatedHashedTable <K extends Comparable<K>,
     @Override
     public boolean update(P old, P updated)
     {
-        boolean removed  = myIndex.remove(old.primaryKey(), old);
+        boolean removed  =
+            old != null ? myIndex.remove(old.primaryKey(), old) : true;
         boolean added = myIndex.add(updated.primaryKey(), updated);
         return removed && added;
     }
-    
+
 }

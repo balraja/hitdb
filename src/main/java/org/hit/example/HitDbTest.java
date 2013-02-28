@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -35,33 +35,15 @@ import org.hit.util.ApplicationLauncher;
 import org.hit.util.LogFactory;
 
 /**
- * Defines the contract for the client that can be used for testing the 
+ * Defines the contract for the client that can be used for testing the
  * database.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class HitDbTest implements Application
 {
-    private static final Logger LOG = 
-        LogFactory.getInstance().getLogger(HitDbTest.class);
-    
-    private static final String TABLE_NAME = "ClimateData";
-    
-    private final HitDBFacade myServerFacade;
-    
-    private final AtomicBoolean myIsResponseReceived;
-    
     private class SimpleFacadeCallback implements FacadeCallback
     {
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void onDBOperationSuccess(DBOperation operation)
-        {
-            
-        }
-
         /**
          * {@inheritDoc}
          */
@@ -70,17 +52,16 @@ public class HitDbTest implements Application
                                          String message,
                                          Throwable exception)
         {
-            
+
         }
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public void onTableCreationSuccess(String tableName)
+        public void onDBOperationSuccess(DBOperation operation)
         {
-            myIsResponseReceived.compareAndSet(false, true);
-            LOG.info("Creation of the table " + tableName + " succedded");
+
         }
 
         /**
@@ -93,8 +74,37 @@ public class HitDbTest implements Application
             LOG.info("Creation of the table " + tableName + " failed because"
                      + " of " + message);
         }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onTableCreationSuccess(String tableName)
+        {
+            myIsResponseReceived.compareAndSet(false, true);
+            LOG.info("Creation of the table " + tableName + " succedded");
+        }
     }
-    
+
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(HitDbTest.class);
+
+    public static final String TABLE_NAME = "ClimateData";
+
+    /**
+     * Main method that launches the application.
+     */
+    public static void main(String[] args)
+    {
+        ApplicationLauncher appLauncher =
+            new ApplicationLauncher(new HitDbTest());
+        appLauncher.launch();
+    }
+
+    private final AtomicBoolean myIsResponseReceived;
+
+    private final HitDBFacade myServerFacade;
+
     /**
      * CTOR
      */
@@ -103,7 +113,24 @@ public class HitDbTest implements Application
         myServerFacade = new HitDBFacade();
         myIsResponseReceived = new AtomicBoolean(false);
     }
-    
+
+    /** Creates the climate data table */
+    public void createTable()
+    {
+        Schema schema =
+            new Schema(TABLE_NAME,
+                       new ArrayList<Column>(),
+                       ClimateData.class,
+                       ClimateDataKey.class,
+                       PartitioningType.PARTITIONABLE,
+                       new ClimateDataKeySpace());
+
+        myServerFacade.createTable(schema, new SimpleFacadeCallback());
+        while (!myIsResponseReceived.get()) {
+
+        }
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -121,32 +148,5 @@ public class HitDbTest implements Application
     public void stop()
     {
         myServerFacade.stop();
-    }
-    
-    /** Creates the climate data table */
-    public void createTable()
-    {
-        Schema schema = 
-            new Schema(TABLE_NAME,
-                       new ArrayList<Column>(), 
-                       ClimateData.class, 
-                       ClimateDataKey.class,
-                       PartitioningType.PARTITIONABLE, 
-                       new ClimateDataKeySpace());
-        
-        myServerFacade.createTable(schema, new SimpleFacadeCallback());
-        while (!myIsResponseReceived.get()) {
-            
-        }
-    }
-    
-    /**
-     * Main method that launches the application.
-     */
-    public static void main(String[] args)
-    {
-        ApplicationLauncher appLauncher = 
-            new ApplicationLauncher(new HitDbTest());
-        appLauncher.launch();
     }
 }

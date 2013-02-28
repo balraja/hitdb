@@ -49,22 +49,22 @@ import com.google.inject.Inject;
 /**
  * Implements the database engine that's reponsible for creating tables and
  * responding to queries.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class DBEngine extends Actor
 {
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(DBEngine.class);
-    
-    private final TransactionManager myTransactionManager;
-    
-    private final ReplicationManager myReplicationManager;
-    
+
     private final NodeID myNodeID;
-    
+
     private final NodeID myReplicatingOnNodeID;
-    
+
+    private final ReplicationManager myReplicationManager;
+
+    private final TransactionManager myTransactionManager;
+
     /**
      * CTOR
      */
@@ -77,28 +77,27 @@ public class DBEngine extends Actor
                     ZooKeeperClient      zooKeeperClient)
     {
         super(eventBus, new ActorID(DBEngine.class.getName()));
-        
-        TransactableDatabase dataStore =
-            new TransactableHitDatabase(nodeID);
-        
+
+        TransactableDatabase dataStore = new TransactableHitDatabase();
+
         myNodeID = nodeID;
         myReplicatingOnNodeID = topology.getReplicatingNodeID(myNodeID);
         NodeID replicaSource = topology.getReplicaSource(myNodeID);
         if (replicaSource != null) {
-            myReplicationManager = 
+            myReplicationManager =
                 new ReplicationManager(replicaSource);
         }
         else {
             myReplicationManager = null;
         }
-        
+
         myTransactionManager =
             new TransactionManager(
-                dataStore, 
-                clock, 
-                eventBus, 
-                nodeID, 
-                wal, 
+                dataStore,
+                clock,
+                eventBus,
+                nodeID,
+                wal,
                 zooKeeperClient,
                 myReplicatingOnNodeID != null);
     }
@@ -122,8 +121,8 @@ public class DBEngine extends Actor
             myTransactionManager.processOperation(
                 message.getNodeId(), operation);
         }
-        else if (event instanceof ApplyToReplicaEvent 
-                 && myReplicationManager != null) 
+        else if (event instanceof ApplyToReplicaEvent
+                 && myReplicationManager != null)
         {
             ApplyToReplicaEvent applyToReplicaEvent =
                 (ApplyToReplicaEvent) event;
@@ -131,7 +130,7 @@ public class DBEngine extends Actor
                 (DBReplicaProposal) applyToReplicaEvent.getProposal());
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -154,7 +153,7 @@ public class DBEngine extends Actor
                         new ReplicatedDatabaseID(myNodeID),
                         Collections.singleton(myReplicatingOnNodeID)));
             }
-            
+
             if (myReplicationManager != null) {
                 getEventBus().publish(
                     new CreateConsensusAcceptorEvent(
