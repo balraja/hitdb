@@ -18,44 +18,59 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.db.transactions;
+package org.hit.facade;
 
-import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import org.hit.db.model.Database;
+import org.hit.db.model.Mutation;
+
 /**
- * The type that encapsulates the unique id assigned to a transaction.
+ * Defines contract for a class that wraps the given <code>Mutation</code>
+ * with an identifier assigned by the facade.
  *
  * @author Balraja Subbiah
  */
-public class TransactionID implements Externalizable
+public class WrappedMutation implements Mutation
 {
-    private long myIdentifier;
+    private long myID;
+
+    private Mutation myMutation;
 
     /**
      * CTOR
      */
-    public TransactionID()
+    public WrappedMutation()
     {
-        this(-1L);
+        this(-1, null);
     }
 
     /**
      * CTOR
      */
-    public TransactionID(long identifier)
+    public WrappedMutation(long id, Mutation mutation)
     {
-        myIdentifier = identifier;
+        super();
+        myID = id;
+        myMutation = mutation;
     }
 
     /**
-     * Returns the value of identifier
+     * Returns the value of iD
      */
-    public long getIdentifier()
+    public long getID()
     {
-        return myIdentifier;
+        return myID;
+    }
+
+    /**
+     * Returns the value of mutation
+     */
+    public Mutation getMutation()
+    {
+        return myMutation;
     }
 
     /**
@@ -65,7 +80,17 @@ public class TransactionID implements Externalizable
     public void readExternal(ObjectInput in)
         throws IOException, ClassNotFoundException
     {
-        myIdentifier = in.readLong();
+        myID = in.readLong();
+        myMutation = (Mutation) in.readObject();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void update(Database database)
+    {
+        myMutation.update(database);
     }
 
     /**
@@ -74,6 +99,8 @@ public class TransactionID implements Externalizable
     @Override
     public void writeExternal(ObjectOutput out) throws IOException
     {
-        out.writeLong(myIdentifier);
+        out.writeLong(myID);
+        out.writeObject(myMutation);
+
     }
 }

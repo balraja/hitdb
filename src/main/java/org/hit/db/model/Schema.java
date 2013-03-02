@@ -30,22 +30,30 @@ import org.hit.distribution.KeySpace;
 
 /**
  * Defines the contract for schema of a table.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class Schema implements Externalizable
 {
-    private String myTableName;
+    private List<Column> myColumns;
 
-    private Class<? extends Persistable<?>> myPersistableClass;
+    private KeySpace<? extends Comparable<?>> myHashRing;
 
     private Class<? extends Comparable<?>>  myKeyClass;
 
-    private List<Column> myColumns;
-
     private PartitioningType myKeyPartitioningType;
-    
-    private final KeySpace<? extends Comparable<?>> myHashRing;
+
+    private Class<? extends Persistable<?>> myPersistableClass;
+
+    private String myTableName;
+
+    /**
+     * CTOR
+     */
+    public Schema()
+    {
+        this(null, null, null, null, null, null);
+    }
 
     /**
      * CTOR
@@ -72,7 +80,7 @@ public class Schema implements Externalizable
     {
         return myColumns;
     }
-    
+
     /**
      * Returns the value of hashRing
      */
@@ -126,19 +134,7 @@ public class Schema implements Externalizable
         myKeyClass = (Class<? extends Comparable<?>>) in.readObject();
         myColumns = (List<Column>) in.readObject();
         myKeyPartitioningType = (PartitioningType) in.readObject();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException
-    {
-        out.writeUTF(myTableName);
-        out.writeObject(myPersistableClass);
-        out.writeObject(myKeyClass);
-        out.writeObject(myColumns);
-        out.writeObject(myKeyPartitioningType);
+        myHashRing = (KeySpace<?>) in.readObject();
     }
 
     /**
@@ -159,5 +155,19 @@ public class Schema implements Externalizable
                + ", myHashRing="
                + myHashRing
                + "]";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeUTF(myTableName);
+        out.writeObject(myPersistableClass);
+        out.writeObject(myKeyClass);
+        out.writeObject(myColumns);
+        out.writeObject(myKeyPartitioningType);
+        out.writeObject(myHashRing);
     }
 }

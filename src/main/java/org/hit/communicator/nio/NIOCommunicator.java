@@ -29,6 +29,8 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -49,28 +51,28 @@ import com.google.inject.Inject;
  * Implements <code>Communicator</code> using NIO's nonblocking channels. By
  * default it binds to the port 17000 and starts listening for incoming
  * connections.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class NIOCommunicator implements Communicator
 {
+    private static final int BUFFER_SIZE = 1024 * 1024;
+
     private static final Logger LOG = LogFactory.getInstance().getLogger(
             NIOCommunicator.class);
 
-    private static final int BUFFER_SIZE = 1024 * 1024;
+    private final Collection<MessageHandler> myHandlers;
 
-    private final ServerSocketChannel myServerSocketChannel;
+    private final IPNodeID myId;
+
+    private final ExecutorService myNIOExecutor;
 
     private final Selector mySelector;
 
     private final MessageSerializer mySerializer;
 
-    private final Collection<MessageHandler> myHandlers;
+    private final ServerSocketChannel myServerSocketChannel;
 
-    private final IPNodeID myId;
-    
-    private final ExecutorService myNIOExecutor;
-    
     private final AtomicBoolean myShouldStop;
 
     /** CTOR */
@@ -165,21 +167,21 @@ public class NIOCommunicator implements Communicator
             SocketChannel writableChannel = SocketChannel.open();
             writableChannel.configureBlocking(true);
             writableChannel.connect(targetNode.getIPAddress());
-           
+
             if (LOG.isLoggable(Level.FINE)) {
-                LOG.fine("Connection with " 
+                LOG.fine("Connection with "
                          + writableChannel.getRemoteAddress()
                          + " is established ");
             }
-            
+
             writableChannel.write(serializedData);
-            
+
             if (LOG.isLoggable(Level.FINE)) {
-                LOG.fine("Has written data to  " 
+                LOG.fine("Has written data to  "
                           + writableChannel.getRemoteAddress());
             }
             writableChannel.close();
-          
+
         }
         catch (IOException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
@@ -188,43 +190,52 @@ public class NIOCommunicator implements Communicator
     }
 
     /** Starts the communicator */
+    @Override
     public void start()
     {
         LOG.info("Starting NIO communicator");
         myNIOExecutor.execute(new Runnable() {
+            @Override
             public void run() {
                 try {
                     ServerSocket serverSocket = myServerSocketChannel.socket();
                     serverSocket.bind(myId.getIPAddress());
                     myServerSocketChannel.configureBlocking(false);
-                    myServerSocketChannel.register(mySelector, 
+                    myServerSocketChannel.register(mySelector,
                                                    SelectionKey.OP_ACCEPT);
-                    LOG.info("Bound server to the address " 
+                    LOG.info("Bound server to the address "
                              + myId.getIPAddress());
-                    
+
                     while (!myShouldStop.get()) {
                         int n = mySelector.select();
                         if (n == 0) {
                             continue;
                         }
                         else {
-                            for (SelectionKey sKey : mySelector.selectedKeys()) 
-                            {
+                            Set<SelectionKey> selectedKeys =
+                                mySelector.selectedKeys();
+                            Iterator<SelectionKey>
+                                keyIterator = selectedKeys.iterator();
+
+                            while(keyIterator.hasNext()) {
+
+                                SelectionKey sKey = keyIterator.next();
+
                                 if (!sKey.isValid()) {
                                     continue;
                                 }
                                 if (sKey.isAcceptable()) {
-                                    
+
                                     ServerSocketChannel serverSocketChannel =
                                         (ServerSocketChannel) sKey.channel();
-                                    
+
                                     SocketChannel channel =
                                         serverSocketChannel.accept();
-                                    
+
                                     if (channel == null) {
                                         continue;
                                     }
-                                    
+
                                     if (LOG.isLoggable(Level.FINE)) {
                                         LOG.fine("Acceping connection from "
                                                  + channel.getRemoteAddress());
@@ -237,6 +248,10 @@ public class NIOCommunicator implements Communicator
                                 else if (sKey.isReadable()) {
                                     readData((SocketChannel) sKey.channel());
                                 }
+                                // It's very important to remove the keys
+                                // after processing. Otherwise channel
+                                // will not be selected next time.
+                                keyIterator.remove();
                             }
                         }
                     }
@@ -255,7 +270,7 @@ public class NIOCommunicator implements Communicator
     @Override
     public void stop()
     {
-        LOG.info("Stopping NIO communicator bound to " + 
+        LOG.info("Stopping NIO communicator bound to " +
                  myId.getIPAddress());
         try {
             myShouldStop.set(true);

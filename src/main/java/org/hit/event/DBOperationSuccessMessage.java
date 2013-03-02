@@ -30,15 +30,15 @@ import org.hit.db.model.DBOperation;
 
 /**
  * The reply message for a successful <code>DBOperation</code>
- * 
+ *
  * @author Balraja Subbiah
  */
 public class DBOperationSuccessMessage extends Message
 {
     private DBOperation myAppliedDBOperation;
-    
+
     private Object myResult;
-    
+
     /**
      * CTOR
      */
@@ -46,7 +46,7 @@ public class DBOperationSuccessMessage extends Message
     {
         this(null, null, null);
     }
-    
+
     /**
      * CTOR
      */
@@ -66,7 +66,7 @@ public class DBOperationSuccessMessage extends Message
     {
         return myAppliedDBOperation;
     }
-    
+
     /**
      * Returns the value of result
      */
@@ -84,9 +84,15 @@ public class DBOperationSuccessMessage extends Message
     {
         super.readExternal(in);
         myAppliedDBOperation = (DBOperation) in.readObject();
-        myResult = in.readObject();
+        boolean hasResult = in.readBoolean();
+        if (hasResult) {
+            myResult = in.readObject();
+        }
+        else {
+            myResult = null;
+        }
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -95,6 +101,12 @@ public class DBOperationSuccessMessage extends Message
     {
         super.writeExternal(out);
         out.writeObject(myAppliedDBOperation);
-        out.writeObject(myResult);
+        if (myResult != null) {
+            out.writeBoolean(true);
+            out.writeObject(myResult);
+        }
+        else {
+            out.writeBoolean(false);
+        }
     }
 }

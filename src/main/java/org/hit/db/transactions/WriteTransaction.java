@@ -27,7 +27,7 @@ import org.hit.time.Clock;
 /**
  * Defines the contract for the write transactions to be performed on a
  * database.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class WriteTransaction extends AbstractTransaction
@@ -44,7 +44,7 @@ public class WriteTransaction extends AbstractTransaction
     {
         super(transactionId, database, clock);
         myMutation = mutation;
-        
+
     }
 
     /**
@@ -77,4 +77,13 @@ public class WriteTransaction extends AbstractTransaction
                                           getTransactionID().getIdentifier());
         return adaptor.validate(wtv);
     }
+
+    /**
+     * Returns the value of mutation
+     */
+    public Mutation getMutation()
+    {
+        return myMutation;
+    }
+
 }

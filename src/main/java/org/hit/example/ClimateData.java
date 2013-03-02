@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -20,35 +20,48 @@
 
 package org.hit.example;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 import org.hit.db.model.Column;
 import org.hit.db.model.Persistable;
 
 /**
  * A simple table that captures the weather database.
- * 
+ *
  * @author Balraja Subbiah
  */
-public class ClimateData implements Persistable<ClimateDataKey>
+public class ClimateData implements Persistable<ClimateDataKey>, Externalizable
 {
-    private final ClimateDataKey myKey;
-    
-    private final int myMeanTemperature;
-    
-    private final int myMeanDewPoint;
-    
-    private final int myMeanWindSpeed;
-    
-    private final int myMaxTemperature;
-    
-    private final int myMinTemperature;
+    private ClimateDataKey myKey;
+
+    private int myMaxTemperature;
+
+    private int myMeanDewPoint;
+
+    private int myMeanTemperature;
+
+    private int myMeanWindSpeed;
+
+    private int myMinTemperature;
 
     /**
      * CTOR
      */
-    public ClimateData(ClimateDataKey key, 
+    public ClimateData()
+    {
+        this(null, -1, -1, -1, -1, -1);
+    }
+
+    /**
+     * CTOR
+     */
+    public ClimateData(ClimateDataKey key,
                        int meanTemperature,
-                       int meanDewPoint, 
-                       int meanWindSpeed, 
+                       int meanDewPoint,
+                       int meanWindSpeed,
                        int maxTemperature,
                        int minTemperature)
     {
@@ -61,6 +74,48 @@ public class ClimateData implements Persistable<ClimateDataKey>
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        ClimateData other = (ClimateData) obj;
+        if (myKey == null) {
+            if (other.myKey != null) {
+                return false;
+            }
+        }
+        else if (!myKey.equals(other.myKey)) {
+            return false;
+        }
+        if (myMaxTemperature != other.myMaxTemperature) {
+            return false;
+        }
+        if (myMeanDewPoint != other.myMeanDewPoint) {
+            return false;
+        }
+        if (myMeanTemperature != other.myMeanTemperature) {
+            return false;
+        }
+        if (myMeanWindSpeed != other.myMeanWindSpeed) {
+            return false;
+        }
+        if (myMinTemperature != other.myMinTemperature) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Returns the value of key
      */
     public ClimateDataKey getKey()
@@ -69,11 +124,11 @@ public class ClimateData implements Persistable<ClimateDataKey>
     }
 
     /**
-     * Returns the value of meanTemperature
+     * Returns the value of maxTemperature
      */
-    public int getMeanTemperature()
+    public int getMaxTemperature()
     {
-        return myMeanTemperature;
+        return myMaxTemperature;
     }
 
     /**
@@ -85,19 +140,19 @@ public class ClimateData implements Persistable<ClimateDataKey>
     }
 
     /**
+     * Returns the value of meanTemperature
+     */
+    public int getMeanTemperature()
+    {
+        return myMeanTemperature;
+    }
+
+    /**
      * Returns the value of meanWindSpeed
      */
     public int getMeanWindSpeed()
     {
         return myMeanWindSpeed;
-    }
-
-    /**
-     * Returns the value of maxTemperature
-     */
-    public int getMaxTemperature()
-    {
-        return myMaxTemperature;
     }
 
     /**
@@ -121,8 +176,55 @@ public class ClimateData implements Persistable<ClimateDataKey>
      * {@inheritDoc}
      */
     @Override
+    public int hashCode()
+    {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((myKey == null) ? 0 : myKey.hashCode());
+        result = prime * result + myMaxTemperature;
+        result = prime * result + myMeanDewPoint;
+        result = prime * result + myMeanTemperature;
+        result = prime * result + myMeanWindSpeed;
+        result = prime * result + myMinTemperature;
+        return result;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public ClimateDataKey primaryKey()
     {
         return myKey;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readExternal(ObjectInput in)
+        throws IOException, ClassNotFoundException
+    {
+        myKey = (ClimateDataKey) in.readObject();
+        myMeanTemperature = in.readInt();
+        myMeanDewPoint = in.readInt();
+        myMeanWindSpeed = in.readInt();
+        myMaxTemperature = in.readInt();
+        myMinTemperature = in.readInt();
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeObject(myKey);
+        out.writeInt(myMeanTemperature);
+        out.writeInt(myMeanDewPoint);
+        out.writeInt(myMeanWindSpeed);
+        out.writeInt(myMaxTemperature);
+        out.writeInt(myMinTemperature);
     }
 }

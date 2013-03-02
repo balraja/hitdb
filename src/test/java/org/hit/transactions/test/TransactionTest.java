@@ -67,15 +67,6 @@ public class TransactionTest
          * {@inheritDoc}
          */
         @Override
-        public String getTableName()
-        {
-            return HitDbTest.TABLE_NAME;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
         public void readExternal(ObjectInput in)
             throws IOException, ClassNotFoundException
         {

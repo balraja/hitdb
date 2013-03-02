@@ -54,8 +54,14 @@ import com.google.inject.Inject;
  */
 public class DBEngine extends Actor
 {
+    private static final String DB_OPERATION_LOG =
+        "Received request from %s for performing %s";
+
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(DBEngine.class);
+
+    private static final String TABLE_CREATION_LOG =
+        "Received request from %s for creating table %s";
 
     private final NodeID myNodeID;
 
@@ -108,14 +114,24 @@ public class DBEngine extends Actor
     @Override
     protected void processEvent(Event event)
     {
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Received " + event);
+        }
         if (event instanceof CreateTableMessage) {
             CreateTableMessage ctm = (CreateTableMessage) event;
+            LOG.info(String.format(TABLE_CREATION_LOG,
+                                   ctm.getNodeId(),
+                                   ctm.getTableSchema()));
             Schema schema = ctm.getTableSchema();
             myTransactionManager.createTable(ctm.getNodeId(), schema);
         }
         else if (event instanceof PerformDBOperationMessage) {
+
             PerformDBOperationMessage message =
                 (PerformDBOperationMessage) event;
+            LOG.info(String.format(DB_OPERATION_LOG,
+                                   message.getNodeId(),
+                                   message.getOperation()));
             DBOperation operation =
                 ((PerformDBOperationMessage) event).getOperation();
             myTransactionManager.processOperation(
@@ -137,6 +153,12 @@ public class DBEngine extends Actor
     @Override
     protected void registerEvents()
     {
+        getEventBus().registerForEvent(CreateTableMessage.class,
+                                       getActorID());
+        getEventBus().registerForEvent(PerformDBOperationMessage.class,
+                                       getActorID());
+        getEventBus().registerForEvent(ApplyToReplicaEvent.class,
+                                       getActorID());
     }
 
     /**

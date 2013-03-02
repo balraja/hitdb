@@ -22,14 +22,11 @@ package org.hit.db.model;
 
 /**
  * Defines the contract for mutation of data in a table.
- * 
+ *
  * @author Balraja Subbiah
  */
 public interface Mutation extends DBOperation
 {
-    /** The name of the table on which mutation is to be applied */
-    public String getTableName();
-
     /**
      * Subclasses should override this method for performing mutation on the
      * table.

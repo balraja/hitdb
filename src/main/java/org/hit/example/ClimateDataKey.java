@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -27,17 +27,26 @@ import java.io.ObjectOutput;
 
 /**
  * Defines the key for the climate data represnted by <code>ClimateData</code>
- * 
+ *
  * @author Balraja Subbiah
  */
-public class ClimateDataKey 
+public class ClimateDataKey
     implements Comparable<ClimateDataKey>, Externalizable
 {
-    private int myYear;
-    
     private int myDayOfYear;
-    
+
     private int myStationNumber;
+
+    private int myYear;
+
+
+    /**
+     * CTOR
+     */
+    public ClimateDataKey()
+    {
+        this(-1, -1, -1);
+    }
 
     /**
      * CTOR
@@ -48,30 +57,6 @@ public class ClimateDataKey
         myYear = year;
         myDayOfYear = dayOfYear;
         myStationNumber = stationNumber;
-    }
-
-    /**
-     * Returns the value of year
-     */
-    public int getYear()
-    {
-        return myYear;
-    }
-
-    /**
-     * Returns the value of dayOfYear
-     */
-    public int getDayOfYear()
-    {
-        return myDayOfYear;
-    }
-
-    /**
-     * Returns the value of stationNumber
-     */
-    public int getStationNumber()
-    {
-        return myStationNumber;
     }
 
     /**
@@ -99,14 +84,27 @@ public class ClimateDataKey
     }
 
     /**
-     * {@inheritDoc}
+     * Returns the value of dayOfYear
      */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException
+    public int getDayOfYear()
     {
-        out.writeInt(myStationNumber);
-        out.writeInt(myYear);
-        out.writeInt(myDayOfYear);
+        return myDayOfYear;
+    }
+
+    /**
+     * Returns the value of stationNumber
+     */
+    public int getStationNumber()
+    {
+        return myStationNumber;
+    }
+
+    /**
+     * Returns the value of year
+     */
+    public int getYear()
+    {
+        return myYear;
     }
 
     /**
@@ -119,5 +117,16 @@ public class ClimateDataKey
         myStationNumber = in.readInt();
         myYear = in.readInt();
         myDayOfYear = in.readInt();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeInt(myStationNumber);
+        out.writeInt(myYear);
+        out.writeInt(myDayOfYear);
     }
 }

@@ -30,12 +30,20 @@ import org.hit.db.model.DBOperation;
 
 /**
  * Instructs the datbase to apply the given operation to the database.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class PerformDBOperationMessage extends Message
 {
     private DBOperation myOperation;
+
+    /**
+     * CTOR
+     */
+    public PerformDBOperationMessage()
+    {
+        this(null, null);
+    }
 
     /**
      * CTOR
@@ -53,7 +61,7 @@ public class PerformDBOperationMessage extends Message
     {
         return myOperation;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -64,7 +72,7 @@ public class PerformDBOperationMessage extends Message
         super.readExternal(in);
         myOperation = (DBOperation) in.readObject();
     }
-    
+
     /**
      * {@inheritDoc}
      */

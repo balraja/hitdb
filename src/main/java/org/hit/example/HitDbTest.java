@@ -21,18 +21,21 @@
 package org.hit.example;
 
 import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.db.model.Column;
-import org.hit.db.model.DBOperation;
 import org.hit.db.model.PartitioningType;
 import org.hit.db.model.Schema;
-import org.hit.facade.FacadeCallback;
+import org.hit.facade.DBOperationResponse;
 import org.hit.facade.HitDBFacade;
+import org.hit.facade.TableCreationResponse;
 import org.hit.util.Application;
 import org.hit.util.ApplicationLauncher;
 import org.hit.util.LogFactory;
+
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * Defines the contract for the client that can be used for testing the
@@ -42,50 +45,6 @@ import org.hit.util.LogFactory;
  */
 public class HitDbTest implements Application
 {
-    private class SimpleFacadeCallback implements FacadeCallback
-    {
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void onDBOperationFailure(DBOperation operation,
-                                         String message,
-                                         Throwable exception)
-        {
-
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void onDBOperationSuccess(DBOperation operation)
-        {
-
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void onTableCreationFailure(String tableName, String message)
-        {
-            myIsResponseReceived.compareAndSet(false, true);
-            LOG.info("Creation of the table " + tableName + " failed because"
-                     + " of " + message);
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void onTableCreationSuccess(String tableName)
-        {
-            myIsResponseReceived.compareAndSet(false, true);
-            LOG.info("Creation of the table " + tableName + " succedded");
-        }
-    }
-
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(HitDbTest.class);
 
@@ -101,8 +60,6 @@ public class HitDbTest implements Application
         appLauncher.launch();
     }
 
-    private final AtomicBoolean myIsResponseReceived;
-
     private final HitDBFacade myServerFacade;
 
     /**
@@ -111,7 +68,6 @@ public class HitDbTest implements Application
     public HitDbTest()
     {
         myServerFacade = new HitDBFacade();
-        myIsResponseReceived = new AtomicBoolean(false);
     }
 
     /** Creates the climate data table */
@@ -125,9 +81,20 @@ public class HitDbTest implements Application
                        PartitioningType.PARTITIONABLE,
                        new ClimateDataKeySpace());
 
-        myServerFacade.createTable(schema, new SimpleFacadeCallback());
-        while (!myIsResponseReceived.get()) {
+        ListenableFuture<TableCreationResponse> futureResponse =
+            myServerFacade.createTable(schema);
 
+        try {
+            TableCreationResponse result = futureResponse.get();
+            LOG.info("Creation of table "
+                     + result.getTableSchema().getTableName()
+                     + " succedded on nodes " + result.getAffectedNodes());
+        }
+        catch (InterruptedException e) {
+            // ignore
+        }
+        catch (ExecutionException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
         }
     }
 
@@ -139,6 +106,7 @@ public class HitDbTest implements Application
     {
         myServerFacade.start();
         createTable();
+        updateTable();
     }
 
     /**
@@ -148,5 +116,34 @@ public class HitDbTest implements Application
     public void stop()
     {
         myServerFacade.stop();
+    }
+
+    /** Updates the table */
+    public void updateTable()
+    {
+        AddRowMutation mutation =
+            new AddRowMutation(
+               new ClimateData(new ClimateDataKey(2013, 1, 1),
+                               48,
+                               20,
+                               25,
+                               50,
+                               45));
+        ListenableFuture<DBOperationResponse> futureResponse =
+            myServerFacade.apply(mutation, TABLE_NAME);
+
+        try {
+            DBOperationResponse response = futureResponse.get();
+            LOG.info("Updation of "
+                     + TABLE_NAME
+                     + " with mutation "
+                     + response.getDbOperation().getClass().getSimpleName()
+                     + " succedded");
+        }
+        catch (InterruptedException e) {
+        }
+        catch (ExecutionException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+        }
     }
 }

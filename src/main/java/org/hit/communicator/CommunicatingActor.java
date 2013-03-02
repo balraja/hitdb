@@ -20,25 +20,32 @@
 
 package org.hit.communicator;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.actors.EventBusException;
 import org.hit.event.Event;
 import org.hit.event.SendMessageEvent;
+import org.hit.util.LogFactory;
 
 import com.google.inject.Inject;
 
 /**
  * Implements <code>Actor</code> to support implementing an agent for
  * communicating with the outside world.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class CommunicatingActor extends Actor
 {
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(CommunicatingActor.class);
+
     private final Communicator myCommunicator;
-    
+
     /**
      * CTOR
      */
@@ -52,6 +59,10 @@ public class CommunicatingActor extends Actor
             public void handle(Message message)
             {
                 try {
+                    if (LOG.isLoggable(Level.FINE)) {
+                        LOG.fine("Received " + message + " from "
+                                 + message.getNodeId());
+                    }
                     getEventBus().publish(message);
                 }
                 catch (EventBusException e) {
@@ -83,7 +94,7 @@ public class CommunicatingActor extends Actor
     {
         getEventBus().registerForEvent(SendMessageEvent.class, getActorID());
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -93,7 +104,7 @@ public class CommunicatingActor extends Actor
         super.start();
         myCommunicator.start();
     }
-    
+
     /**
      * {@inheritDoc}
      */

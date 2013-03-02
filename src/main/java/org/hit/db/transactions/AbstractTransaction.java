@@ -27,23 +27,23 @@ import org.hit.time.Clock;
  * Defines an abstract implementation of a <code>Transaction</code>
  * that takes care of capturing the references to the objects read
  * or written.
- * 
+ *
  * @author Balraja Subbiah
  */
 public abstract class AbstractTransaction implements Transaction
 {
-    private final TransactionID myTransactionID;
-    
     private final DatabaseAdaptor myAdaptedDatabase;
-    
+
     private final Clock myClock;
-    
-    private TransactionState myState;
-    
-    private long myStartTime;
-    
+
     private long myEndTime;
-    
+
+    private long myStartTime;
+
+    private TransactionState myState;
+
+    private final TransactionID myTransactionID;
+
     /**
      * CTOR
      */
@@ -57,7 +57,7 @@ public abstract class AbstractTransaction implements Transaction
             new DatabaseAdaptor(database, myTransactionID.getIdentifier());
         myClock = clock;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -76,7 +76,7 @@ public abstract class AbstractTransaction implements Transaction
         doCommit(myAdaptedDatabase);
         myState = TransactionState.COMMITTED;
     }
-    
+
     /**
      * Subclasses should override this implementation to execute their
      * implementation of commit.
@@ -88,13 +88,13 @@ public abstract class AbstractTransaction implements Transaction
      * of <code>Transaction</code>
      */
     protected abstract void doExecute(Database database);
-    
+
     /**
      * Subclasses should override this method to execute their implementation
      * of validating a transaction.
      */
     protected abstract boolean doValidation(DatabaseAdaptor adaptor);
-    
+
     /**
      * {@inheritDoc}
      */
@@ -149,7 +149,7 @@ public abstract class AbstractTransaction implements Transaction
         myStartTime = myClock.currentTime();
         myAdaptedDatabase.setTransactionTime(myStartTime);
     }
-    
+
     /**
      * {@inheritDoc}
      */

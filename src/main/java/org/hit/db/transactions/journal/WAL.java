@@ -22,7 +22,10 @@ package org.hit.db.transactions.journal;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
+import java.io.Externalizable;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -30,6 +33,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.hit.db.model.Mutation;
+import org.hit.db.transactions.TransactionID;
 import org.hit.db.transactions.WriteTransaction;
 import org.hit.util.LogFactory;
 
@@ -40,28 +45,78 @@ import com.google.inject.Inject;
  * pesisted before they are committed. It stores
  * {@link WALConfig#getTransactionsPerFile() } number of mutations in a file.
  * Each record is stored as Double.NaN,record_size_as_int,serialized_format.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class WAL
 {
+    /**
+     * Type for capturing the necessary information to be written into a
+     * write ahead log.
+     */
+    public static class WALRecord implements Externalizable
+    {
+        private Mutation myMutation;
+
+        private TransactionID myTransactionID;
+
+        /**
+         * CTOR
+         */
+        public WALRecord()
+        {
+            this(null, null);
+        }
+
+        /**
+         * CTOR
+         */
+        public WALRecord(TransactionID transactionID, Mutation mutation)
+        {
+            super();
+            myTransactionID = transactionID;
+            myMutation = mutation;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void readExternal(ObjectInput in)
+            throws IOException, ClassNotFoundException
+        {
+            myTransactionID = (TransactionID) in.readObject();
+            myMutation = (Mutation) in.readObject();
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException
+        {
+            out.writeObject(myTransactionID);
+            out.writeObject(myMutation);
+        }
+    }
+
     private static final Logger LOG = LogFactory.getInstance()
                                                 .getLogger(WAL.class);
-    
-    private static final String TRANSACTION_LOG_SUFFIX = ".transactionLog";
-    
+
     private static final double RECORD_DELIMITER = Double.NaN;
-    
-    private final FileSystemFacacde myFacacde;
-    
-    private final Lock myLock;
-    
+
+    private static final String TRANSACTION_LOG_SUFFIX = ".transactionLog";
+
     private final WALConfig myConfig;
-    
-    private final AtomicInteger myPersistedTransactionCount;
-    
+
+    private final FileSystemFacacde myFacacde;
+
+    private final Lock myLock;
+
     private DataOutputStream myLogStream;
-    
+
+    private final AtomicInteger myPersistedTransactionCount;
+
     /**
      * CTOR
      */
@@ -78,11 +133,11 @@ public class WAL
                 makeFileName(myPersistedTransactionCount.get()),
                 false);
     }
-    
+
     /**
      * Perists the given mutation to a file system. So that it can be
      * replayed in the future.
-     * 
+     *
      * @param transaction The transaction to be written to the journal.
      */
     public void addTransaction(WriteTransaction transaction)
@@ -98,11 +153,13 @@ public class WAL
                     myFacacde.createFile(
                          makeFileName(newTransactionID), false);
             }
-            
+
             ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
             ObjectOutputStream ooStream = new ObjectOutputStream(byteStream);
-            ooStream.writeObject(transaction);
-            
+            ooStream.writeObject(
+                new WALRecord(transaction.getTransactionID(),
+                              transaction.getMutation()));
+
             myLogStream.writeDouble(RECORD_DELIMITER);
             myLogStream.writeInt(byteStream.size());
             myLogStream.write(byteStream.toByteArray());
@@ -111,13 +168,13 @@ public class WAL
             LOG.log(Level.SEVERE,
                     "Exception when persisting a transaction to WAL",
                     e);
-            
+
         }
         finally {
             myLock.unlock();
         }
     }
-    
+
     private String makeFileName(int transactionCount)
     {
         return myConfig.getBaseDirectoryPath()
