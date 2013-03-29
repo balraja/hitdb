@@ -29,7 +29,7 @@ import org.hit.consensus.ConsensusAcceptor;
 import org.hit.consensus.ConsensusLeader;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
-import org.hit.event.ConsensusMessage;
+import org.hit.messages.ConsensusMessage;
 
 /**
  * The {@link ConsensusMessage} sent from a {@link ConsensusLeader} to

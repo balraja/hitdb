@@ -24,14 +24,16 @@ import java.util.Collection;
 import junit.framework.TestCase;
 
 import org.hit.communicator.NodeID;
-import org.hit.distribution.DistributedPartitioner;
-import org.hit.distribution.LongKeySpace;
+import org.hit.partitioner.HashPartitioner;
+import org.hit.partitioner.LinearPartitioner;
+import org.hit.partitioner.LongKeySpace;
+import org.hit.partitioner.Partitioner;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
 /**
- * The test case for {@link DistributedPartitioner}.
+ * The test case for {@link HashPartitioner}.
  * 
  * @author Balraja Subbiah
  */
@@ -49,8 +51,8 @@ public class DistributedHashTableTest extends TestCase
         Collection<NodeID> testNodes =
             Lists.newArrayList(FIRST_NODE, SECOND_NODE, THIRD_NODE);
         
-        DistributedPartitioner<Long> longHashTable =
-            new DistributedPartitioner<>(new LongKeySpace(1L, 11L));
+        Partitioner<Long> longHashTable =
+            new LinearPartitioner<>(new LongKeySpace(1L, 11L));
             
         longHashTable.distribute(testNodes);
         

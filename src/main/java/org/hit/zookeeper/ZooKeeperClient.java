@@ -43,10 +43,16 @@ import org.hit.communicator.NodeID;
 import org.hit.communicator.nio.IPNodeID;
 import org.hit.db.model.PartitioningType;
 import org.hit.db.model.Schema;
-import org.hit.distribution.KeySpace;
+import org.hit.partitioner.HashPartitioner;
+import org.hit.partitioner.HashPartitioner.HashFunctionID;
+import org.hit.partitioner.KeySpace;
+import org.hit.partitioner.LinearPartitioner;
+import org.hit.partitioner.Partitioner;
+import org.hit.registry.RegistryService;
 import org.hit.util.LogFactory;
 import org.hit.util.Pair;
 
+import com.google.common.hash.Funnel;
 import com.google.inject.Inject;
 
 /**
@@ -54,7 +60,7 @@ import com.google.inject.Inject;
  * 
  * @author Balraja Subbiah
  */
-public class ZooKeeperClient
+public class ZooKeeperClient implements RegistryService
 {
     private static final Logger LOG = 
         LogFactory.getInstance().getLogger(ZooKeeperClient.class);
@@ -66,6 +72,10 @@ public class ZooKeeperClient
     private static final String ZK_HIT_SCHEMA_LOCK = "lock";
     
     private static final String ZK_HIT_PARTITION_NODE = "partition";
+    
+    private static final String ZK_HIT_HASH_FUNCTION_NODE = "hash";
+    
+    private static final String ZK_HIT_HASH_FUNNEL_NODE = "funnel";
     
     private static final String ZK_HIT_KEYSPACE_NODE = "keyspace";
     
@@ -113,10 +123,11 @@ public class ZooKeeperClient
         }
     }
     
-    /** 
-     * Returns true if the client is ready for communicating with the zookeeper 
+    /**
+     * {@inheritDoc}
      */
-    public boolean isReady()
+    @Override
+    public boolean isUp()
     {
         return myIsReadyFlag.get();
     }
@@ -140,7 +151,7 @@ public class ZooKeeperClient
      */
     public boolean check_and_create_root_node()
     {
-        if (!isReady()) {
+        if (!isUp()) {
             return false;
         }
         try {
@@ -168,7 +179,7 @@ public class ZooKeeperClient
      */
     public boolean check_and_create_tables_root_node()
     {
-        if (!isReady()) {
+        if (!isUp()) {
             return false;
         }
         try {
@@ -216,9 +227,10 @@ public class ZooKeeperClient
     }
     
     /**
-     * Returns the list of <code>NodeID</code>'s of the servers.
+     * {@inheritDoc}
      */
-    public List<NodeID> getServerIDS()
+    @Override
+    public List<NodeID> getServerNodes()
     {
         try {
             List<NodeID> servers = new ArrayList<>();
@@ -240,12 +252,13 @@ public class ZooKeeperClient
     }
     
     /**
-     * Adds schema to the zookeeper.
+     * Adds table schema information to the registry
      */
-    public void addKeyMeta(Schema schema)
+    public void addSchema(Schema schema)
     {
         String path =  
            ZK_HIT_TABLES_ROOT + PATH_SEPARATOR + schema.getTableName();
+        
         String lockPath = 
             path + PATH_SEPARATOR + ZK_HIT_SCHEMA_LOCK;
         
@@ -259,12 +272,6 @@ public class ZooKeeperClient
                                    Ids.OPEN_ACL_UNSAFE, 
                                    CreateMode.PERSISTENT);
                     
-                //Acquire the lock on the table
-                myZooKeeper.create(lockPath, 
-                                   null, 
-                                   Ids.OPEN_ACL_UNSAFE, 
-                                   CreateMode.EPHEMERAL);
-                
                 String partitionPath = 
                     path + PATH_SEPARATOR + ZK_HIT_PARTITION_NODE;
                 
@@ -275,32 +282,64 @@ public class ZooKeeperClient
                                    Ids.OPEN_ACL_UNSAFE, 
                                    CreateMode.PERSISTENT);
                 
-                String keySpacePath = 
-                    path + PATH_SEPARATOR + ZK_HIT_KEYSPACE_NODE;
-                
-                myZooKeeper.create(keySpacePath,
-                                   schema.getHashRing()
-                                         .getClass()
-                                         .getName()
-                                         .getBytes(), 
-                                   Ids.OPEN_ACL_UNSAFE, 
-                                   CreateMode.PERSISTENT);
-                
-                String minPath = 
-                    keySpacePath + PATH_SEPARATOR + ZK_HIT_KEYSPACE_MIN_NODE;
-                
-                myZooKeeper.create(minPath,
-                                   toBytes(schema.getHashRing().getMinimum()), 
-                                   Ids.OPEN_ACL_UNSAFE, 
-                                   CreateMode.PERSISTENT);
-                
-                String maxPath = 
-                    keySpacePath + PATH_SEPARATOR + ZK_HIT_KEYSPACE_MAX_NODE;
-                            
-                myZooKeeper.create(maxPath,
-                                   toBytes(schema.getHashRing().getMaximum()), 
-                                   Ids.OPEN_ACL_UNSAFE, 
-                                   CreateMode.PERSISTENT);
+                if (schema.getKeyPartitioningType() 
+                        == PartitioningType.HASHABLE)
+                {
+                    HashPartitioner<?> partitioner = 
+                        (HashPartitioner<?>) schema.getPartitioner();
+                    
+                    String hashFunctionPath = 
+                        path + PATH_SEPARATOR + ZK_HIT_HASH_FUNCTION_NODE;
+                    
+                    myZooKeeper.create(hashFunctionPath,
+                                       partitioner.getHashFunctionID()
+                                                  .name()
+                                                  .getBytes(),
+                                       Ids.OPEN_ACL_UNSAFE, 
+                                       CreateMode.PERSISTENT);
+                    
+                    String funnelPath = 
+                        path + PATH_SEPARATOR + ZK_HIT_HASH_FUNNEL_NODE;
+                    
+                    myZooKeeper.create(funnelPath,
+                                       toBytes(partitioner.getFunnel()),
+                                       Ids.OPEN_ACL_UNSAFE,
+                                       CreateMode.PERSISTENT);
+                }
+                else {
+                    
+                    LinearPartitioner<?> partitoner = 
+                        (LinearPartitioner<?>) schema.getPartitioner();
+                    
+                    String keySpacePath = 
+                        path + PATH_SEPARATOR + ZK_HIT_KEYSPACE_NODE;
+                    
+                    myZooKeeper.create(keySpacePath,
+                                       partitoner.getKeySpace()
+                                                 .getClass()
+                                                 .getName()
+                                                 .getBytes(), 
+                                       Ids.OPEN_ACL_UNSAFE, 
+                                       CreateMode.PERSISTENT);
+                    
+                    String minPath = 
+                        keySpacePath + PATH_SEPARATOR + ZK_HIT_KEYSPACE_MIN_NODE;
+                    
+                    myZooKeeper.create(minPath,
+                                       toBytes(
+                                           partitoner.getKeySpace().getMinimum()), 
+                                       Ids.OPEN_ACL_UNSAFE, 
+                                       CreateMode.PERSISTENT);
+                    
+                    String maxPath = 
+                        keySpacePath + PATH_SEPARATOR + ZK_HIT_KEYSPACE_MAX_NODE;
+                                
+                    myZooKeeper.create(maxPath,
+                                       toBytes(
+                                           partitoner.getKeySpace().getMaximum()), 
+                                       Ids.OPEN_ACL_UNSAFE, 
+                                       CreateMode.PERSISTENT);
+                }
                 
                 Stat lockStat = myZooKeeper.exists(lockPath, false);
                 myZooKeeper.delete(lockPath, lockStat.getVersion());
@@ -332,7 +371,34 @@ public class ZooKeeperClient
         return oin.readObject();
     }
     
-    public Pair<PartitioningType, KeySpace<?>> getKeyMetaData(String tableName)
+    private String readStringFromNode(String path) 
+        throws KeeperException, InterruptedException
+    {
+        Stat pathStat = myZooKeeper.exists(path, false);
+        return pathStat != null ? 
+            new String(myZooKeeper.getData(path, false, pathStat))
+            : null;
+    }
+    
+    private Object readObjectFromNode(String path) 
+        throws KeeperException, 
+               InterruptedException, 
+               ClassNotFoundException, 
+               IOException
+    {
+        Stat pathStat = myZooKeeper.exists(path, false);
+        return pathStat != null ? 
+            readFrom(myZooKeeper.getData(path, false, pathStat))
+            : null;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T extends Comparable<T>> Partitioner<T>
+        getTablePartitioner(String tableName)
     {
         String path =  
             ZK_HIT_TABLES_ROOT + PATH_SEPARATOR + tableName;
@@ -349,70 +415,61 @@ public class ZooKeeperClient
                  String partitionPath = 
                      path + PATH_SEPARATOR + ZK_HIT_PARTITION_NODE;
                  
-                 Stat partitionStat = 
-                     myZooKeeper.exists(partitionPath, false);
+                 String partitioningTypeName = 
+                     readStringFromNode(partitionPath);
                  
-                 if (partitionStat != null) {
-                     String partitionName = 
-                         new String(myZooKeeper.getData(partitionPath, 
-                                                        false,
-                                                        partitionStat));
-                      type = PartitioningType.valueOf(partitionName);
+                 if (partitioningTypeName != null) {
+                      type = PartitioningType.valueOf(partitioningTypeName);
                  }
                  
-                 String keySpacePath = 
-                     path + PATH_SEPARATOR + ZK_HIT_KEYSPACE_NODE;
-                
-                 Stat keySpaceStat = 
-                     myZooKeeper.exists(keySpacePath, false);
-                 
-                 String keySpaceClassName = null;
-                 
-                 if (keySpaceStat != null) {
-                    keySpaceClassName =
-                        new String(myZooKeeper.getData(keySpacePath,
-                                                       false,
-                                                       keySpaceStat));
-                }
-                String minPath = 
-                     keySpacePath + PATH_SEPARATOR + ZK_HIT_KEYSPACE_MIN_NODE;
-                 
-                 Stat minStat = 
-                     myZooKeeper.exists(minPath, false);
-                 
-                 Object minValue = null;
-                 
-                 if (minStat != null) {
-                     minValue = readFrom(myZooKeeper.getData(minPath,
-                                                             false,
-                                                             minStat));
-                 }
-                 
-                 String maxPath = 
-                     keySpacePath + PATH_SEPARATOR + ZK_HIT_KEYSPACE_MAX_NODE;
-                 
-                 Stat maxStat = myZooKeeper.exists(maxPath, false);
-                 
-                 Object maxValue = null;
-                 
-                 if (maxStat != null) {
-                     maxValue = readFrom(myZooKeeper.getData(maxPath,
-                                                             false,
-                                                             maxStat));
-                 }
-                 
-                 if (keySpaceClassName != null 
-                     && minValue != null
-                     && maxValue != null)
-                 {
-                     KeySpace<?> keySpace = 
-                         (KeySpace<?>) Class.forName(keySpaceClassName)
-                                            .newInstance();
-                     keySpace.setMaximum(maxValue);
-                     keySpace.setMinimum(minValue);
+                 if (type == PartitioningType.HASHABLE) {
                      
-                     return new Pair<PartitioningType, KeySpace<?>>(type, 
-                                                                    keySpace);
+                     String hashFunctionPath = 
+                         path + PATH_SEPARATOR + ZK_HIT_HASH_FUNCTION_NODE;
+                     String hashFunctionName =
+                         readStringFromNode(hashFunctionPath);
+                     String funnelPath = 
+                         path + PATH_SEPARATOR + ZK_HIT_HASH_FUNNEL_NODE;
+                     Funnel<T> funnel = 
+                         (Funnel<T>) readObjectFromNode(funnelPath);
+                     
+                     if (funnel != null && hashFunctionName != null) {
+                         return new HashPartitioner<>(
+                             HashFunctionID.valueOf(hashFunctionName),
+                             funnel);
+                     }
+                 }
+                 else {
+                     String keySpacePath = 
+                         path + PATH_SEPARATOR + ZK_HIT_KEYSPACE_NODE;
+                     
+                     String keySpaceClassName = 
+                         readStringFromNode(keySpacePath);
+                     
+                     T minValue = 
+                         (T) readObjectFromNode(
+                                 keySpacePath 
+                                 + PATH_SEPARATOR 
+                                 + ZK_HIT_KEYSPACE_MIN_NODE);
+                     
+                     T maxValue = 
+                        (T) readObjectFromNode(
+                                keySpacePath 
+                                + PATH_SEPARATOR 
+                                + ZK_HIT_KEYSPACE_MAX_NODE);
+                     
+                     if (keySpaceClassName != null 
+                         && minValue != null
+                         && maxValue != null)
+                     {
+                         KeySpace<T> keySpace = 
+                             (KeySpace<T>) Class.forName(keySpaceClassName)
+                                                .newInstance();
+                         keySpace.setMaximum(maxValue);
+                         keySpace.setMinimum(minValue);
+                         
+                         return new LinearPartitioner<T>(keySpace);
+                     }
                  }
              }
              return null;

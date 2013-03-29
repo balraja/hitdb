@@ -87,7 +87,7 @@ public class HitServer implements Application
     public void start()
     {
         LOG.info("Hit db server starting up");
-        while (!myZooKeeperClient.isReady()) {
+        while (!myZooKeeperClient.isUp()) {
             //Wait till zookeeper client becomes ready.
         }
         LOG.info("Connected to zookeeper");

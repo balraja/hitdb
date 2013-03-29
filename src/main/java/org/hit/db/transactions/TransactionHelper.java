@@ -1,5 +1,5 @@
 /*
-    Hit is a high speed transactional database for handling millions
+     Hit is a high speed transactional database for handling millions
     of updates with comfort and ease.
 
     Copyright (C) 2012  Balraja Subbiah

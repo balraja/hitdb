@@ -31,6 +31,7 @@ import org.hit.db.model.Schema;
 import org.hit.facade.DBOperationResponse;
 import org.hit.facade.HitDBFacade;
 import org.hit.facade.TableCreationResponse;
+import org.hit.partitioner.LinearPartitioner;
 import org.hit.util.Application;
 import org.hit.util.ApplicationLauncher;
 import org.hit.util.LogFactory;
@@ -79,7 +80,7 @@ public class HitDbTest implements Application
                        ClimateData.class,
                        ClimateDataKey.class,
                        PartitioningType.PARTITIONABLE,
-                       new ClimateDataKeySpace());
+                       new LinearPartitioner<>(new ClimateDataKeySpace()));
 
         ListenableFuture<TableCreationResponse> futureResponse =
             myServerFacade.createTable(schema);

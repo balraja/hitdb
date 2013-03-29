@@ -38,15 +38,15 @@ import org.hit.db.model.PartitioningType;
 import org.hit.db.model.Schema;
 import org.hit.db.model.mutations.SingleKeyMutation;
 import org.hit.di.HitFacadeModule;
-import org.hit.distribution.DistributedPartitioner;
-import org.hit.distribution.KeyPartitioner;
-import org.hit.distribution.KeySpace;
-import org.hit.distribution.LinearPartitioner;
-import org.hit.event.CreateTableMessage;
-import org.hit.event.CreateTableResponseMessage;
-import org.hit.event.DBOperationFailureMessage;
-import org.hit.event.DBOperationSuccessMessage;
-import org.hit.event.PerformDBOperationMessage;
+import org.hit.messages.CreateTableMessage;
+import org.hit.messages.CreateTableResponseMessage;
+import org.hit.messages.DBOperationFailureMessage;
+import org.hit.messages.DBOperationMessage;
+import org.hit.messages.DBOperationSuccessMessage;
+import org.hit.partitioner.HashPartitioner;
+import org.hit.partitioner.KeySpace;
+import org.hit.partitioner.LinearPartitioner;
+import org.hit.partitioner.Partitioner;
 import org.hit.registry.RegistryService;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
@@ -189,7 +189,7 @@ public class HitDBFacade
             myOperationIDToFutureMap.put(myOperationID, mySettableFuture);
 
             myCommunicator.sendTo(myNodeID,
-                                  new PerformDBOperationMessage(
+                                  new DBOperationMessage(
                                       myClientID,
                                       myOperation));
         }
@@ -324,7 +324,7 @@ public class HitDBFacade
 
     private final RegistryService myRegistryService;
 
-    private final Map<String, KeyPartitioner<? extends Comparable<?>>>
+    private final Map<String, Partitioner<? extends Comparable<?>>>
         myTable2Partitoner;
 
     /**
@@ -356,34 +356,23 @@ public class HitDBFacade
             SingleKeyMutation<K> mutation, String tableName)
     {
         @SuppressWarnings("unchecked")
-        KeyPartitioner<K> partitioner =
-            (KeyPartitioner<K>) myTable2Partitoner.get(tableName);
+        Partitioner<K> partitioner =
+            (Partitioner<K>) myTable2Partitoner.get(tableName);
 
         if (partitioner == null) {
-            Pair<PartitioningType, KeySpace<?>> keyMeta =
-                myRegistryService.getTableKeyMetaData(tableName);
-
-            @SuppressWarnings("unchecked")
-            KeySpace<K> hashRing = (KeySpace<K>) keyMeta.getSecond();
-
             partitioner =
-                keyMeta.getFirst() == PartitioningType.HASHABLE ?
-                    new DistributedPartitioner<K>(hashRing)
-                    : new LinearPartitioner<K>(hashRing);
-
+                myRegistryService.getTablePartitioner(tableName);
             partitioner.distribute(myRegistryService.getServerNodes() );
             myTable2Partitoner.put(tableName, partitioner);
         }
 
         NodeID serverNode = partitioner.getNode(mutation.getKey());
-
         SettableFuture<DBOperationResponse> futureResponse =
             SettableFuture.create();
         long id = myOperationsCount.getAndIncrement();
         WrappedMutation wrappedMutation = new WrappedMutation(id, mutation);
         myExecutorService.submit(new SubmitDBOperationTask(
             serverNode, wrappedMutation, futureResponse, id));
-
         return futureResponse;
     }
 

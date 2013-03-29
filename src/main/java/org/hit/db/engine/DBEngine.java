@@ -20,25 +20,20 @@
 
 package org.hit.db.engine;
 
-import java.util.Collections;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
-import org.hit.actors.EventBusException;
 import org.hit.communicator.NodeID;
 import org.hit.db.model.DBOperation;
 import org.hit.db.model.Schema;
 import org.hit.db.transactions.TransactableDatabase;
 import org.hit.db.transactions.journal.WAL;
-import org.hit.event.ApplyToReplicaEvent;
-import org.hit.event.CreateConsensusAcceptorEvent;
-import org.hit.event.CreateConsensusLeaderEvent;
-import org.hit.event.CreateTableMessage;
 import org.hit.event.Event;
-import org.hit.event.PerformDBOperationMessage;
+import org.hit.messages.CreateTableMessage;
+import org.hit.messages.DBOperationMessage;
 import org.hit.time.Clock;
 import org.hit.topology.Topology;
 import org.hit.util.LogFactory;
@@ -63,13 +58,8 @@ public class DBEngine extends Actor
     private static final String TABLE_CREATION_LOG =
         "Received request from %s for creating table %s";
 
-    private final NodeID myNodeID;
+    private TransactionManager myTransactionManager;
 
-    private final NodeID myReplicatingOnNodeID;
-
-    private final ReplicationManager myReplicationManager;
-
-    private final TransactionManager myTransactionManager;
 
     /**
      * CTOR
@@ -86,17 +76,6 @@ public class DBEngine extends Actor
 
         TransactableDatabase dataStore = new TransactableHitDatabase();
 
-        myNodeID = nodeID;
-        myReplicatingOnNodeID = topology.getReplicatingNodeID(myNodeID);
-        NodeID replicaSource = topology.getReplicaSource(myNodeID);
-        if (replicaSource != null) {
-            myReplicationManager =
-                new ReplicationManager(replicaSource);
-        }
-        else {
-            myReplicationManager = null;
-        }
-
         myTransactionManager =
             new TransactionManager(
                 dataStore,
@@ -104,8 +83,7 @@ public class DBEngine extends Actor
                 eventBus,
                 nodeID,
                 wal,
-                zooKeeperClient,
-                myReplicatingOnNodeID != null);
+                zooKeeperClient);
     }
 
     /**
@@ -125,25 +103,17 @@ public class DBEngine extends Actor
             Schema schema = ctm.getTableSchema();
             myTransactionManager.createTable(ctm.getNodeId(), schema);
         }
-        else if (event instanceof PerformDBOperationMessage) {
+        else if (event instanceof DBOperationMessage) {
 
-            PerformDBOperationMessage message =
-                (PerformDBOperationMessage) event;
+            DBOperationMessage message =
+                (DBOperationMessage) event;
             LOG.info(String.format(DB_OPERATION_LOG,
                                    message.getNodeId(),
                                    message.getOperation()));
             DBOperation operation =
-                ((PerformDBOperationMessage) event).getOperation();
+                ((DBOperationMessage) event).getOperation();
             myTransactionManager.processOperation(
                 message.getNodeId(), operation);
-        }
-        else if (event instanceof ApplyToReplicaEvent
-                 && myReplicationManager != null)
-        {
-            ApplyToReplicaEvent applyToReplicaEvent =
-                (ApplyToReplicaEvent) event;
-            myReplicationManager.applyReplicationProposal(
-                (DBReplicaProposal) applyToReplicaEvent.getProposal());
         }
     }
 
@@ -155,37 +125,8 @@ public class DBEngine extends Actor
     {
         getEventBus().registerForEvent(CreateTableMessage.class,
                                        getActorID());
-        getEventBus().registerForEvent(PerformDBOperationMessage.class,
-                                       getActorID());
-        getEventBus().registerForEvent(ApplyToReplicaEvent.class,
+        getEventBus().registerForEvent(DBOperationMessage.class,
                                        getActorID());
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void start()
-    {
-        super.start();
-        try {
-            if (myReplicatingOnNodeID != null) {
-                getEventBus().publish(
-                    new CreateConsensusLeaderEvent(
-                        new ReplicatedDatabaseID(myNodeID),
-                        Collections.singleton(myReplicatingOnNodeID)));
-            }
-
-            if (myReplicationManager != null) {
-                getEventBus().publish(
-                    new CreateConsensusAcceptorEvent(
-                         new ReplicatedDatabaseID(
-                             myReplicationManager.getReplicatedDbsNode()),
-                         myReplicationManager.getReplicatedDbsNode()));
-            }
-        }
-        catch (EventBusException e) {
-            LOG.log(Level.SEVERE, e.getMessage(), e);
-        }
-    }
-}
+  }

@@ -26,7 +26,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.List;
 
-import org.hit.distribution.KeySpace;
+import org.hit.partitioner.Partitioner;
 
 /**
  * Defines the contract for schema of a table.
@@ -37,7 +37,7 @@ public class Schema implements Externalizable
 {
     private List<Column> myColumns;
 
-    private KeySpace<? extends Comparable<?>> myHashRing;
+    private Partitioner<?> myPartitioner;
 
     private Class<? extends Comparable<?>>  myKeyClass;
 
@@ -63,14 +63,14 @@ public class Schema implements Externalizable
                   Class<? extends Persistable<?>> persistableclass,
                   Class<? extends Comparable<?>> keyclass,
                   PartitioningType keyType,
-                  KeySpace<? extends Comparable<?>> hashRing)
+                  Partitioner<?> partitioner)
     {
         myColumns = columns;
         myTableName = tableName;
         myPersistableClass = persistableclass;
         myKeyClass = keyclass;
         myKeyPartitioningType = keyType;
-        myHashRing = hashRing;
+        myPartitioner = partitioner;
     }
 
     /**
@@ -82,11 +82,12 @@ public class Schema implements Externalizable
     }
 
     /**
-     * Returns the value of hashRing
+     * Returns the {@link Partitioner} that can be used for partitioning
+     * the data in a table among the various servers in a database.
      */
-    public KeySpace<? extends Comparable<?>> getHashRing()
+    public Partitioner<?> getPartitioner()
     {
-        return myHashRing;
+        return myPartitioner;
     }
 
     /**
@@ -134,7 +135,7 @@ public class Schema implements Externalizable
         myKeyClass = (Class<? extends Comparable<?>>) in.readObject();
         myColumns = (List<Column>) in.readObject();
         myKeyPartitioningType = (PartitioningType) in.readObject();
-        myHashRing = (KeySpace<?>) in.readObject();
+        myPartitioner = (Partitioner<?>) in.readObject();
     }
 
     /**
@@ -153,7 +154,7 @@ public class Schema implements Externalizable
                + ", myKeyPartitioningType="
                + myKeyPartitioningType
                + ", myHashRing="
-               + myHashRing
+               + myPartitioner
                + "]";
     }
 
@@ -168,6 +169,6 @@ public class Schema implements Externalizable
         out.writeObject(myKeyClass);
         out.writeObject(myColumns);
         out.writeObject(myKeyPartitioningType);
-        out.writeObject(myHashRing);
+        out.writeObject(myPartitioner);
     }
 }

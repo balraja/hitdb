@@ -62,22 +62,4 @@ public class SingletonTopology implements Topology
     {
         return Collections.emptyList();
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public NodeID getReplicatingNodeID(NodeID nodeID)
-    {
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public NodeID getReplicaSource(NodeID nodeID)
-    {
-        return null;
-    }
 }

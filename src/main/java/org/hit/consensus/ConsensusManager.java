@@ -27,11 +27,12 @@ import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
-import org.hit.event.ConsensusMessage;
 import org.hit.event.ConsensusRequestEvent;
 import org.hit.event.CreateConsensusAcceptorEvent;
 import org.hit.event.CreateConsensusLeaderEvent;
 import org.hit.event.Event;
+import org.hit.messages.ConsensusMessage;
+
 import com.google.inject.Inject;
 
 /**

@@ -21,7 +21,7 @@
 package org.hit.di;
 
 import org.hit.registry.RegistryService;
-import org.hit.registry.ZookeeperRegistryService;
+import org.hit.zookeeper.ZooKeeperClient;
 
 /**
  * Extends <code>HitModule</code> to support adding bindings for the
@@ -38,7 +38,7 @@ public class HitFacadeModule extends HitModule
     protected void configure()
     {
         super.configure();
-        bind(RegistryService.class).to(ZookeeperRegistryService.class);
+        bind(RegistryService.class).to(ZooKeeperClient.class);
     }
     
     /**

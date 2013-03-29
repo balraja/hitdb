@@ -44,14 +44,4 @@ public interface Topology
      * distributed database other than this node.
      */
     public List<NodeID> getParticipatingNodes();
-    
-    /**
-     * Returns the node on which the given node's data is replicated.
-     */
-    public NodeID getReplicatingNodeID(NodeID nodeID);
-    
-    /**
-     * Returns the node whose data is replicated on the given node.
-     */
-    public NodeID getReplicaSource(NodeID nodeID);
 }

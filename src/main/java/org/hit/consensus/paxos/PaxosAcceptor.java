@@ -32,7 +32,6 @@ import org.hit.consensus.ConsensusAcceptor;
 import org.hit.consensus.ConsensusLeader;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
-import org.hit.event.ApplyToReplicaEvent;
 import org.hit.event.SendMessageEvent;
 import org.hit.util.LogFactory;
 
@@ -94,8 +93,6 @@ public class PaxosAcceptor extends ConsensusAcceptor
                 boolean isAccepted = false;
                 if (pcr.getSequenceID() <= myLastSeqAccepted) {
                     isAccepted = true;
-                    getEventBus().publish(new ApplyToReplicaEvent(
-                        getConsensusUnitID(), pcr.getProposal()));
                 }
                 
                 getEventBus().publish(new PaxosCommitResponse(

@@ -41,6 +41,7 @@ import org.hit.example.ClimateData;
 import org.hit.example.ClimateDataKey;
 import org.hit.example.ClimateDataKeySpace;
 import org.hit.example.HitDbTest;
+import org.hit.partitioner.LinearPartitioner;
 import org.junit.Test;
 
 /**
@@ -147,7 +148,7 @@ public class TransactionTest
                        ClimateData.class,
                        ClimateDataKey.class,
                        PartitioningType.PARTITIONABLE,
-                       new ClimateDataKeySpace());
+                       new LinearPartitioner<>(new ClimateDataKeySpace()));
 
         database.createTable(schema);
         ClimateData newClimateDataRow =

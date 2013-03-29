@@ -23,9 +23,10 @@ package org.hit.example;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.math.BigInteger;
 import java.util.Calendar;
 
-import org.hit.distribution.KeySpace;
+import org.hit.partitioner.KeySpace;
 
 /**
  * Defines the contract for the key space of <code>ClimateDataKey</code>
@@ -106,11 +107,12 @@ public class ClimateDataKeySpace implements KeySpace<ClimateDataKey>
      * {@inheritDoc}
      */
     @Override
-    public long getTotalElements()
+    public BigInteger getTotalElements()
     {
-        return ((myMaxKey.getStationNumber() - myMinKey.getStationNumber()) + 1)
+        return BigInteger.valueOf(
+               ((myMaxKey.getStationNumber() - myMinKey.getStationNumber()) + 1)
              * ((myMaxKey.getYear() - myMinKey.getYear()) + 1)
-             * ((myMaxKey.getDayOfYear() - myMinKey.getDayOfYear()) + 1);
+             * ((myMaxKey.getDayOfYear() - myMinKey.getDayOfYear()) + 1));
     }
 
     /**
@@ -136,7 +138,7 @@ public class ClimateDataKeySpace implements KeySpace<ClimateDataKey>
      */
     @Override
     public ClimateDataKey
-        nextAtOffset(ClimateDataKey currentValue, long offset)
+        nextAtOffset(ClimateDataKey currentValue, BigInteger offset)
     {
         long stationRange = 
              ((myMaxKey.getYear() - myMinKey.getYear()) + 1)
@@ -149,7 +151,7 @@ public class ClimateDataKeySpace implements KeySpace<ClimateDataKey>
             currentValue.getStationNumber() * stationRange
             + currentValue.getYear() * yearRange
             + currentValue.getDayOfYear()
-            + offset;
+            + offset.longValue();
                              
                      
         long numStations = currentOffset / stationRange;

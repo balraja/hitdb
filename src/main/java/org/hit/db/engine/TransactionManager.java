@@ -42,11 +42,10 @@ import org.hit.db.transactions.TransactionID;
 import org.hit.db.transactions.TransactionResult;
 import org.hit.db.transactions.WriteTransaction;
 import org.hit.db.transactions.journal.WAL;
-import org.hit.event.ConsensusRequestEvent;
-import org.hit.event.CreateTableResponseMessage;
-import org.hit.event.DBOperationFailureMessage;
-import org.hit.event.DBOperationSuccessMessage;
 import org.hit.event.SendMessageEvent;
+import org.hit.messages.CreateTableResponseMessage;
+import org.hit.messages.DBOperationFailureMessage;
+import org.hit.messages.DBOperationSuccessMessage;
 import org.hit.time.Clock;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
@@ -78,29 +77,21 @@ public class TransactionManager
         
         private final EventBus myEventBus;
         
-        private final TransactionID myTransactionID;
-        
         private final DBOperation myOperation;
         
-        private final boolean myShouldReplicate;
-
         /**
          * CTOR
          */
         public NotifyResultTask(NodeID        clientID,
                                 NodeID        serverID,
                                 EventBus      eventBus,
-                                TransactionID transactionID,
-                                DBOperation   operation,
-                                boolean       shouldReplicate)
+                                DBOperation   operation)
         {
             super();
             myClientID = clientID;
             myServerID = serverID;
             myEventBus = eventBus;
-            myTransactionID = transactionID;
             myOperation = operation;
-            myShouldReplicate = shouldReplicate;
         }
 
         /**
@@ -131,17 +122,7 @@ public class TransactionManager
         public void onSuccess(TransactionResult result)
         {
             try {
-                if (result.isCommitted() 
-                    && myOperation instanceof Mutation
-                    && myShouldReplicate) 
-                {
-                    myEventBus.publish(
-                        new ConsensusRequestEvent(
-                            new DBReplicaProposal(
-                                myTransactionID.getIdentifier(),
-                                (Mutation) myOperation,
-                                new ReplicatedDatabaseID(myServerID))));
-                }
+               
                 Message message =
                     result.isCommitted() ?
                         new DBOperationSuccessMessage(
@@ -181,8 +162,6 @@ public class TransactionManager
     
     private final ZooKeeperClient myZooKeeperClient;
     
-    private final boolean myShouldReplicate;
-    
     /**
      * CTOR
      */
@@ -192,8 +171,7 @@ public class TransactionManager
                               EventBus             eventBus,
                               NodeID               serverID,
                               WAL                  writeAheadLog,
-                              ZooKeeperClient      zooKeeperClient,
-                              boolean              shouldReplicate)
+                              ZooKeeperClient      zooKeeperClient)
     {
         myDatabase = database;
         myClock = clock;
@@ -202,7 +180,6 @@ public class TransactionManager
         myEventBus = eventBus;
         myWriteAheadLog = writeAheadLog;
         myZooKeeperClient = zooKeeperClient;
-        myShouldReplicate = shouldReplicate;
         myExecutor =
             MoreExecutors.listeningDecorator(
                 Executors.newFixedThreadPool(
@@ -220,7 +197,7 @@ public class TransactionManager
         CreateTableResponseMessage response = null;
         try {
             myDatabase.createTable(schema);
-            myZooKeeperClient.addKeyMeta(schema);
+            myZooKeeperClient.addSchema(schema);
             response = 
                 new CreateTableResponseMessage(myServerID, 
                                                schema.getTableName(), 
@@ -269,8 +246,6 @@ public class TransactionManager
                             new NotifyResultTask(clientID,
                                                  myServerID,
                                                  myEventBus,
-                                                 id,
-                                                 operation,
-                                                 myShouldReplicate));
+                                                 operation));
     }
 }

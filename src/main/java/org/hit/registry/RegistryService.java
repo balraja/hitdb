@@ -23,12 +23,7 @@ package org.hit.registry;
 import java.util.List;
 
 import org.hit.communicator.NodeID;
-import org.hit.db.model.PartitioningType;
-import org.hit.db.model.Schema;
-import org.hit.distribution.KeyPartitioner;
-import org.hit.distribution.KeySpace;
-import org.hit.topology.Topology;
-import org.hit.util.Pair;
+import org.hit.partitioner.Partitioner;
 
 /**
  * Defines the contract for the lookup service for accessing the
@@ -41,7 +36,7 @@ public interface RegistryService
     /**
      * Returns the table schema.
      */
-    public Pair<PartitioningType, KeySpace<?>> getTableKeyMetaData(
+    public <T extends Comparable<T>> Partitioner<T> getTablePartitioner(
         String tableName);
     
     /**
