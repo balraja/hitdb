@@ -36,6 +36,7 @@ import org.hit.consensus.ConsensusLeader;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
 import org.hit.event.ConsensusResponseEvent;
+import org.hit.event.ProposalNotificationEvent;
 import org.hit.event.SendMessageEvent;
 import org.hit.util.LogFactory;
 import org.hit.util.Pair;
@@ -227,6 +228,7 @@ public class PaxosLeader extends ConsensusLeader
             new PaxosSolicitConsensusMessage(
                 getNodeID(),
                 getConsensusUnitID(),
+                paxosProposal,
                 paxosProposal.getSequenceNumber()));
         
         record.changeState(State.ACCEPT_REQUEST_SENT);
@@ -255,6 +257,15 @@ public class PaxosLeader extends ConsensusLeader
             }
             
             if (record.canInitiateCommit()) {
+                try {
+                    getEventBus().publish(
+                        new ProposalNotificationEvent(record.getProposal(), true)
+                    );
+                }
+                catch (EventBusException e) {
+                    LOG.log(Level.SEVERE, e.getMessage(), e);
+                }
+                
                 sendMessage(
                     getAcceptors(),
                     new PaxosCommitRequest(

@@ -27,6 +27,7 @@ import java.io.ObjectOutput;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.ConsensusAcceptor;
 import org.hit.consensus.ConsensusLeader;
+import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
 import org.hit.messages.ConsensusMessage;
 
@@ -45,9 +46,9 @@ public class PaxosSolicitConsensusMessage extends ConsensusMessage
      * CTOR
      */
     public PaxosSolicitConsensusMessage(
-        NodeID nodeID, UnitID unitID, long requestID)
+        NodeID nodeID, UnitID unitID, Proposal proposal, long requestID)
     {
-        super(nodeID, unitID);
+        super(nodeID, unitID, proposal);
         myRequestID = requestID;
     }
     

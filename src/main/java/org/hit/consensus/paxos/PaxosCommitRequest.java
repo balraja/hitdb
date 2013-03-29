@@ -40,8 +40,6 @@ import org.hit.messages.ConsensusMessage;
  */
 public class PaxosCommitRequest extends ConsensusMessage
 {
-    private Proposal myProposal;
-    
     private long mySequenceID;
 
     /**
@@ -52,17 +50,8 @@ public class PaxosCommitRequest extends ConsensusMessage
                               Proposal proposal,
                               long     sequenceID)
     {
-        super(nodeID, unitID);
-        myProposal = proposal;
+        super(nodeID, unitID, proposal);
         mySequenceID = sequenceID;
-    }
-
-    /**
-     * Returns the value of proposal
-     */
-    public Proposal getProposal()
-    {
-        return myProposal;
     }
     
     /**
@@ -81,7 +70,6 @@ public class PaxosCommitRequest extends ConsensusMessage
         throws IOException, ClassNotFoundException
     {
         super.readExternal(in);
-        myProposal   = (Proposal) in.readObject();
         mySequenceID = in.readLong();
     }
 
@@ -92,7 +80,6 @@ public class PaxosCommitRequest extends ConsensusMessage
     public void writeExternal(ObjectOutput out) throws IOException
     {
         super.writeExternal(out);
-        out.writeObject(myProposal);
         out.writeLong(mySequenceID);
     }
 }

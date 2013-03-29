@@ -22,6 +22,7 @@ package org.hit.consensus;
 
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
+import org.hit.event.ProposalNotificationResponse;
 
 /**
  * Defines the contract for an acceptor in a consensus protocol. The node
@@ -54,4 +55,6 @@ public abstract class ConsensusAcceptor extends AbstractConsensusProtocol
     {
         return myLeader;
     }
+    
+    public abstract void handleResponse(ProposalNotificationResponse response);
 }

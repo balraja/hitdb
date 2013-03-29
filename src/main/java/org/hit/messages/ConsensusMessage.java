@@ -26,6 +26,7 @@ import java.io.ObjectOutput;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
 
 /**
@@ -41,6 +42,11 @@ public abstract class ConsensusMessage extends Message
      * this message is intended.
      */
     private UnitID myUnitID;
+    
+    /**
+     * The proposal for which we are soliciting the consensus.
+     */
+    private Proposal myProposal;
 
     /**
      * CTOR
@@ -49,15 +55,17 @@ public abstract class ConsensusMessage extends Message
     {
         super();
         myUnitID = null;
+        myProposal = null;
     }
 
     /**
      * CTOR
      */
-    public ConsensusMessage(NodeID nodeId, UnitID unitID)
+    public ConsensusMessage(NodeID nodeId, UnitID unitID, Proposal proposal)
     {
         super(nodeId);
         myUnitID = unitID;
+        myProposal = proposal;
     }
     
     /**
@@ -66,6 +74,14 @@ public abstract class ConsensusMessage extends Message
     public UnitID getUnitID()
     {
         return myUnitID;
+    }
+    
+    /**
+     * Returns the value of proposal
+     */
+    public Proposal getProposal()
+    {
+        return myProposal;
     }
 
     /**
@@ -77,6 +93,7 @@ public abstract class ConsensusMessage extends Message
     {
         super.readExternal(in);
         myUnitID = (UnitID) in.readObject();
+        myProposal = (Proposal) in.readObject();
     }
 
     /**
@@ -87,5 +104,6 @@ public abstract class ConsensusMessage extends Message
     {
         super.writeExternal(out);
         out.writeObject(myUnitID);
+        out.writeObject(myProposal);
     }
 }

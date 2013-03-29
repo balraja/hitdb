@@ -21,20 +21,30 @@
 package org.hit.db.engine;
 
 import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.DefaultBoundedRangeModel;
+
+import org.apache.zookeeper.server.quorum.ProposalRequestProcessor;
 import org.hit.actors.EventBus;
 import org.hit.actors.EventBusException;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.consensus.UnitID;
 import org.hit.db.model.DBOperation;
 import org.hit.db.model.Mutation;
 import org.hit.db.model.Query;
 import org.hit.db.model.Schema;
 import org.hit.db.transactions.AbstractTransaction;
 import org.hit.db.transactions.IDAssigner;
+import org.hit.db.transactions.Memento;
+import org.hit.db.transactions.PhasedTransactionExecutor;
+import org.hit.db.transactions.PhasedTransactionExecutor.ExecutionPhase;
 import org.hit.db.transactions.ReadTransaction;
 import org.hit.db.transactions.TransactableDatabase;
 import org.hit.db.transactions.TransactionExecutor;
@@ -42,6 +52,9 @@ import org.hit.db.transactions.TransactionID;
 import org.hit.db.transactions.TransactionResult;
 import org.hit.db.transactions.WriteTransaction;
 import org.hit.db.transactions.journal.WAL;
+import org.hit.event.CreateConsensusLeaderEvent;
+import org.hit.event.ProposalNotificationEvent;
+import org.hit.event.ProposalNotificationResponse;
 import org.hit.event.SendMessageEvent;
 import org.hit.messages.CreateTableResponseMessage;
 import org.hit.messages.DBOperationFailureMessage;
@@ -51,12 +64,14 @@ import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
 import org.hit.zookeeper.ZooKeeperClient;
 
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.inject.Inject;
+import com.sun.corba.se.spi.legacy.connection.GetEndPointInfoAgainException;
 
 /**
  * Class for managing the execution of transactions.
@@ -65,17 +80,17 @@ import com.google.inject.Inject;
  */
 public class TransactionManager
 {
+    /** LOGGER */
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(TransactionManager.class);
+    
     /**
      * The task that's executed on completion of a <code>Transaction</code>
      */
-    private static class NotifyResultTask
+    private class NotifyResultTask
         implements FutureCallback<TransactionResult>
     {
         private final NodeID myClientID;
-        
-        private final NodeID myServerID;
-        
-        private final EventBus myEventBus;
         
         private final DBOperation myOperation;
         
@@ -83,14 +98,10 @@ public class TransactionManager
          * CTOR
          */
         public NotifyResultTask(NodeID        clientID,
-                                NodeID        serverID,
-                                EventBus      eventBus,
                                 DBOperation   operation)
         {
             super();
             myClientID = clientID;
-            myServerID = serverID;
-            myEventBus = eventBus;
             myOperation = operation;
         }
 
@@ -143,9 +154,117 @@ public class TransactionManager
         }
     }
     
-    private static final Logger LOG =
-        LogFactory.getInstance().getLogger(TransactionManager.class);
+    private class ExecutionPhaseCallBack 
+        implements FutureCallback<Memento<Boolean>>
+    {
+        private final UnitID myUnitID;
+        
+        private final ProposalNotificationEvent myNotification;
+        
+        /**
+         * CTOR
+         */
+        public ExecutionPhaseCallBack(UnitID unitID,
+                                      ProposalNotificationEvent notification)
+        {
+            super();
+            myUnitID = unitID;
+            myNotification = notification;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onFailure(Throwable exception)
+        {
+            try {
+                if (myNotification != null) {
+                    myEventBus.publish(
+                        new ProposalNotificationResponse(myNotification, 
+                                                         false));
+                }
+            }
+            catch (EventBusException e) {
+                LOG.log(Level.SEVERE, e.getMessage(), e);
+            }
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onSuccess(Memento<Boolean> memento)
+        {
+            myAwaitingConsensusCommitMap.put(myUnitID, memento);
+            
+            if (myNotification != null) {
+                try {
+                    myEventBus.publish(
+                        new ProposalNotificationResponse(
+                            myNotification, 
+                            memento.getPhase().getResult()));
+                }
+                catch (EventBusException e) {
+                    LOG.log(Level.SEVERE, e.getMessage(), e);
+                }
+            }
+        }
+    }
     
+    private class CommitPhaseCallBack 
+        implements FutureCallback<Memento<TransactionResult>>
+    {
+        private final ProposalNotificationEvent myNotification;
+        
+        /**
+         * CTOR
+         */
+        public CommitPhaseCallBack(ProposalNotificationEvent notification)
+        {
+            super();
+            myNotification = notification;
+        }
+    
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onFailure(Throwable exception)
+        {
+            try {
+                myEventBus.publish(new ProposalNotificationResponse(myNotification, 
+                                                                    false));
+                DistributedTrnProposal dtp = 
+                    (DistributedTrnProposal) myNotification.getProposal();
+                
+                NotifyResultTask nrt = 
+                    new NotifyResultTask(dtp.getClientID(), 
+                                         dtp.getNodeToDBOperationMap()
+                                            .get(myServerID));
+                nrt.onFailure(exception);
+            }
+            catch (EventBusException e) {
+                LOG.log(Level.SEVERE, e.getMessage(), e);
+            }
+        }
+    
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onSuccess(Memento<TransactionResult> memento)
+        {
+            DistributedTrnProposal dtp = 
+                (DistributedTrnProposal) myNotification.getProposal();
+            NotifyResultTask nrt = 
+                new NotifyResultTask(dtp.getClientID(), 
+                                     dtp.getNodeToDBOperationMap()
+                                        .get(myServerID));
+            nrt.onSuccess(memento.getPhase().getResult());
+        }
+    }
+   
     private final ListeningExecutorService myExecutor;
     
     private final IDAssigner myIdAssigner;
@@ -161,6 +280,8 @@ public class TransactionManager
     private final WAL    myWriteAheadLog;
     
     private final ZooKeeperClient myZooKeeperClient;
+    
+    private final Map<UnitID, Memento<?>> myAwaitingConsensusCommitMap;
     
     /**
      * CTOR
@@ -180,6 +301,7 @@ public class TransactionManager
         myEventBus = eventBus;
         myWriteAheadLog = writeAheadLog;
         myZooKeeperClient = zooKeeperClient;
+        myAwaitingConsensusCommitMap = new ConcurrentHashMap<>();
         myExecutor =
             MoreExecutors.listeningDecorator(
                 Executors.newFixedThreadPool(
@@ -243,9 +365,100 @@ public class TransactionManager
             myExecutor.submit(new TransactionExecutor(transaction,
                                                       myWriteAheadLog));
         Futures.addCallback(future,
-                            new NotifyResultTask(clientID,
-                                                 myServerID,
-                                                 myEventBus,
-                                                 operation));
+                            new NotifyResultTask(clientID, operation));
+    }
+    
+    /**
+     * Creates appropriate <code>Transaction<code>s to process the mutations/
+     * queries to be performed on multitude of nodes of the database.
+     */
+    public void processOperation(NodeID                   clientID, 
+                                 Map<NodeID, DBOperation> operations)
+    {
+        Set<NodeID> acceptors = 
+            Sets.difference(operations.keySet(), 
+                            Collections.singleton(myServerID));
+        UnitID unitID = new DistributedTrnConsensusID(clientID);
+        try {
+            myEventBus.publish(new CreateConsensusLeaderEvent(unitID, acceptors));
+        }
+        catch (EventBusException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+        }
+        
+        TransactionID id = new TransactionID(myIdAssigner.getTransactionID());
+        DBOperation operation = operations.get(myServerID);
+        
+        AbstractTransaction transaction =
+            operation instanceof Mutation ?
+                new WriteTransaction(
+                    id, myDatabase, myClock, (Mutation) operation)
+                : new ReadTransaction(
+                    id, myDatabase, myClock, (Query) operation);
+                    
+        ListenableFuture<Memento<Boolean>> future =
+            myExecutor.submit(
+               new PhasedTransactionExecutor<Boolean>(
+                   transaction,
+                   myWriteAheadLog, 
+                   new PhasedTransactionExecutor.ExecutionPhase(transaction)));
+        
+        Futures.addCallback(future,
+                            new ExecutionPhaseCallBack(unitID, null));
+    }
+    
+    /**
+     * Creates appropriate <code>Transaction<code>s to process the mutations/
+     * queries to be performed on multitude of nodes of the database.
+     */
+    public void processOperation(ProposalNotificationEvent pne)
+    {
+        DistributedTrnProposal distributedTrnProposal = 
+            (DistributedTrnProposal) pne.getProposal();
+        
+        TransactionID id = new TransactionID(myIdAssigner.getTransactionID());
+        DBOperation operation = 
+            distributedTrnProposal.getNodeToDBOperationMap()
+                                  .get(myServerID);
+        
+        if (operation != null) {
+        
+            AbstractTransaction transaction =
+                operation instanceof Mutation ?
+                    new WriteTransaction(
+                        id, myDatabase, myClock, (Mutation) operation)
+                    : new ReadTransaction(
+                        id, myDatabase, myClock, (Query) operation);
+           
+           if (pne.isCommitNotification()) {
+               Memento<?> memento = 
+                   myAwaitingConsensusCommitMap.get(
+                       pne.getProposal().getUnitID());
+               
+               if (memento != null) {
+                   ListenableFuture<Memento<TransactionResult>> future =
+                       myExecutor.submit(
+                          new PhasedTransactionExecutor<TransactionResult>(
+                              memento));
+                   
+                   Futures.addCallback(future, 
+                                       new CommitPhaseCallBack(pne));
+               }
+           }
+           else {         
+                ListenableFuture<Memento<Boolean>> future =
+                    myExecutor.submit(
+                       new PhasedTransactionExecutor<Boolean>(
+                           transaction,
+                           myWriteAheadLog, 
+                           new PhasedTransactionExecutor.ExecutionPhase(
+                               transaction)));
+
+                Futures.addCallback(future,
+                                    new ExecutionPhaseCallBack(
+                                        distributedTrnProposal.getUnitID(),
+                                        pne));
+           }
+        }
     }
 }

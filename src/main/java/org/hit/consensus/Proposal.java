@@ -20,13 +20,17 @@
 
 package org.hit.consensus;
 
+import java.io.Externalizable;
+
+import org.hit.event.Event;
+
 /**
  * Defines the marker interface for a proposal submitted for achieving
  * consensus
  * 
  * @author Balraja Subbiah
  */
-public interface Proposal
+public interface Proposal extends Event, Externalizable
 {
     /**
      * Returns true if the given {@link Proposal} is contained in this

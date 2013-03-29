@@ -18,59 +18,49 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.consensus.paxos;
+package org.hit.messages;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
-import org.hit.consensus.ConsensusAcceptor;
-import org.hit.consensus.ConsensusLeader;
-import org.hit.consensus.Proposal;
-import org.hit.consensus.UnitID;
-import org.hit.messages.ConsensusMessage;
+import org.hit.hms.SuspectVector;
 
 /**
- * The {@link ConsensusMessage} sent from {@link ConsensusAcceptor}
- * to {@link ConsensusLeader} sent in response to the {@link PaxosCommitRequest}.
+ * Defines the <code>Message</code> that's exchanged among the nodes for
+ * sharing gossip information.
  * 
  * @author Balraja Subbiah
  */
-public class PaxosCommitResponse extends ConsensusMessage
+public class GossipMessage extends Message
 {
-    private boolean isAccepted;
-    
-    private long mySequenceID;
+    private SuspectVector mySuspectVector;
 
     /**
      * CTOR
      */
-    public PaxosCommitResponse(NodeID  nodeID,
-                               UnitID  unitID,
-                               Proposal proposal,
-                               boolean accepted,
-                               long    sequenceID)
+    public GossipMessage()
     {
-        super(nodeID, unitID, proposal);
-        isAccepted = accepted;
-        mySequenceID = sequenceID;
-    }
-    
-    /**
-     * Returns the value of sequenceID
-     */
-    public long getSequenceID()
-    {
-        return mySequenceID;
+        super();
     }
 
     /**
-     * Returns the value of isAccepted
+     * CTOR
      */
-    public boolean isAccepted()
+    public GossipMessage(NodeID nodeId, SuspectVector suspectVector)
     {
-        return isAccepted;
+        super(nodeId);
+        mySuspectVector = suspectVector;
+    }
+
+    /**
+     * Returns the value of suspectVector
+     */
+    public SuspectVector getSuspectVector()
+    {
+        return mySuspectVector;
     }
 
     /**
@@ -81,8 +71,7 @@ public class PaxosCommitResponse extends ConsensusMessage
         throws IOException, ClassNotFoundException
     {
         super.readExternal(in);
-        isAccepted = in.readBoolean();
-        mySequenceID = in.readLong();
+        mySuspectVector = (SuspectVector) in.readObject();
     }
 
     /**
@@ -92,7 +81,6 @@ public class PaxosCommitResponse extends ConsensusMessage
     public void writeExternal(ObjectOutput out) throws IOException
     {
         super.writeExternal(out);
-        out.writeBoolean(isAccepted);
-        out.writeLong(mySequenceID);
+        out.writeObject(mySuspectVector);
     }
 }

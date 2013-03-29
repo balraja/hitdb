@@ -31,6 +31,7 @@ import org.hit.event.ConsensusRequestEvent;
 import org.hit.event.CreateConsensusAcceptorEvent;
 import org.hit.event.CreateConsensusLeaderEvent;
 import org.hit.event.Event;
+import org.hit.event.ProposalNotificationResponse;
 import org.hit.messages.ConsensusMessage;
 
 import com.google.inject.Inject;
@@ -95,10 +96,34 @@ public class ConsensusManager extends Actor
                     cre.getProposal().getUnitID());
             leader.getConsensus(cre.getProposal());
         }
+        else if (event instanceof ProposalNotificationResponse) {
+            ProposalNotificationResponse response = 
+                (ProposalNotificationResponse) event;
+            ConsensusAcceptor acceptor =
+                (ConsensusAcceptor) myUnitToConsensusProtocolMap.get(
+                    response.getProposalNotification()
+                            .getProposal()
+                            .getUnitID());
+            acceptor.handleResponse(response);
+        }
         else if (event instanceof ConsensusMessage) {
             ConsensusMessage message = (ConsensusMessage) event;
             ConsensusProtocol consensusProtocol =
                 myUnitToConsensusProtocolMap.get(message.getUnitID());
+            
+            if (consensusProtocol == null) {
+                // we are treating this case as the first instance of 
+                // a consensus leader soliciting the response from the
+                // acceptors and an acceptor for this consensus unit 
+                // is not present. So we create one here.
+                consensusProtocol = 
+                    myProvider.makeAcceptor(message.getUnitID(),
+                                            message.getNodeId(),
+                                                        myNodeID);
+                
+                myUnitToConsensusProtocolMap.put(message.getUnitID(),
+                                                 consensusProtocol);
+            }
             consensusProtocol.handle(message);
         }
     }

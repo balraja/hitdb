@@ -53,12 +53,13 @@ public class PaxosConsensusAcceptMessage extends ConsensusMessage
     public PaxosConsensusAcceptMessage(
        NodeID nodeID,
        UnitID unitID,
+       Proposal proposal,
        long acceptedID,
        boolean accepted,
        long previousAcceptID,
        Proposal previousProposal)
     {
-        super(nodeID, unitID);
+        super(nodeID, unitID, proposal);
         myAcceptedID = acceptedID;
         isAccepted = accepted;
         myPreviousAcceptedID = previousAcceptID;

@@ -16,7 +16,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ */
 
 package org.hit.facade;
 
@@ -34,7 +34,6 @@ import org.hit.communicator.Message;
 import org.hit.communicator.MessageHandler;
 import org.hit.communicator.NodeID;
 import org.hit.db.model.DBOperation;
-import org.hit.db.model.PartitioningType;
 import org.hit.db.model.Schema;
 import org.hit.db.model.mutations.SingleKeyMutation;
 import org.hit.di.HitFacadeModule;
@@ -43,14 +42,10 @@ import org.hit.messages.CreateTableResponseMessage;
 import org.hit.messages.DBOperationFailureMessage;
 import org.hit.messages.DBOperationMessage;
 import org.hit.messages.DBOperationSuccessMessage;
-import org.hit.partitioner.HashPartitioner;
-import org.hit.partitioner.KeySpace;
-import org.hit.partitioner.LinearPartitioner;
 import org.hit.partitioner.Partitioner;
 import org.hit.registry.RegistryService;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
-import org.hit.util.Pair;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -94,56 +89,56 @@ public class HitDBFacade
         public void run()
         {
             if (myMessage instanceof CreateTableResponseMessage) {
-                CreateTableResponseMessage createTableResponse =
-                    (CreateTableResponseMessage) myMessage;
+                final CreateTableResponseMessage createTableResponse =
+                                (CreateTableResponseMessage) myMessage;
 
-                SettableFuture<NodeID> tableCreationFuture =
-                    myPhasedTableCreationFutureMap.get(
-                        createTableResponse.getTableName());
+                final SettableFuture<NodeID> tableCreationFuture =
+                                myPhasedTableCreationFutureMap.get(
+                                                                   createTableResponse.getTableName());
 
                 if (createTableResponse.isIsSuccessful()) {
                     tableCreationFuture.set(createTableResponse.getNodeId());
                 }
                 else {
                     tableCreationFuture.setException(
-                        new RuntimeException(
-                            String.format(TABLE_CREATION_FAILURE,
-                                          createTableResponse.getTableName(),
-                                          createTableResponse.getNodeId())));
+                                                     new RuntimeException(
+                                                                          String.format(TABLE_CREATION_FAILURE,
+                                                                                        createTableResponse.getTableName(),
+                                                                                        createTableResponse.getNodeId())));
 
                 }
             }
             else if (myMessage instanceof DBOperationSuccessMessage) {
-                DBOperationSuccessMessage dbOperationSuccessMessage =
-                    (DBOperationSuccessMessage) myMessage;
-                DBOperation appliedOperation =
-                    dbOperationSuccessMessage.getAppliedDBOperation();
+                final DBOperationSuccessMessage dbOperationSuccessMessage =
+                                (DBOperationSuccessMessage) myMessage;
+                final DBOperation appliedOperation =
+                                dbOperationSuccessMessage.getAppliedDBOperation();
 
                 if (appliedOperation instanceof WrappedMutation) {
 
-                    long id = ((WrappedMutation) appliedOperation).getID();
-                    SettableFuture<DBOperationResponse> future  =
-                        myOperationIDToFutureMap.get(Long.valueOf(id));
+                    final long id = ((WrappedMutation) appliedOperation).getID();
+                    final SettableFuture<DBOperationResponse> future  =
+                                    myOperationIDToFutureMap.get(Long.valueOf(id));
 
                     future.set(new DBOperationResponse(
-                        appliedOperation,
-                        dbOperationSuccessMessage.getResult()));
+                                                       appliedOperation,
+                                                       dbOperationSuccessMessage.getResult()));
                 }
             }
             else if (myMessage instanceof DBOperationFailureMessage) {
-                DBOperationFailureMessage dbOperationFailure =
-                    (DBOperationFailureMessage) myMessage;
+                final DBOperationFailureMessage dbOperationFailure =
+                                (DBOperationFailureMessage) myMessage;
 
-                DBOperation appliedOperation =
-                   dbOperationFailure.getDBOperation();
+                final DBOperation appliedOperation =
+                                dbOperationFailure.getDBOperation();
 
                 if (appliedOperation instanceof WrappedMutation) {
 
-                    long id = ((WrappedMutation) appliedOperation).getID();
-                    SettableFuture<DBOperationResponse> future  =
-                        myOperationIDToFutureMap.get(Long.valueOf(id));
+                    final long id = ((WrappedMutation) appliedOperation).getID();
+                    final SettableFuture<DBOperationResponse> future  =
+                                    myOperationIDToFutureMap.get(Long.valueOf(id));
                     future.setException(
-                        dbOperationFailure.getException());
+                                        dbOperationFailure.getException());
                 }
             }
         }
@@ -184,14 +179,14 @@ public class HitDBFacade
         public void run()
         {
             LOG.info("Processing request for performing the db operation " +
-                     myOperation);
+                            myOperation);
 
             myOperationIDToFutureMap.put(myOperationID, mySettableFuture);
 
             myCommunicator.sendTo(myNodeID,
                                   new DBOperationMessage(
-                                      myClientID,
-                                      myOperation));
+                                                         myClientID,
+                                                         myOperation));
         }
     }
 
@@ -209,8 +204,8 @@ public class HitDBFacade
          * CTOR
          */
         public SubmitTableCreationTask(
-            SettableFuture<TableCreationResponse> future,
-            Schema schema)
+                                       SettableFuture<TableCreationResponse> future,
+                                       Schema schema)
         {
             super();
             myFuture = future;
@@ -224,20 +219,20 @@ public class HitDBFacade
         public void run()
         {
             LOG.info("Processing request for creating  table with schema " +
-                     mySchema);
+                            mySchema);
 
-            List<NodeID> serverNodes = myRegistryService.getServerNodes();
-            TableCreationResponseHandler tableCreationHandler =
-                new TableCreationResponseHandler(
-                    mySchema, myFuture, serverNodes);
-            SettableFuture<NodeID> tableCreationFuture = SettableFuture.create();
+            final List<NodeID> serverNodes = myRegistryService.getServerNodes();
+            final TableCreationResponseHandler tableCreationHandler =
+                            new TableCreationResponseHandler(
+                                                             mySchema, myFuture, serverNodes);
+            final SettableFuture<NodeID> tableCreationFuture = SettableFuture.create();
             Futures.addCallback(tableCreationFuture, tableCreationHandler);
             myPhasedTableCreationFutureMap.put(mySchema.getTableName(),
                                                tableCreationFuture);
 
-            CreateTableMessage message =
-                new CreateTableMessage(myClientID, mySchema);
-            NodeID serverNode = serverNodes.get(0);
+            final CreateTableMessage message =
+                            new CreateTableMessage(myClientID, mySchema);
+            final NodeID serverNode = serverNodes.get(0);
             myCommunicator.sendTo(serverNode, message);
         }
     }
@@ -256,9 +251,9 @@ public class HitDBFacade
          * CTOR
          */
         public TableCreationResponseHandler(
-            Schema                                tableSchema,
-            SettableFuture<TableCreationResponse> clientFuture,
-            List<NodeID>                          serverNodes)
+                                            Schema                                tableSchema,
+                                            SettableFuture<TableCreationResponse> clientFuture,
+                                            List<NodeID>                          serverNodes)
         {
             myTableSchema = tableSchema;
             myClientFuture = clientFuture;
@@ -286,27 +281,27 @@ public class HitDBFacade
 
             if (myServerNodes.isEmpty()) {
                 myClientFuture.set(
-                    new TableCreationResponse(myCompletedNodes, myTableSchema));
+                                   new TableCreationResponse(myCompletedNodes, myTableSchema));
             }
             else {
-                SettableFuture<NodeID> tableCreationFuture
-                    = SettableFuture.create();
+                final SettableFuture<NodeID> tableCreationFuture
+                = SettableFuture.create();
                 Futures.addCallback(tableCreationFuture, this);
-                CreateTableMessage message =
-                    new CreateTableMessage(myClientID, myTableSchema);
-                NodeID serverNode = myServerNodes.get(0);
+                final CreateTableMessage message =
+                                new CreateTableMessage(myClientID, myTableSchema);
+                final NodeID serverNode = myServerNodes.get(0);
                 myCommunicator.sendTo(serverNode, message);
                 myPhasedTableCreationFutureMap.put(
-                    myTableSchema.getTableName(), tableCreationFuture);
+                                                   myTableSchema.getTableName(), tableCreationFuture);
             }
         }
     }
 
     private static final Logger LOG =
-        LogFactory.getInstance().getLogger(HitDBFacade.class);
+                    LogFactory.getInstance().getLogger(HitDBFacade.class);
 
     private static final String TABLE_CREATION_FAILURE =
-        "Creation of table %s on host %s failed";
+                    "Creation of table %s on host %s failed";
 
     private final NodeID myClientID;
 
@@ -315,24 +310,24 @@ public class HitDBFacade
     private final ListeningExecutorService myExecutorService;
 
     private final Map<Long, SettableFuture<DBOperationResponse>>
-        myOperationIDToFutureMap;
+    myOperationIDToFutureMap;
 
     private final AtomicLong myOperationsCount;
 
     private final Map<String, SettableFuture<NodeID>>
-        myPhasedTableCreationFutureMap;
+    myPhasedTableCreationFutureMap;
 
     private final RegistryService myRegistryService;
 
     private final Map<String, Partitioner<? extends Comparable<?>>>
-        myTable2Partitoner;
+    myTable2Partitoner;
 
     /**
      * CTOR
      */
     public HitDBFacade()
     {
-        Injector injector = Guice.createInjector(new HitFacadeModule());
+        final Injector injector = Guice.createInjector(new HitFacadeModule());
         myCommunicator = injector.getInstance(Communicator.class);
         myRegistryService = injector.getInstance(RegistryService.class);
         myClientID = injector.getInstance(NodeID.class);
@@ -342,9 +337,9 @@ public class HitDBFacade
         myPhasedTableCreationFutureMap = new HashMap<>();
 
         myExecutorService =
-            MoreExecutors.listeningDecorator(
-                Executors.newSingleThreadExecutor(
-                    new NamedThreadFactory(HitDBFacade.class)));
+                        MoreExecutors.listeningDecorator(
+                                                         Executors.newSingleThreadExecutor(
+                                                                                           new NamedThreadFactory(HitDBFacade.class)));
 
     }
 
@@ -352,40 +347,40 @@ public class HitDBFacade
      * Applies the mutation to the database.
      */
     public <K extends Comparable<K>>
-        ListenableFuture<DBOperationResponse> apply(
-            SingleKeyMutation<K> mutation, String tableName)
-    {
+    ListenableFuture<DBOperationResponse> apply(
+                                                SingleKeyMutation<K> mutation, String tableName)
+                                                {
         @SuppressWarnings("unchecked")
         Partitioner<K> partitioner =
-            (Partitioner<K>) myTable2Partitoner.get(tableName);
+        (Partitioner<K>) myTable2Partitoner.get(tableName);
 
         if (partitioner == null) {
             partitioner =
-                myRegistryService.getTablePartitioner(tableName);
+                            myRegistryService.getTablePartitioner(tableName);
             partitioner.distribute(myRegistryService.getServerNodes() );
             myTable2Partitoner.put(tableName, partitioner);
         }
 
-        NodeID serverNode = partitioner.getNode(mutation.getKey());
-        SettableFuture<DBOperationResponse> futureResponse =
-            SettableFuture.create();
-        long id = myOperationsCount.getAndIncrement();
-        WrappedMutation wrappedMutation = new WrappedMutation(id, mutation);
+        final NodeID serverNode = partitioner.getNode(mutation.getKey());
+        final SettableFuture<DBOperationResponse> futureResponse =
+                        SettableFuture.create();
+        final long id = myOperationsCount.getAndIncrement();
+        final WrappedMutation wrappedMutation = new WrappedMutation(id, mutation);
         myExecutorService.submit(new SubmitDBOperationTask(
-            serverNode, wrappedMutation, futureResponse, id));
+                                                           serverNode, wrappedMutation, futureResponse, id));
         return futureResponse;
-    }
+                                                }
 
     /**
      * Creates a new table in the database with the given <code>Schema</code>
      */
     public ListenableFuture<TableCreationResponse> createTable(Schema schema)
     {
-        SettableFuture<TableCreationResponse> clientFuture =
-            SettableFuture.create();
+        final SettableFuture<TableCreationResponse> clientFuture =
+                        SettableFuture.create();
 
         myExecutorService.submit(
-            new SubmitTableCreationTask(clientFuture, schema));
+                                 new SubmitTableCreationTask(clientFuture, schema));
 
         return clientFuture;
     }
@@ -400,21 +395,21 @@ public class HitDBFacade
         }
 
         LOG.info("Connection to the registry " +
-                 "service successfully established");
+                        "service successfully established");
 
         myCommunicator.start();
         LOG.info("Messaging service got started successfully");
 
         myCommunicator.addMessageHandler(
-             new MessageHandler() {
-                 @Override
-                 public void handle(Message message)
-                 {
-                      myExecutorService.execute(
-                          new CommunicatorResponseHandlerTask(message));
-                 }
-             }
-        );
+                                         new MessageHandler() {
+                                             @Override
+                                             public void handle(Message message)
+                                             {
+                                                 myExecutorService.execute(
+                                                                           new CommunicatorResponseHandlerTask(message));
+                                             }
+                                         }
+                        );
 
         LOG.info("Facade successfully started");
     }

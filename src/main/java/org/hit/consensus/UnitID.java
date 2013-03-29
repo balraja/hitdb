@@ -20,12 +20,14 @@
 
 package org.hit.consensus;
 
+import java.io.Externalizable;
+
 /**
  * Defines the contract for uniquely identifying the unit which is guarded by
  * {@link ConsensusProtocol}.
  * 
  * @author Balraja Subbiah
  */
-public interface UnitID
+public interface UnitID extends Externalizable
 {
 }
