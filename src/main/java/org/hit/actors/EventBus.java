@@ -20,8 +20,11 @@
 
 package org.hit.actors;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
@@ -32,6 +35,10 @@ import org.hit.concurrent.epq.EventPassingQueue;
 import org.hit.concurrent.epq.WaitStrategy;
 import org.hit.event.Event;
 import org.hit.util.LogFactory;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 
 /**
  * An event bus used for communication between various actors of the
@@ -51,7 +58,7 @@ public class EventBus
     
     private final Map<ActorID, EventPassingQueue> myActorToEPQ;
     
-    private final Map<Class<? extends Event>, List<ActorID>> myEvent2Actors;
+    private final Multimap<Class<? extends Event>, ActorID> myEvent2Actors;
 
     /**
      * CTOR
@@ -59,7 +66,9 @@ public class EventBus
     public EventBus()
     {
         myActorToEPQ = new ConcurrentHashMap<>();
-        myEvent2Actors = new ConcurrentHashMap<>();
+        myEvent2Actors = 
+            Multimaps.<Class<? extends Event>, ActorID>synchronizedSetMultimap(
+                HashMultimap.<Class<? extends Event>, ActorID>create());
     }
     
     /**
@@ -92,7 +101,7 @@ public class EventBus
      */
     public void publish(Event event) throws EventBusException
     {
-        List<ActorID> actors = myEvent2Actors.get(event.getClass());
+        Collection<ActorID> actors = myEvent2Actors.get(event.getClass());
         if (actors != null) {
             for (ActorID actor : actors) {
                 if (LOG.isLoggable(Level.FINE)) {
@@ -124,11 +133,12 @@ public class EventBus
     public void registerForEvent(Class<? extends Event> eventType,
                                  ActorID actorID)
     {
-        List<ActorID> actors = myEvent2Actors.get(eventType);
-        if (actors == null) {
-            actors = new CopyOnWriteArrayList<>();
-            myEvent2Actors.put(eventType, actors);
+        myEvent2Actors.put(eventType, actorID);
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Following actors have registered for receiving the event " 
+                     + eventType.getSimpleName() 
+                     + " : " 
+                     + myEvent2Actors.get(eventType));
         }
-        actors.add(actorID);
     }
 }

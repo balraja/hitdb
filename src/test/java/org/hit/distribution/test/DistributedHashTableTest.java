@@ -59,9 +59,6 @@ public class DistributedHashTableTest extends TestCase
         NodeID nodeHandlingValue = longHashTable.getNode(Long.valueOf(5));
         assertEquals(SECOND_NODE, nodeHandlingValue);
         
-        nodeHandlingValue = longHashTable.getNode(Long.valueOf(11));
-        assertEquals(FIRST_NODE, nodeHandlingValue);
-        
         nodeHandlingValue = longHashTable.getNode(Long.valueOf(10));
         assertEquals(THIRD_NODE, nodeHandlingValue);
     }
