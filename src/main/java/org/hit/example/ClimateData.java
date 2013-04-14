@@ -227,4 +227,14 @@ public class ClimateData implements Persistable<ClimateDataKey>, Externalizable
         out.writeInt(myMaxTemperature);
         out.writeInt(myMinTemperature);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Object getFieldValue(String fieldName)
+    {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }

@@ -1,8 +1,8 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,21 +16,17 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+*/
 
 package org.hit.db.model;
 
 /**
- * Defines the contract for objects that can be stored in a table.
+ * Defines an abstract type that characterizes the features necessary
+ * for extracting the values of individual fields from the given record.
  * 
  * @author Balraja Subbiah
  */
-public interface Persistable<K extends Comparable<K>>
-    extends Cloneable, Queryable
+public interface Queryable
 {
-    /** Returns the value of the given column in this object */
-    public Object getValue(Column column);
-
-    /** Defines the contract for a primary key */
-    public K primaryKey();
+    public Object getFieldValue(String fieldName);
 }

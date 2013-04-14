@@ -18,15 +18,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.db.query;
+package org.hit.db.query.parser;
 
 import org.antlr.runtime.ANTLRStringStream;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.TokenRewriteStream;
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.CommonTreeNodeStream;
-import org.hit.db.query.parser.MySQLLexer;
-import org.hit.db.query.parser.MySQLParser;
 
 /**
  * @author Balraja Subbiah
@@ -53,20 +51,20 @@ public class QueryTest
     {
         try {
             ANTLRStringStream fs = 
-                new ANTLRStringStream("select * from climate_data");
-            MySQLLexer lex = new MySQLLexer(fs);
+                new ANTLRStringStream("select climate_data.key from climate_data");
+            HitSQLLexer lex = new HitSQLLexer(fs);
             TokenRewriteStream tokens = new TokenRewriteStream(lex);
-            MySQLParser parser = new MySQLParser(tokens);
+            HitSQLParser parser = new HitSQLParser(tokens);
             
-            MySQLParser.data_manipulation_statements_return result = 
-                parser.data_manipulation_statements();
+            HitSQLParser.select_statement_return result = 
+                parser.select_statement();
             
-            // WALK RESULTING TREE 
-      
-            // get tree from parser 
-            // Create a tree node stream from resulting tree 
             CommonTree t = (CommonTree) result.getTree();
             printTree(t, 1);
+            
+            CommonTreeNodeStream nodeStream = new CommonTreeNodeStream(t);
+            HitSQLTree tree = new HitSQLTree(nodeStream);
+            tree.select_statement();
             
         }
         catch (RecognitionException e) {

@@ -152,6 +152,7 @@
 		    <execution>
 		      <configuration>
                   <outputDirectory>src/main/java</outputDirectory>
+                  <libDirectory>target/generated-sources/antlr/</libDirectory>
               </configuration>
 		      <id>run antlr</id>
 		      <phase>generate-sources</phase>
