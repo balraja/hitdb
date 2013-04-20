@@ -31,7 +31,6 @@ import org.hit.db.model.Queryable;
  */
 public class PredicateAdapter implements Predicate
 {
-    
     private final Condition myCondition;
     
     /**

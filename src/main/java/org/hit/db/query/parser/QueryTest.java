@@ -52,7 +52,9 @@ public class QueryTest
         try {
             ANTLRStringStream fs = 
                 new ANTLRStringStream(
-                    "select climate_data.key from climate_data");
+                    "select climate_data.key " +
+                    "from climate_data " +
+                    "where climate_data.key < 10 ");
             HitSQLLexer lex = new HitSQLLexer(fs);
             TokenRewriteStream tokens = new TokenRewriteStream(lex);
             HitSQLParser parser = new HitSQLParser(tokens);
@@ -66,10 +68,10 @@ public class QueryTest
             CommonTreeNodeStream nodeStream = new CommonTreeNodeStream(t);
             HitSQLTree tree = new HitSQLTree(nodeStream);
             tree.select_statement();
+            System.out.println(tree.getQueryAttributes());
             
         }
         catch (RecognitionException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         } 
     }

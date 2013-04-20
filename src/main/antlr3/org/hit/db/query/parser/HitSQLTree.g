@@ -33,7 +33,7 @@ import java.util.Map;
 }
 
 //column_name_expression
-table_name  : ID;
+
 column_name returns [String coercedName]
 scope {
     StringBuilder builder;
@@ -52,26 +52,31 @@ scope {
  } )+);
 
 // expression
-relational_op: 
-    EQ_SYM | LTH | GTH | NOT_EQ | LET | GET;
+relational_op returns [NumericComparision.ComparisionOperator operator]: 
+    EQ_SYM {$operator = NumericComparision.ComparisionOperator.EQ; }
+    | LTH {$operator = NumericComparision.ComparisionOperator.LT;}
+    | GTH {$operator= NumericComparision.ComparisionOperator.GT;}
+    | NOT_EQ {$operator = NumericComparision.ComparisionOperator.NE;}
+    | LET {$operator = NumericComparision.ComparisionOperator.LE;}
+    | GET {$operator = NumericComparision.ComparisionOperator.GE;};
+    
 string_comparision_op : 
     LIKE_SYM | EQ_SYM | NOT_EQ;
 conjunction_operators :
     AND_SYM | OR_SYM;
 
-numeric_constant : INTEGER_NUM | REAL_NUM;
+numeric_constant returns [double value] : 
+    INTEGER_NUM {$value = Double.parseDouble($INTEGER_NUM.text);}
+    | REAL_NUM {$value = Double.parseDouble($REAL_NUM.text);};
 
-numeric_cmp_expression returns[Condition condition]: 
-^(r=relational_op c=column_name n=numeric_constant) {
-    $condition = new NumericComparision($c.coercedName, $r.text, $n.text);
-};
-string_cmp_expression returns[Condition condition]: 
-^(string_comparision_op  c=column_name  STRING) {
-    $condition = new StringComparision($c.coercedName, $STRING.text);
-};
 filtering_expression returns [Condition condition]   
-: (n=numeric_cmp_expression {condition = $n.condition;}) 
-| (s=string_cmp_expression {condition = $s.condition;});
+: ^(r=relational_op c=column_name n=numeric_constant) {
+    
+    $condition = new NumericComparision($c.coercedName, $r.operator, $n.value);
+    }
+| ^(string_comparision_op  c=column_name  STRING) {
+    $condition = new StringComparision($c.coercedName, $STRING.text);
+  };
 
 and_grouped_expression returns[Condition condition] 
 scope {
@@ -100,14 +105,19 @@ scope {
 : ^(OR_SYM (f=filtering_expression{$or_grouped_expression::groupedConditions.add($f.condition);})+);
 
 expression_atom returns [Condition condition]:
-    (f=filtering_expression {condition = $f.condition;})
+    (f=filtering_expression { System.out.println("filtering");condition = $f.condition;})
     | (a=and_grouped_expression {condition= $a.condition;}) 
     | (o=or_grouped_expression {condition=$o.condition;});
     
 expression returns[Condition condition]: 
-    ^(c=conjunction_operators e1=expression_atom e2=expression_atom) {
-    condition = 
-        new ConjugateCondition($c.text, Lists.<Condition>newArrayList($e1.condition, $e2.condition));
+    e=expression_atom {
+        System.out.println("evaluating expression");
+        condition = $e.condition;
+    }
+    | ^(c=conjunction_operators e1=expression_atom e2=expression_atom) {
+        condition = 
+            new ConjugateCondition(
+                $c.text, Lists.<Condition>newArrayList($e1.condition, $e2.condition));
 };
     
 // select ------  http://dev.mysql.com/doc/refman/5.6/en/select.html  -------------------------------
@@ -115,7 +125,10 @@ expression returns[Condition condition]:
 select_statement:
  ^(SELECT select_list ^(FROM table_references) where_clause? groupby_clause? having_clause? orderby_clause? limit_clause?);
 
-where_clause: ^(WHERE e=expression) {myQueryAttributes.setWhereCondition($e.condition);};
+where_clause: ^(WHERE e=expression) {
+    System.out.println("where");
+    myQueryAttributes.setWhereCondition($e.condition);
+};
 
 groupby_clause
 scope {
@@ -179,7 +192,7 @@ group_function:
     AVG | COUNT | MAX_SYM | MIN_SYM | SUM;
     
 column_ref :
-     column_name
+     c=column_name {$select_list::columnCollector.put($c.coercedName, null);}
      | ^(GROUPED_COLUMN g=group_function c=column_name {
             $select_list::columnCollector.put($c.coercedName, 
                                               AggregateID.valueOf($g.text));
@@ -188,7 +201,9 @@ column_ref :
 column_list:
     LPAREN column_name (COMMA column_name)* RPAREN;
 
-table_references: table_name {myQueryAttributes.setTableName($table_name.text);}  
+table_references: ID {
+                      myQueryAttributes.setTableName($ID.text);
+                  }  
                   | table_cross_product 
                   | table_join;
 
@@ -202,8 +217,8 @@ scope {
 @after {
     myQueryAttributes.setTableCrossProduct($table_cross_product::nameList);
 }
-: ^(CROSSED_TABLES (table_name {
-    $table_cross_product::nameList.add($table_name.text);
+: ^(CROSSED_TABLES (ID {
+    $table_cross_product::nameList.add($ID.text);
  })+);
      
 table_join
@@ -218,8 +233,8 @@ scope {
     myQueryAttributes.setJoinCriteria(new Pair<>(
         $table_join::nameList, joinCondition));
 }
-: ^(JOINED_TABLES (table_name{
-    $table_join::nameList.add($table_name.text);
+: ^(JOINED_TABLES (ID{
+    $table_join::nameList.add($ID.text);
     })+ 
     (c=join_condition{joinCondition = $c.condition;}));
 
