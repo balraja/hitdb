@@ -28,16 +28,16 @@ import org.hit.db.model.Predicate;
  */
 public class PredicateWrapper<K extends Comparable<K>, P extends Persistable<K>>
 {
-    private final Predicate<K, P> myPredicate;
+    private final Predicate myPredicate;
 
-    private final K               myStart;
+    private final K         myStart;
 
-    private final K               myEnd;
+    private final K         myEnd;
 
     /**
      * CTOR
      */
-    public PredicateWrapper(Predicate<K, P> predicate)
+    public PredicateWrapper(Predicate predicate)
     {
         this(predicate, null, null);
     }
@@ -45,26 +45,20 @@ public class PredicateWrapper<K extends Comparable<K>, P extends Persistable<K>>
     /**
      * CTOR
      */
-    public PredicateWrapper(
-                            Predicate<K, P> predicate, K start, K end)
+    public PredicateWrapper(Predicate predicate, 
+                            K         start,
+                            K         end)
     {
+        super();
         myPredicate = predicate;
         myStart = start;
         myEnd = end;
     }
-
-    /**
-     * Returns the value of end
-     */
-    public K getEnd()
-    {
-        return myEnd;
-    }
-
+    
     /**
      * Returns the value of predicate
      */
-    public Predicate<K, P> getPredicate()
+    public Predicate getPredicate()
     {
         return myPredicate;
     }
@@ -76,7 +70,15 @@ public class PredicateWrapper<K extends Comparable<K>, P extends Persistable<K>>
     {
         return myStart;
     }
-    
+
+    /**
+     * Returns the value of end
+     */
+    public K getEnd()
+    {
+        return myEnd;
+    }
+
     public boolean isRangeQuery()
     {
         return myStart != null && myEnd != null;

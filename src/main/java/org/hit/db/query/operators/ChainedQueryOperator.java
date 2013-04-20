@@ -23,20 +23,21 @@ package org.hit.db.query.operators;
 import java.util.Collection;
 
 import org.hit.db.model.Database;
+import org.hit.db.model.Queryable;
 
 /**
  * Defines contract for the query operator, which supports decoration.
  * 
  * @author Balraja Subbiah
  */
-public abstract class ChainedQueryOperator<T,N> implements QueryOperator<T>
+public abstract class ChainedQueryOperator implements QueryOperator
 {
-    private final QueryOperator<N> myDecoratedOperator;
+    private final QueryOperator myDecoratedOperator;
 
     /**
      * CTOR
      */
-    public ChainedQueryOperator(QueryOperator<N> decoratedOperator)
+    public ChainedQueryOperator(QueryOperator decoratedOperator)
     {
         super();
         myDecoratedOperator = decoratedOperator;
@@ -46,7 +47,7 @@ public abstract class ChainedQueryOperator<T,N> implements QueryOperator<T>
      * {@inheritDoc} 
      */
     @Override
-    public Collection<T> getResult(Database database)
+    public Collection<Queryable> getResult(Database database)
     {
         return myDecoratedOperator != null ? 
            doPerformOperation(myDecoratedOperator.getResult(database))
@@ -57,6 +58,6 @@ public abstract class ChainedQueryOperator<T,N> implements QueryOperator<T>
      * Subclasses should override this method to perform the required 
      * translation.
      */
-    protected abstract Collection<T> doPerformOperation(
-        Collection<N> toBeOperatedCollection);
+    protected abstract Collection<Queryable> doPerformOperation(
+        Collection<Queryable> toBeOperatedCollection);
 }

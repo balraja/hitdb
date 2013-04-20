@@ -18,16 +18,37 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.db.model;
+package org.hit.db.query.operators;
+
+import org.hit.db.model.Predicate;
+import org.hit.db.model.Queryable;
 
 /**
- * Defines an abstract type that characterizes the features necessary
- * for extracting the values of individual fields from the given record.
+ * Adapts <code>Condition</code> to match the requirements of <code>Predicate
+ * </code>
  * 
  * @author Balraja Subbiah
  */
-public interface Queryable
+public class PredicateAdapter implements Predicate
 {
-    /** Returns value corresponding to the given field name */
-    public Object getFieldValue(String fieldName);
+    
+    private final Condition myCondition;
+    
+    /**
+     * CTOR
+     */
+    public PredicateAdapter(Condition condition)
+    {
+        super();
+        myCondition = condition;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isInterested(Queryable object)
+    {
+        return myCondition.isValid(object);
+    }
 }

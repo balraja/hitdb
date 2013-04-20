@@ -1,8 +1,8 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,19 +16,17 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+*/
 
 package org.hit.db.model;
 
 /**
- * Defines the contract for the predicate on the database.
+ * Defines an marker interface for the predicates that can be used for 
+ * querying data in a database.
  * 
  * @author Balraja Subbiah
  */
-public interface Predicate<K extends Comparable<K>, P extends Persistable<K>>
+public interface Predicate
 {
-    /**
-     * Returns true if the given object is of interest to this predicate.
-     */
-    public boolean isInterested(P object);
+    public boolean isInterested(Queryable queryable);
 }

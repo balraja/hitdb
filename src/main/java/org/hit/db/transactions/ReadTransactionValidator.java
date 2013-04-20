@@ -94,17 +94,22 @@ public class ReadTransactionValidator implements TransactionValidator
         for (Map.Entry<PredicateWrapper<K,P>, Collection<Transactable<K,P>>>
                entry : trail.getPredicateToDataMap().entrySet())
         {
-            if (entry.getKey().isRangeQuery()) {
-                Collection<Transactable<K,P>> newResult =
-                    table.findMatching(entry.getKey().getPredicate(),
-                                       entry.getKey().getStart(),
-                                       entry.getKey().getEnd(),
-                                       myValidationTime,
-                                       myTransactionId);
-                
-                if (!newResult.equals(entry.getValue())) {
-                    return false;
-                }
+            Collection<Transactable<K,P>> newResult =
+                entry.getKey().isRangeQuery()?
+                    table.findMatching(
+                        entry.getKey().getPredicate(),
+                        entry.getKey().getStart(),
+                        entry.getKey().getEnd(),
+                        myValidationTime,
+                        myTransactionId)
+                        
+                     : table.findMatching(
+                           entry.getKey().getPredicate(),
+                           myValidationTime,
+                           myTransactionId);
+            
+            if (!newResult.equals(entry.getValue())) {
+                return false;
             }
         }
         return true;

@@ -30,6 +30,7 @@ import org.hit.communicator.NodeID;
 import org.hit.db.model.DBOperation;
 import org.hit.db.model.Schema;
 import org.hit.db.transactions.TransactableDatabase;
+import org.hit.db.transactions.impl.TransactableHitDatabase;
 import org.hit.db.transactions.journal.WAL;
 import org.hit.event.Event;
 import org.hit.event.ProposalNotificationEvent;
@@ -51,7 +52,6 @@ import com.google.inject.Inject;
  */
 public class DBEngine extends Actor
 {
-
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(DBEngine.class);
 

@@ -23,6 +23,7 @@ package org.hit.db.query.operators;
 import java.util.Collection;
 
 import org.hit.db.model.Database;
+import org.hit.db.model.Queryable;
 
 /**
  * Defines the contract for the interface that can be used for performing
@@ -30,8 +31,8 @@ import org.hit.db.model.Database;
  * 
  * @author Balraja Subbiah
  */
-public interface QueryOperator<T>
+public interface QueryOperator
 {
     /** Returns the result of query */
-    public Collection<T> getResult(Database database);
+    public Collection<Queryable> getResult(Database database);
 }

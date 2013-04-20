@@ -24,8 +24,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.hit.db.model.Database;
-import org.hit.db.model.Persistable;
-import org.hit.db.model.Predicate;
+import org.hit.db.model.Queryable;
 import org.hit.db.model.Table;
 
 /**
@@ -34,32 +33,33 @@ import org.hit.db.model.Table;
  * 
  * @author Balraja Subbiah
  */
-public class Select<K extends Comparable<K>, P extends Persistable<K>>
-    implements QueryOperator<P>
+public class Select implements QueryOperator
 {
     private final String myTableName;
     
-    private final Predicate<K,P> myFilteringPredicate;
+    private final Condition myFilteringCondition;
 
     /**
      * CTOR
      */
-    public Select(String tableName, Predicate<K,P> filteringPredicate)
+    public Select(String tableName, Condition filteringCondition)
     {
         super();
         myTableName = tableName;
-        myFilteringPredicate = filteringPredicate;
+        myFilteringCondition = filteringCondition;
     }
 
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("unchecked")
     @Override
-    public Collection<P> getResult(Database database)
+    public Collection<Queryable> getResult(Database database)
     {
-        Table<K, P> table = database.lookUpTable(myTableName);
+        Table<?,?> table = database.lookUpTable(myTableName);
         if (table != null) {
-            return table.findMatching(myFilteringPredicate);
+            return (Collection<Queryable>) table.findMatching(
+                new PredicateAdapter(myFilteringCondition));
         }
         else {
             return Collections.emptyList();

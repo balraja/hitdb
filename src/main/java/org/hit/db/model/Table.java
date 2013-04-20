@@ -33,14 +33,16 @@ public interface Table<K extends Comparable<K>, P extends Persistable<K>>
      * Returns the collection of objects from this table that
      * matches the predicate.
      */
-    public Collection<P> findMatching(Predicate<K, P> predicate);
-
+    public Collection<P> findMatching(Predicate predicate);
+    
     /**
      * Returns the collection of objects from this table that matches the
      * predicate within the specified range.
      */
-    public Collection<P> findMatching(Predicate<K, P> predicate, K start, K end);
-
+    public Collection<P> findMatching(Predicate  predicate, 
+                                      K          start, 
+                                      K          end);
+    
     /** Returns row corresponding to a primary key */
     public P getRow(K primarykey);
 

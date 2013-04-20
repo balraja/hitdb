@@ -43,18 +43,18 @@ public interface TransactableTable<K extends Comparable<K>, P extends Persistabl
      * predicate within the specified range.
      */
     public Collection<Transactable<K,P>> findMatching(
-       Predicate<K, P> predicate,
-       K start,
-       K end,
-       long time,
-       long transactionID);
+       Predicate predicate,
+       K         start,
+       K         end,
+       long      time,
+       long      transactionID);
 
     /**
      * Returns the collection of objects from this table that matches the
      * predicate.
      */
     public Collection<Transactable<K,P>> findMatching(
-        Predicate<K, P> predicate,
+        Predicate predicate,
         long time,
         long transactionID);
 

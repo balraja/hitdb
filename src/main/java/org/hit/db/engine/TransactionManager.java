@@ -28,9 +28,6 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.swing.DefaultBoundedRangeModel;
-
-import org.apache.zookeeper.server.quorum.ProposalRequestProcessor;
 import org.hit.actors.EventBus;
 import org.hit.actors.EventBusException;
 import org.hit.communicator.Message;
@@ -44,7 +41,6 @@ import org.hit.db.transactions.AbstractTransaction;
 import org.hit.db.transactions.IDAssigner;
 import org.hit.db.transactions.Memento;
 import org.hit.db.transactions.PhasedTransactionExecutor;
-import org.hit.db.transactions.PhasedTransactionExecutor.ExecutionPhase;
 import org.hit.db.transactions.ReadTransaction;
 import org.hit.db.transactions.TransactableDatabase;
 import org.hit.db.transactions.TransactionExecutor;
@@ -71,7 +67,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.inject.Inject;
-import com.sun.corba.se.spi.legacy.connection.GetEndPointInfoAgainException;
 
 /**
  * Class for managing the execution of transactions.

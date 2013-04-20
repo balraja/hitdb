@@ -28,7 +28,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
 
-import org.hit.db.engine.TransactableHitDatabase;
 import org.hit.db.model.Column;
 import org.hit.db.model.Database;
 import org.hit.db.model.Mutation;
@@ -37,6 +36,7 @@ import org.hit.db.model.Query;
 import org.hit.db.model.Schema;
 import org.hit.db.model.Table;
 import org.hit.db.transactions.DatabaseAdaptor;
+import org.hit.db.transactions.impl.TransactableHitDatabase;
 import org.hit.example.ClimateData;
 import org.hit.example.ClimateDataKey;
 import org.hit.example.ClimateDataKeySpace;

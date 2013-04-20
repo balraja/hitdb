@@ -87,7 +87,6 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
         /**
          * {@inheritDoc}
          */
-        @SuppressWarnings("unchecked")
         @Override
         public Phase<?> nextPhase(Memento<?> memento)
         {

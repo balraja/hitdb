@@ -58,7 +58,7 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
             return transactable.getPersistable();
         }
     }
-
+    
     private final long                        myStartTime;
 
     private final TransactableTable<K, P>     myTable;
@@ -102,7 +102,7 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
      * {@inheritDoc}
      */
     @Override
-    public Collection<P> findMatching(Predicate<K, P> predicate)
+    public Collection<P> findMatching(Predicate predicate)
     {
         Collection<Transactable<K,P>> result =
             myTable.findMatching(predicate, myStartTime, myTransactionID);
@@ -112,14 +112,14 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
             Collections2.transform(result, new Transactable2Persistable<K,P>());
         return Collections.unmodifiableCollection(actualResult);
     }
-
+   
     /**
      * {@inheritDoc}
      */
     @Override
-    public
-    Collection<P>
-    findMatching(Predicate<K, P> predicate, K start, K end)
+    public Collection<P> findMatching(Predicate  predicate,  
+                                      K          start, 
+                                      K          end)
     {
         Collection<Transactable<K,P>> result =
             myTable.findMatching(
