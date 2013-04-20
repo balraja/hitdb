@@ -51,7 +51,8 @@ public class QueryTest
     {
         try {
             ANTLRStringStream fs = 
-                new ANTLRStringStream("select climate_data.key from climate_data");
+                new ANTLRStringStream(
+                    "select climate_data.key from climate_data");
             HitSQLLexer lex = new HitSQLLexer(fs);
             TokenRewriteStream tokens = new TokenRewriteStream(lex);
             HitSQLParser parser = new HitSQLParser(tokens);

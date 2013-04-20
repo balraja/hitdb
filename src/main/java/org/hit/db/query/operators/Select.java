@@ -24,8 +24,12 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.hit.db.model.Database;
+import org.hit.db.model.Persistable;
 import org.hit.db.model.Queryable;
 import org.hit.db.model.Table;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
 
 /**
  * Defines the simple select operation that performs a table scan 
@@ -52,14 +56,22 @@ public class Select implements QueryOperator
     /**
      * {@inheritDoc}
      */
-    @SuppressWarnings("unchecked")
     @Override
     public Collection<Queryable> getResult(Database database)
     {
-        Table<?,?> table = database.lookUpTable(myTableName);
+        Table<? extends Comparable<?>,
+              ? extends Persistable<?>> table = 
+                  database.lookUpTable(myTableName);
+        
         if (table != null) {
-            return (Collection<Queryable>) table.findMatching(
-                new PredicateAdapter(myFilteringCondition));
+            return Collections2.transform(table.findMatching(
+                new PredicateAdapter(myFilteringCondition)),
+                new Function<Persistable<?>, Queryable>() 
+                {
+                    public Queryable apply(Persistable<?> persistable) {
+                        return (Queryable) persistable;
+                    }
+                });
         }
         else {
             return Collections.emptyList();
