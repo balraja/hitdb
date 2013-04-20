@@ -20,16 +20,39 @@
 
 package org.hit.db.query.operators;
 
+import org.hit.db.model.Database;
+
 /**
- * Defines an enum to capture various aggregating functions.
+ * Defines contract for the query operator, which supports decoration.
  * 
  * @author Balraja Subbiah
  */
-public enum AggregateID
+public abstract class OperatorChain<Q,P> implements QueryOperator<Q>
 {
-    MIN,
-    MAX,
-    AVG,
-    CNT,
-    SUM
+    private final QueryOperator<P> myDecoratedOperator;
+    
+    /**
+     * CTOR
+     */
+    public OperatorChain(QueryOperator<P> operator)
+    {
+        myDecoratedOperator = operator;
+    }
+
+    /**
+     * {@inheritDoc} 
+     */
+    @Override
+    public Q getResult(Database database)
+    {
+        return myDecoratedOperator != null ? 
+           doPerformOperation(myDecoratedOperator.getResult(database))
+           : null;
+    }
+    
+    /**
+     * Subclasses should override this method to perform the required 
+     * translation.
+     */
+    protected abstract Q doPerformOperation(P toBeOperatedCollection);
 }

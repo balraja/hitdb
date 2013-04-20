@@ -20,44 +20,41 @@
 
 package org.hit.db.query.operators;
 
-import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.hit.db.model.Database;
 import org.hit.db.model.Queryable;
 
 /**
- * Defines contract for the query operator, which supports decoration.
+ * Defines the contract for {@link Queryable} which wraps it's attributes
+ * in a map.
  * 
  * @author Balraja Subbiah
  */
-public abstract class ChainedQueryOperator implements QueryOperator
+public class QueryableMap implements Queryable
 {
-    private final QueryOperator myDecoratedOperator;
-
+    private final Map<String, Object> myAttributeMap;
+    
     /**
      * CTOR
      */
-    public ChainedQueryOperator(QueryOperator decoratedOperator)
+    public QueryableMap()
     {
-        super();
-        myDecoratedOperator = decoratedOperator;
+        myAttributeMap = new HashMap<>();
     }
 
     /**
-     * {@inheritDoc} 
+     * {@inheritDoc}
      */
     @Override
-    public Collection<Queryable> getResult(Database database)
+    public Object getFieldValue(String fieldName)
     {
-        return myDecoratedOperator != null ? 
-           doPerformOperation(myDecoratedOperator.getResult(database))
-           : null;
+        return myAttributeMap.get(fieldName);
     }
     
-    /**
-     * Subclasses should override this method to perform the required 
-     * translation.
-     */
-    protected abstract Collection<Queryable> doPerformOperation(
-        Collection<Queryable> toBeOperatedCollection);
+    /** Sets the value of an attribute */
+    public void setFieldValue(String fieldName, Object value)
+    {
+        myAttributeMap.put(fieldName, value);
+    }
 }

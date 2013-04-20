@@ -31,8 +31,8 @@ import org.hit.db.model.Queryable;
  * 
  * @author Balraja Subbiah
  */
-public interface QueryOperator
+public interface QueryOperator<R>
 {
     /** Returns the result of query */
-    public Collection<Queryable> getResult(Database database);
+    public R getResult(Database database);
 }

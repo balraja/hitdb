@@ -37,7 +37,7 @@ import com.google.common.collect.Collections2;
  * 
  * @author Balraja Subbiah
  */
-public class Select implements QueryOperator
+public class Select implements QueryOperator<Collection<Queryable>>
 {
     private final String myTableName;
     
@@ -56,7 +56,6 @@ public class Select implements QueryOperator
     /**
      * {@inheritDoc}
      */
-    @Override
     public Collection<Queryable> getResult(Database database)
     {
         Table<? extends Comparable<?>,
