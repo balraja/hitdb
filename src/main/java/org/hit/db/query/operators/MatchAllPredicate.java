@@ -20,36 +20,24 @@
 
 package org.hit.db.query.operators;
 
-import java.util.regex.Pattern;
-
+import org.hit.db.model.Predicate;
 import org.hit.db.model.Queryable;
 
 /**
+ * Defines a <code>Predicate</code> that matches every row in the table
+ * 
  * @author Balraja Subbiah
  */
-public class StringComparision extends AbstractCondition
+public class MatchAllPredicate implements Predicate
 {
-
-    private final Pattern myPattern;
-    
-    /**
-     * CTOR
-     */
-    public StringComparision(String columnName, String regex)
-    {
-        super(columnName);
-        myPattern = Pattern.compile(regex);
-    }
+    public static Predicate INSTANCE = new MatchAllPredicate();
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public boolean isValid(Queryable record)
+    public boolean isInterested(Queryable queryable)
     {
-        Object fieldValue = getValue(record);
-        return fieldValue != null ? myPattern.matcher(fieldValue.toString())
-                                             .matches()
-                                  : false;
+        return true;
     }
 }

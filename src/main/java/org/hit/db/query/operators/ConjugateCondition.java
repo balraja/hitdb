@@ -20,6 +20,9 @@
 
 package org.hit.db.query.operators;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.List;
 
 import org.hit.db.model.Queryable;
@@ -47,9 +50,18 @@ public class ConjugateCondition implements Condition
         }
     }
     
-    private final List<Condition> myConditions;
+    private List<Condition> myConditions;
     
-    private final Conjunctive myConjunctive;
+    private Conjunctive myConjunctive;
+    
+    /**
+     * CTOR
+     */
+    public ConjugateCondition()
+    {
+        myConjunctive = null;
+        myConditions = null;
+    }
     
     /**
      * CTOR
@@ -92,5 +104,27 @@ public class ConjugateCondition implements Condition
             }
             return false;
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeUTF(myConjunctive.name());
+        out.writeObject(myConditions);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public void readExternal(ObjectInput in)
+        throws IOException, ClassNotFoundException
+    {
+        myConjunctive = Conjunctive.valueOf(in.readUTF());
+        myConditions = (List<Condition>) in.readObject();
     }
 }

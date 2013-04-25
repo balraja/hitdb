@@ -52,13 +52,13 @@ scope {
  } )+);
 
 // expression
-relational_op returns [NumericComparision.ComparisionOperator operator]: 
-    EQ_SYM {$operator = NumericComparision.ComparisionOperator.EQ; }
-    | LTH {$operator = NumericComparision.ComparisionOperator.LT;}
-    | GTH {$operator= NumericComparision.ComparisionOperator.GT;}
-    | NOT_EQ {$operator = NumericComparision.ComparisionOperator.NE;}
-    | LET {$operator = NumericComparision.ComparisionOperator.LE;}
-    | GET {$operator = NumericComparision.ComparisionOperator.GE;};
+relational_op returns [ComparisionOperator operator]: 
+    EQ_SYM {$operator = ComparisionOperator.EQ; }
+    | LTH {$operator = ComparisionOperator.LT;}
+    | GTH {$operator= ComparisionOperator.GT;}
+    | NOT_EQ {$operator = ComparisionOperator.NE;}
+    | LET {$operator = ComparisionOperator.LE;}
+    | GET {$operator = ComparisionOperator.GE;};
     
 string_comparision_op : 
     LIKE_SYM | EQ_SYM | NOT_EQ;
@@ -72,11 +72,14 @@ numeric_constant returns [double value] :
 filtering_expression returns [Condition condition]   
 : ^(r=relational_op c=column_name n=numeric_constant) {
     
-    $condition = new NumericComparision($c.coercedName, $r.operator, $n.value);
+    $condition = new NumericComparison($c.coercedName, $r.operator, $n.value);
     }
 | ^(string_comparision_op  c=column_name  STRING) {
-    $condition = new StringComparision($c.coercedName, $STRING.text);
-  };
+    $condition = new StringComparison($c.coercedName, $STRING.text);
+    }
+| ^(r=relational_op c1=column_name c2=column_name) {
+    $condition = new ColumnComparison($r.operator, $c1.coercedName, $c2.coercedName);
+} ;
 
 and_grouped_expression returns[Condition condition] 
 scope {
@@ -188,14 +191,17 @@ scope {
 : ^(SELECTED_COLUMNS column_ref+) 
 | ^(SELECTED_COLUMNS ALL);
 
-group_function:
-    AVG | COUNT | MAX_SYM | MIN_SYM | SUM;
+group_function returns [Aggregate.ID id]:
+    AVG {id = Aggregate.ID.AVG;} 
+    | COUNT {id = Aggregate.ID.CNT;}
+    | MAX_SYM {id = Aggregate.ID.MAX;}
+    | MIN_SYM {id = Aggregate.ID.MIN;}
+    | SUM {id = Aggregate.ID.SUM;};
     
 column_ref :
      c=column_name {$select_list::columnCollector.put($c.coercedName, null);}
      | ^(GROUPED_COLUMN g=group_function c=column_name {
-            $select_list::columnCollector.put($c.coercedName, 
-                                              Aggregate.ID.valueOf($g.text));
+            $select_list::columnCollector.put($c.coercedName, $g.id);
         });
 
 column_list:

@@ -20,20 +20,43 @@
 
 package org.hit.db.query.operators;
 
-import java.io.Externalizable;
-import java.util.Collection;
-
-import org.hit.db.model.Database;
-import org.hit.db.model.Queryable;
-
 /**
- * Defines the contract for the interface that can be used for performing
- * the intended query operation.
+ * Defines an exception to catch issues when building the <code>Query</code>
+ * from <code>QueryAttribute</code>s.
  * 
  * @author Balraja Subbiah
  */
-public interface QueryOperator extends Externalizable
+public class QueryBuildingException extends Exception
 {
-    /** Returns the result of query */
-    public Collection<Queryable> getResult(Database database);
+    /**
+     * CTOR
+     */
+    public QueryBuildingException()
+    {
+        super();
+    }
+
+    /**
+     * CTOR
+     */
+    public QueryBuildingException(String message, Throwable cause)
+    {
+        super(message, cause);
+    }
+
+    /**
+     * CTOR
+     */
+    public QueryBuildingException(String message)
+    {
+        super(message);
+    }
+
+    /**
+     * CTOR
+     */
+    public QueryBuildingException(Throwable cause)
+    {
+        super(cause);
+    }
 }

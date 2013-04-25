@@ -36,8 +36,6 @@ public final class Aggregate
 {
     /**
      * Defines an enum to capture various aggregating functions.
-     * 
-     * @author Balraja Subbiah
      */
     public static enum ID
     {
@@ -45,7 +43,21 @@ public final class Aggregate
         MAX,
         AVG,
         CNT,
-        SUM
+        SUM;
+        
+        /** 
+         * A static factory method to match the aggregate function 
+         * irrespective if id.
+         */
+        public static ID lookup(String name)
+        {
+            for (ID id : values()) {
+                if (id.name().equalsIgnoreCase(name)) {
+                    return id;
+                }
+            }
+            return null;
+        }
     }
     
     /** Type for capturing the aggregation results */

@@ -20,6 +20,9 @@
 
 package org.hit.db.query.operators;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -37,18 +40,26 @@ import com.google.common.collect.Collections2;
  * 
  * @author Balraja Subbiah
  */
-public class Select implements QueryOperator<Collection<Queryable>>
+public class Select implements QueryOperator
 {
-    private final String myTableName;
+    private String myTableName;
     
-    private final Condition myFilteringCondition;
+    private Condition myFilteringCondition;
+    
+    /**
+     * CTOR
+     */
+    public Select()
+    {
+        myTableName = null;
+        myFilteringCondition = null;
+    }
 
     /**
      * CTOR
      */
     public Select(String tableName, Condition filteringCondition)
     {
-        super();
         myTableName = tableName;
         myFilteringCondition = filteringCondition;
     }
@@ -75,5 +86,26 @@ public class Select implements QueryOperator<Collection<Queryable>>
         else {
             return Collections.emptyList();
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeUTF(myTableName);
+        out.writeObject(myFilteringCondition);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readExternal(ObjectInput in)
+        throws IOException, ClassNotFoundException
+    {
+        myTableName = in.readUTF();
+        myFilteringCondition = (Condition) in.readObject();
     }
 }

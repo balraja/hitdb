@@ -20,20 +20,30 @@
 
 package org.hit.db.query.operators;
 
-import java.io.Externalizable;
-import java.util.Collection;
-
-import org.hit.db.model.Database;
 import org.hit.db.model.Queryable;
 
 /**
- * Defines the contract for the interface that can be used for performing
- * the intended query operation.
+ * Defines an util class that can be used for querying column values.
  * 
  * @author Balraja Subbiah
  */
-public interface QueryOperator extends Externalizable
+public final class ColumnNameUtil
 {
-    /** Returns the result of query */
-    public Collection<Queryable> getResult(Database database);
+    public static String[] nestedColumnNames(String columnName)
+    {
+        return columnName.split("\\.");
+    }
+    
+    public static Object getValue(Queryable record, String[] columnNames)
+    {
+        Object result = null;
+        for (String nestedColumn : columnNames) {
+            result = ((Queryable) result).getFieldValue(nestedColumn);
+        }
+        return result;
+    }
+    
+    private ColumnNameUtil()
+    {
+    }
 }

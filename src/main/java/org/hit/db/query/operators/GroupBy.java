@@ -20,6 +20,9 @@
 
 package org.hit.db.query.operators;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -29,6 +32,7 @@ import java.util.TreeSet;
 
 import org.hit.db.model.Queryable;
 import org.hit.db.query.operators.Aggregate.Aggregator;
+import org.hit.db.query.operators.Aggregate.ID;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
@@ -38,18 +42,30 @@ import com.google.common.collect.ListMultimap;
  * 
  * @author Balraja Subbiah
  */
-public class Grouper extends OperatorChain<Collection<Queryable>,
-                                           Collection<Queryable>>
+public class GroupBy extends Decorator
 {
-    private final Map<String, Aggregate.ID> myAggregatingColumns;
+    private Map<String, Aggregate.ID> myAggregatingColumns;
+    
+    private SortedSet<String> myGroupingColumns;
     
     /**
      * CTOR
      */
-    public Grouper(QueryOperator<Collection<Queryable>> operator,
-                   Map<String, Aggregate.ID>            columns)
+    public GroupBy()
+    {
+        myAggregatingColumns = null;
+        myGroupingColumns = null;
+    }
+    
+    /**
+     * CTOR
+     */
+    public GroupBy(QueryOperator              operator,
+                   List<String>                groupingColumns,
+                   Map<String, Aggregate.ID>  columns)
     {
         super(operator);
+        myGroupingColumns = new TreeSet<>(groupingColumns);
         myAggregatingColumns = columns;
     }
 
@@ -60,17 +76,9 @@ public class Grouper extends OperatorChain<Collection<Queryable>,
     protected Collection<Queryable>
         doPerformOperation(Collection<Queryable> toBeOperatedCollection)
     {
-        SortedSet<String> groupingColumns = new TreeSet<>();
-        for (Map.Entry<String, Aggregate.ID> entry : 
-                myAggregatingColumns.entrySet())
-        {
-            if (entry.getValue() == null) {
-                groupingColumns.add(entry.getKey());
-            }
-        }
         ListMultimap<GroupKey, Queryable> multimap = ArrayListMultimap.create();
         for (Queryable queryable : toBeOperatedCollection) {
-            multimap.put(new GroupKey(groupingColumns, queryable),
+            multimap.put(new GroupKey(myGroupingColumns, queryable),
                          queryable);
         }
         
@@ -97,5 +105,30 @@ public class Grouper extends OperatorChain<Collection<Queryable>,
             }
         }
         return resultCollection;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        super.writeExternal(out);
+        out.writeObject(myGroupingColumns);
+        out.writeObject(myAggregatingColumns);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public void readExternal(ObjectInput in)
+        throws IOException,
+            ClassNotFoundException
+    {
+        super.readExternal(in);
+        myGroupingColumns = (SortedSet<String>) in.readObject();
+        myAggregatingColumns = (Map<String, ID>) in.readObject();
     }
 }

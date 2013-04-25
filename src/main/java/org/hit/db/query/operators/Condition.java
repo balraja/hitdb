@@ -20,6 +20,8 @@
 
 package org.hit.db.query.operators;
 
+import java.io.Externalizable;
+
 import org.hit.db.model.Queryable;
 
 /**
@@ -28,7 +30,7 @@ import org.hit.db.model.Queryable;
  * 
  * @author Balraja Subbiah
  */
-public interface Condition
+public interface Condition extends Externalizable
 {
     /** Returns true if the condition holds on the given record */
     boolean isValid(Queryable record);

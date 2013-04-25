@@ -127,8 +127,12 @@ fragment SPACE: ' ' | '\t';
 WHITESPACE: SPACE+ { $channel = HIDDEN; };
 
 //column_name_expression
+group_function:
+    AVG | COUNT | MAX_SYM | MIN_SYM | SUM;
 table_name  : ID;
 column_name : (ID DOT)* ID -> ^(COLUMN_NAME ID+);
+aggr_column_name : group_function LPAREN column_name RPAREN {System.out.println("Aggr column name");} 
+       -> column_name;
 
 // expression
 relational_op: 
@@ -139,9 +143,14 @@ conjunction_operators :
     AND_SYM | OR_SYM;
 
 numeric_constant : INTEGER_NUM | REAL_NUM;
-numeric_cmp_expression : column_name relational_op^ numeric_constant;
+column : column_name | aggr_column_name;
+numeric_cmp_expression : column relational_op numeric_constant
+  -> ^(relational_op column numeric_constant) ;
+column_cmp_expression : column_name relational_op column_name
+  -> ^(relational_op column_name column_name) ;
 string_cmp_expression  : column_name string_comparision_op^ STRING;
-filtering_expression   : numeric_cmp_expression | string_cmp_expression;
+filtering_expression   : 
+    numeric_cmp_expression | string_cmp_expression | column_cmp_expression;
 and_grouped_expression : 
     LPAREN filtering_expression (AND_SYM filtering_expression)+ RPAREN
     -> ^(AND_SYM filtering_expression+);
@@ -182,12 +191,9 @@ orderby_item: column_name (order)? -> ^(ORDERED_COLUMN column_name order?) ;
 limit_clause: LIMIT INTEGER_NUM -> ^(LIMIT INTEGER_NUM);
 
 select_list:
-    (column_name ( COMMA column_ref )*) -> ^(SELECTED_COLUMNS column_name+)
+    (column_ref ( COMMA column_ref )*) -> ^(SELECTED_COLUMNS column_ref+)
     | ASTERISK -> ^(SELECTED_COLUMNS ALL);
 
-group_function:
-    AVG | COUNT | MAX_SYM | MIN_SYM | SUM;
-    
 column_ref :
      column_name
      | group_function LPAREN column_name RPAREN 
@@ -205,4 +211,4 @@ table_cross_product: table_name (COMMA table_name)* -> ^(CROSSED_TABLES table_na
 table_join: table_name (JOIN_SYM table_name)+ join_condition
    -> ^(JOINED_TABLES table_name+ join_condition);
 
-join_condition: (ON LPAREN expression RPAREN) -> ^(ON expression);
+join_condition: ON expression -> ^(ON expression);

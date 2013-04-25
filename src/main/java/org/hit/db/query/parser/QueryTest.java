@@ -52,9 +52,9 @@ public class QueryTest
         try {
             ANTLRStringStream fs = 
                 new ANTLRStringStream(
-                    "select climate_data.key " +
-                    "from climate_data " +
-                    "where climate_data.key < 10 ");
+                    "select climate_data.station  " +
+                    "from climate_data join country " +
+                    "on climate_data.country_id = country.id ");
             HitSQLLexer lex = new HitSQLLexer(fs);
             TokenRewriteStream tokens = new TokenRewriteStream(lex);
             HitSQLParser parser = new HitSQLParser(tokens);

@@ -20,39 +20,34 @@
 
 package org.hit.db.query.operators;
 
-import org.hit.db.model.Database;
+import java.util.Map;
+
+import org.hit.db.model.Queryable;
 
 /**
- * Defines contract for the query operator, which supports decoration.
+ * Defines the contract for <code>Queryable</code> which stores the 
+ * objects from different tables indexed by their table name.
  * 
  * @author Balraja Subbiah
  */
-public abstract class OperatorChain<Q,P> implements QueryOperator<Q>
+public class TableIndexedQueryable implements Queryable
 {
-    private final QueryOperator<P> myDecoratedOperator;
+    private final Map<String, Queryable> myTable2ObjectIndex;
     
     /**
      * CTOR
      */
-    public OperatorChain(QueryOperator<P> operator)
+    public TableIndexedQueryable(Map<String, Queryable> table2ObjectIndex)
     {
-        myDecoratedOperator = operator;
+        myTable2ObjectIndex = table2ObjectIndex;
     }
 
     /**
-     * {@inheritDoc} 
+     * {@inheritDoc}
      */
     @Override
-    public Q getResult(Database database)
+    public Object getFieldValue(String fieldName)
     {
-        return myDecoratedOperator != null ? 
-           doPerformOperation(myDecoratedOperator.getResult(database))
-           : null;
+        return myTable2ObjectIndex.get(fieldName);
     }
-    
-    /**
-     * Subclasses should override this method to perform the required 
-     * translation.
-     */
-    protected abstract Q doPerformOperation(P toBeOperatedCollection);
 }

@@ -20,6 +20,10 @@
 
 package org.hit.db.query.operators;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 import org.hit.db.model.Queryable;
 
 /**
@@ -28,52 +32,28 @@ import org.hit.db.model.Queryable;
  * 
  * @author Balraja Subbiah
  */
-public class NumericComparision extends AbstractCondition
+public class NumericComparison implements Condition
 {
-    /** An enum to define various relational operators that can be applied */
-    public static enum ComparisionOperator
-    {
-        LT("<"),
-        GT(">"),
-        EQ("="),
-        NE("!="),
-        LE("<="),
-        GE(">=");
-        
-        private final String mySymbol;
-        
-        ComparisionOperator(String symbol)
-        {
-            mySymbol = symbol;
-        }
-        
-        /**
-         * Returns the value of symbol
-         */
-        public String getSymbol()
-        {
-            return mySymbol;
-        }
+    private String[] myColumnNames;
 
-        static ComparisionOperator getOperatorForSymbol(String symbol)
-        {
-            for (ComparisionOperator operator : values()) {
-                if (symbol.contains(operator.getSymbol())) {
-                    return operator;
-                }
-            }
-            return null;
-        }
-    }
-
-    private final ComparisionOperator myOperator;
+    private ComparisionOperator myOperator;
     
-    private final double myComparedValue;
+    private double myComparedValue;
     
     /**
      * CTOR
      */
-    public NumericComparision(String columnName, 
+    public NumericComparison()
+    {
+        myColumnNames = null;
+        myOperator = null;
+        myComparedValue = 0.0D;
+    }
+    
+    /**
+     * CTOR
+     */
+    public NumericComparison(String columnName, 
                               String operator,
                               String comparedValue)
     {
@@ -85,11 +65,11 @@ public class NumericComparision extends AbstractCondition
     /**
      * CTOR
      */
-    public NumericComparision(String columnName, 
+    public NumericComparison(String columnName, 
                               ComparisionOperator operator,
                               double comparedValue)
     {
-        super(columnName);
+        myColumnNames = ColumnNameUtil.nestedColumnNames(columnName);
         myOperator = operator;
         myComparedValue = comparedValue;
     }
@@ -100,28 +80,37 @@ public class NumericComparision extends AbstractCondition
     @Override
     public boolean isValid(Queryable record)
     {
-        Object fieldValue = getValue(record);
+        Object fieldValue = ColumnNameUtil.getValue(record, myColumnNames);
         if (fieldValue != null && fieldValue instanceof Number) {
             Number numericValue = (Number) fieldValue;
-            switch (myOperator) {
-            case EQ:
-                return numericValue.doubleValue() == myComparedValue;
-            case GE:
-                return numericValue.doubleValue() == myComparedValue;
-            case GT:
-                return numericValue.doubleValue() > myComparedValue;
-            case LE:
-                return numericValue.doubleValue() <= myComparedValue;
-            case LT:
-                return numericValue.doubleValue() < myComparedValue;
-            case NE:
-                return numericValue.doubleValue() != myComparedValue;
-            default:
-                return false;
-            }
+            return myOperator.compare(numericValue.doubleValue(), 
+                                      myComparedValue);
         }
         else {
             return false;
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeObject(myColumnNames);
+        out.writeUTF(myOperator.name());
+        out.writeDouble(myComparedValue);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readExternal(ObjectInput in)
+        throws IOException, ClassNotFoundException
+    {
+        myColumnNames = (String[]) in.readObject();
+        myOperator = ComparisionOperator.valueOf(in.readUTF());
+        myComparedValue = in.readDouble();
     }
 }

@@ -204,8 +204,8 @@ public class HitDBFacade
          * CTOR
          */
         public SubmitTableCreationTask(
-                                       SettableFuture<TableCreationResponse> future,
-                                       Schema schema)
+            SettableFuture<TableCreationResponse> future,
+            Schema schema)
         {
             super();
             myFuture = future;
@@ -298,10 +298,10 @@ public class HitDBFacade
     }
 
     private static final Logger LOG =
-                    LogFactory.getInstance().getLogger(HitDBFacade.class);
+        LogFactory.getInstance().getLogger(HitDBFacade.class);
 
     private static final String TABLE_CREATION_FAILURE =
-                    "Creation of table %s on host %s failed";
+        "Creation of table %s on host %s failed";
 
     private final NodeID myClientID;
 
@@ -337,9 +337,9 @@ public class HitDBFacade
         myPhasedTableCreationFutureMap = new HashMap<>();
 
         myExecutorService =
-                        MoreExecutors.listeningDecorator(
-                                                         Executors.newSingleThreadExecutor(
-                                                                                           new NamedThreadFactory(HitDBFacade.class)));
+            MoreExecutors.listeningDecorator(
+                Executors.newSingleThreadExecutor(
+                    new NamedThreadFactory(HitDBFacade.class)));
 
     }
 
@@ -347,9 +347,9 @@ public class HitDBFacade
      * Applies the mutation to the database.
      */
     public <K extends Comparable<K>>
-    ListenableFuture<DBOperationResponse> apply(
-                                                SingleKeyMutation<K> mutation, String tableName)
-                                                {
+        ListenableFuture<DBOperationResponse> apply(
+            SingleKeyMutation<K> mutation, String tableName)
+    {
         @SuppressWarnings("unchecked")
         Partitioner<K> partitioner =
         (Partitioner<K>) myTable2Partitoner.get(tableName);
@@ -363,13 +363,14 @@ public class HitDBFacade
 
         final NodeID serverNode = partitioner.getNode(mutation.getKey());
         final SettableFuture<DBOperationResponse> futureResponse =
-                        SettableFuture.create();
+            SettableFuture.create();
         final long id = myOperationsCount.getAndIncrement();
-        final WrappedMutation wrappedMutation = new WrappedMutation(id, mutation);
+        final WrappedMutation wrappedMutation = 
+            new WrappedMutation(id, mutation);
         myExecutorService.submit(new SubmitDBOperationTask(
-                                                           serverNode, wrappedMutation, futureResponse, id));
+            serverNode, wrappedMutation, futureResponse, id));
         return futureResponse;
-                                                }
+    }
 
     /**
      * Creates a new table in the database with the given <code>Schema</code>
@@ -377,10 +378,10 @@ public class HitDBFacade
     public ListenableFuture<TableCreationResponse> createTable(Schema schema)
     {
         final SettableFuture<TableCreationResponse> clientFuture =
-                        SettableFuture.create();
+            SettableFuture.create();
 
-        myExecutorService.submit(
-                                 new SubmitTableCreationTask(clientFuture, schema));
+        myExecutorService.submit(new SubmitTableCreationTask(
+            clientFuture, schema));
 
         return clientFuture;
     }
@@ -401,15 +402,15 @@ public class HitDBFacade
         LOG.info("Messaging service got started successfully");
 
         myCommunicator.addMessageHandler(
-                                         new MessageHandler() {
-                                             @Override
-                                             public void handle(Message message)
-                                             {
-                                                 myExecutorService.execute(
-                                                                           new CommunicatorResponseHandlerTask(message));
-                                             }
-                                         }
-                        );
+             new MessageHandler() {
+                 @Override
+                 public void handle(Message message)
+                 {
+                     myExecutorService.execute(
+                         new CommunicatorResponseHandlerTask(message));
+                 }
+             }
+        );
 
         LOG.info("Facade successfully started");
     }
