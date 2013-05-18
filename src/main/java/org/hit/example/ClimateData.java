@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import org.hit.db.model.Column;
 import org.hit.db.model.Persistable;
 
 /**
@@ -116,6 +115,16 @@ public class ClimateData implements Persistable<ClimateDataKey>, Externalizable
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Object getFieldValue(String fieldName)
+    {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    /**
      * Returns the value of key
      */
     public ClimateDataKey getKey()
@@ -161,15 +170,6 @@ public class ClimateData implements Persistable<ClimateDataKey>, Externalizable
     public int getMinTemperature()
     {
         return myMinTemperature;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Object getValue(Column column)
-    {
-        return null;
     }
 
     /**
@@ -226,15 +226,5 @@ public class ClimateData implements Persistable<ClimateDataKey>, Externalizable
         out.writeInt(myMeanWindSpeed);
         out.writeInt(myMaxTemperature);
         out.writeInt(myMinTemperature);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Object getFieldValue(String fieldName)
-    {
-        // TODO Auto-generated method stub
-        return null;
     }
 }

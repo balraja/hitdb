@@ -1,9 +1,3 @@
-addColumn(metaColumn) ::= <<
-        ourColumns.add(new Column("<metaColumn.name>",
-                                  <metaColumn.index>,
-                                  <metaColumn.primary>));<\n><\n>
->> 
-
 columnVariable(metaColumn) ::= <<
     private <metaColumn.type> my<metaColumn.name>;<\n>
 >>
@@ -34,7 +28,7 @@ getterSetter(metaColumn) ::= <<
 >>
 
 valueProvider(metaColumn) ::= <<
-    case <metaColumn.index>:
+    case <metaColumn.name>:
         return my<metaColumn.name>;<\n>
 >>
 
@@ -61,20 +55,7 @@ import java.util.List;
  */
 public class <tableName> implements Persistable\<<keyClassName>\>
 {
-    private static List\<Column\> ourColumns = new ArrayList\<Column\>();
-    
-    static {
-       <metaColumns:addColumn()>
-    }
-    
     <metaColumns:columnVariable()>
-    
-    
-    /** Returns the columns in this type */
-    public static List\<Column\> getColumns()
-    {
-        return ourColumns;
-    }
     
     <metaColumns:getterSetter()>
     
@@ -83,10 +64,9 @@ public class <tableName> implements Persistable\<<keyClassName>\>
         <metaColumns:primaryKey()>
     }
 
-    public Object getValue(Column column) 
+    public Object getFieldValue(String column) 
     {
-    
-        switch (column.getColIndex()) {
+        switch (column) {
             <metaColumns:valueProvider()>
             default:
                 return null;

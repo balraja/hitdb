@@ -23,6 +23,7 @@ package org.hit.db.transactions.journal;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.Externalizable;
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -178,6 +179,7 @@ public class WAL
     private String makeFileName(int transactionCount)
     {
         return myConfig.getBaseDirectoryPath()
+               + File.separator
                + Integer.toString(transactionCount)
                + TRANSACTION_LOG_SUFFIX;
     }

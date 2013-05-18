@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.hit.client.DBClient;
 import org.hit.db.model.Column;
 import org.hit.db.model.PartitioningType;
 import org.hit.db.model.Schema;
@@ -32,8 +33,6 @@ import org.hit.facade.DBOperationResponse;
 import org.hit.facade.HitDBFacade;
 import org.hit.facade.TableCreationResponse;
 import org.hit.partitioner.LinearPartitioner;
-import org.hit.util.Application;
-import org.hit.util.ApplicationLauncher;
 import org.hit.util.LogFactory;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -44,24 +43,14 @@ import com.google.common.util.concurrent.ListenableFuture;
  *
  * @author Balraja Subbiah
  */
-public class HitDbTest implements Application
+public class HitDbTest implements DBClient
 {
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(HitDbTest.class);
 
     public static final String TABLE_NAME = "ClimateData";
 
-    /**
-     * Main method that launches the application.
-     */
-    public static void main(String[] args)
-    {
-        ApplicationLauncher appLauncher =
-            new ApplicationLauncher(new HitDbTest());
-        appLauncher.launch();
-    }
-
-    private final HitDBFacade myServerFacade;
+    private HitDBFacade myServerFacade;
 
     /**
      * CTOR
@@ -103,20 +92,19 @@ public class HitDbTest implements Application
      * {@inheritDoc}
      */
     @Override
-    public void start()
+    public void shutdown()
     {
-        myServerFacade.start();
-        createTable();
-        updateTable();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void stop()
+    public void start(HitDBFacade facade)
     {
-        myServerFacade.stop();
+        myServerFacade = facade;
+        createTable();
+        updateTable();
     }
 
     /** Updates the table */

@@ -2,7 +2,7 @@
     Hit is a high speed transactional database for handling millions
     of updates with comfort and ease.
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,18 +16,27 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+*/
 
-package org.hit.db.model;
+package org.hit.client;
+
+import org.hit.facade.HitDBFacade;
 
 /**
- * Defines the contract for objects that can be stored in a table.
+ * Defines an interface for the client that can be used for accessing the
+ * database.
  *
  * @author Balraja Subbiah
  */
-public interface Persistable<K extends Comparable<K>>
-    extends Cloneable, Queryable
+public interface DBClient
 {
-    /** Defines the contract for a primary key */
-    public K primaryKey();
+    /**
+     * Shuts down the client.
+     */
+    public void shutdown();
+
+    /**
+     * Starts the facacde and provides access to the client code via this facade
+     */
+    public void start(HitDBFacade dbFacade);
 }
