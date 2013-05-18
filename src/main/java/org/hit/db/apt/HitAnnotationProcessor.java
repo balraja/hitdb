@@ -25,7 +25,6 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -180,7 +179,7 @@ public class HitAnnotationProcessor extends AbstractProcessor
                    
                     List<FormattedMetaColumn> formattedColumns = 
                         new ArrayList<>();
-                        int index = 0;
+                    int index = 0;
                     for (MetaColumn column : metaColumns) {
                         formattedColumns.add(new FormattedMetaColumn(column, 
                                                                      index));
