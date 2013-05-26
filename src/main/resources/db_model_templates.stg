@@ -10,14 +10,14 @@ primaryKey(metaColumn) ::= <<
 
 getterSetter(metaColumn) ::= <<
     /**
-     * Returns the value of $metaColumn.name$.
+     * Returns the value of <metaColumn.name>.
      */
     public <metaColumn.type> get<metaColumn.name>() {
         return my<metaColumn.name>;
     }
     <\n>
     /**
-     * Sets the value of $metaColumn.name$.
+     * Sets the value of <metaColumn.name>.
      */
     public void set<metaColumn.name>(
         <metaColumn.type> <metaColumn.variableName>) 
@@ -28,7 +28,7 @@ getterSetter(metaColumn) ::= <<
 >>
 
 valueProvider(metaColumn) ::= <<
-    case <metaColumn.name>:
+    case "<metaColumn.name>":
         return my<metaColumn.name>;<\n>
 >>
 
@@ -45,10 +45,6 @@ package <packageName>;
 <metaColumns:importType()>
 
 import org.hit.db.model.Persistable;
-import org.hit.db.model.Column;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Implementation to capture the row of <tableName>

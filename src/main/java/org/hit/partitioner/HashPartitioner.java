@@ -39,30 +39,22 @@ import com.google.common.hash.Hashing;
  * Defines the contract for a distributed hash table, wherein each node claims
  * the entries in a ring and services the data between previous node's entry
  * and current node's entry.
- * 
+ *
  * @author Balraja Subbiah
  */
-public class HashPartitioner<T extends Comparable<? super T>>
+public class HashPartitioner<T extends Comparable<T>>
     implements Partitioner<T>
 {
-    private TreeMap<BigInteger, NodeID> myClaimedPositions;
-    
-    private HashFunctionID myHashFunctionID;
-    
-    private Funnel<T> myFunnel;
-    
-    private ArbitraryNumberRange myRange;
-    
     /**
-     * An enum to denote the various types of hash functions used in a 
+     * An enum to denote the various types of hash functions used in a
      * distributed partitioner.
      */
     public static enum HashFunctionID
     {
         GOOD_FAST_HASH(Hashing.goodFastHash(512));
-        
+
         private final HashFunction myHashFunction;
-        
+
         /**
          * CTOR
          */
@@ -70,14 +62,22 @@ public class HashPartitioner<T extends Comparable<? super T>>
         {
             myHashFunction = function;
         }
-        
+
         /** Getter for the hash function */
         public HashFunction getHashFunction()
         {
             return myHashFunction;
         }
     }
-    
+
+    private TreeMap<BigInteger, NodeID> myClaimedPositions;
+
+    private Funnel<T> myFunnel;
+
+    private HashFunctionID myHashFunctionID;
+
+    private ArbitraryNumberRange myRange;
+
     /**
      * CTOR
      */
@@ -88,40 +88,24 @@ public class HashPartitioner<T extends Comparable<? super T>>
         myRange = null;
         myClaimedPositions = null;
     }
-    
+
     /**
      * CTOR
      */
     public HashPartitioner(HashFunctionID functionID, Funnel<T> funnel)
     {
         myHashFunctionID = functionID;
-        myFunnel = funnel;  
-        myRange = 
+        myFunnel = funnel;
+        myRange =
             new ArbitraryNumberRange(functionID.getHashFunction().bits());
         myClaimedPositions = new TreeMap<>();
-    }
-    
-    /**
-     * Returns the value of hashFunctionID
-     */
-    public HashFunctionID getHashFunctionID()
-    {
-        return myHashFunctionID;
-    }
-
-    /**
-     * Returns the value of funnel
-     */
-    public Funnel<T> getFunnel()
-    {
-        return myFunnel;
     }
 
     /** Distributes the nodes over a hash ring */
     @Override
     public void distribute(Collection<NodeID> nodes)
     {
-        BigInteger offset = 
+        BigInteger offset =
             myRange.getSize().divide(BigInteger.valueOf(nodes.size()));
         BigInteger nodeValue = myRange.getMinimum().add(offset);
         for (NodeID node : nodes) {
@@ -138,19 +122,35 @@ public class HashPartitioner<T extends Comparable<? super T>>
         return Collections.<BigInteger, NodeID>unmodifiableMap(
             myClaimedPositions);
     }
-    
+
+    /**
+     * Returns the value of funnel
+     */
+    public Funnel<T> getFunnel()
+    {
+        return myFunnel;
+    }
+
+    /**
+     * Returns the value of hashFunctionID
+     */
+    public HashFunctionID getHashFunctionID()
+    {
+        return myHashFunctionID;
+    }
+
     /** Returns the node corresponding to the given key */
     @Override
     public NodeID getNode(T key)
     {
-        BigInteger hashValue = 
-            new BigInteger(         
+        BigInteger hashValue =
+            new BigInteger(
                 myHashFunctionID.getHashFunction()
                                 .newHasher()
                                 .putObject(key, myFunnel)
                                 .hash()
                                 .asBytes());
-    
+
         NodeID holdingNode = myClaimedPositions.get(hashValue);
         if (holdingNode == null) {
             Map.Entry<BigInteger, NodeID> nextEntry =
@@ -164,7 +164,7 @@ public class HashPartitioner<T extends Comparable<? super T>>
                    nextEntry =
                        myClaimedPositions.ceilingEntry(
                            myRange.getMinimum());
-                   
+
                    if (nextEntry != null) {
                        holdingNode = nextEntry.getValue();
                    }
@@ -177,16 +177,6 @@ public class HashPartitioner<T extends Comparable<? super T>>
     /**
      * {@inheritDoc}
      */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException
-    {
-        out.writeUTF(myHashFunctionID.name());
-        out.writeObject(myFunnel);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     @SuppressWarnings("unchecked")
     @Override
     public void readExternal(ObjectInput in)
@@ -194,9 +184,19 @@ public class HashPartitioner<T extends Comparable<? super T>>
     {
         myHashFunctionID = HashFunctionID.valueOf(in.readUTF());
         myFunnel = (Funnel<T>) in.readObject();
-        myRange = 
+        myRange =
             new ArbitraryNumberRange(myHashFunctionID.getHashFunction().bits());
         myClaimedPositions = new TreeMap<>();
-        
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeUTF(myHashFunctionID.name());
+        out.writeObject(myFunnel);
     }
 }

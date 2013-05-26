@@ -45,9 +45,9 @@ import org.hit.db.model.PartitioningType;
 import org.hit.db.model.Schema;
 import org.hit.partitioner.HashPartitioner;
 import org.hit.partitioner.HashPartitioner.HashFunctionID;
-import org.hit.partitioner.KeySpace;
 import org.hit.partitioner.LinearPartitioner;
 import org.hit.partitioner.Partitioner;
+import org.hit.partitioner.domain.DiscreteDomain;
 import org.hit.registry.RegistryService;
 import org.hit.util.LogFactory;
 
@@ -83,17 +83,13 @@ public class ZooKeeperClient implements RegistryService
 
     private static final String PATH_SEPARATOR = "/";
 
+    private static final String ZK_HIT_DOMAIN_NODE = "domain";
+
     private static final String ZK_HIT_HASH_FUNCTION_NODE = "hash";
 
     private static final String ZK_HIT_HASH_FUNNEL_NODE = "funnel";
 
     private static final String ZK_HIT_HOSTS_ROOT = "/hit_hosts";
-
-    private static final String ZK_HIT_KEYSPACE_MAX_NODE = "max";
-
-    private static final String ZK_HIT_KEYSPACE_MIN_NODE = "min";
-
-    private static final String ZK_HIT_KEYSPACE_NODE = "keyspace";
 
     private static final String ZK_HIT_PARTITION_NODE = "partition";
 
@@ -204,31 +200,10 @@ public class ZooKeeperClient implements RegistryService
                         (LinearPartitioner<?>) schema.getPartitioner();
 
                     String keySpacePath =
-                        path + PATH_SEPARATOR + ZK_HIT_KEYSPACE_NODE;
+                        path + PATH_SEPARATOR + ZK_HIT_DOMAIN_NODE;
 
                     myZooKeeper.create(keySpacePath,
-                                       partitoner.getKeySpace()
-                                                 .getClass()
-                                                 .getName()
-                                                 .getBytes(),
-                                       Ids.OPEN_ACL_UNSAFE,
-                                       CreateMode.PERSISTENT);
-
-                    String minPath =
-                        keySpacePath + PATH_SEPARATOR + ZK_HIT_KEYSPACE_MIN_NODE;
-
-                    myZooKeeper.create(minPath,
-                                       toBytes(
-                                           partitoner.getKeySpace().getMinimum()),
-                                       Ids.OPEN_ACL_UNSAFE,
-                                       CreateMode.PERSISTENT);
-
-                    String maxPath =
-                        keySpacePath + PATH_SEPARATOR + ZK_HIT_KEYSPACE_MAX_NODE;
-
-                    myZooKeeper.create(maxPath,
-                                       toBytes(
-                                           partitoner.getKeySpace().getMaximum()),
+                                       toBytes(partitoner.getDomain()),
                                        Ids.OPEN_ACL_UNSAFE,
                                        CreateMode.PERSISTENT);
                 }
@@ -363,6 +338,7 @@ public class ZooKeeperClient implements RegistryService
                          readStringFromNode(hashFunctionPath);
                      String funnelPath =
                          path + PATH_SEPARATOR + ZK_HIT_HASH_FUNNEL_NODE;
+
                      Funnel<T> funnel =
                          (Funnel<T>) readObjectFromNode(funnelPath);
 
@@ -373,35 +349,14 @@ public class ZooKeeperClient implements RegistryService
                      }
                  }
                  else {
-                     String keySpacePath =
-                         path + PATH_SEPARATOR + ZK_HIT_KEYSPACE_NODE;
+                     String domainPath =
+                         path + PATH_SEPARATOR + ZK_HIT_DOMAIN_NODE;
 
-                     String keySpaceClassName =
-                         readStringFromNode(keySpacePath);
+                     DiscreteDomain<T> domain =
+                         (DiscreteDomain<T>) readObjectFromNode(domainPath);
 
-                     T minValue =
-                         (T) readObjectFromNode(
-                                 keySpacePath
-                                 + PATH_SEPARATOR
-                                 + ZK_HIT_KEYSPACE_MIN_NODE);
-
-                     T maxValue =
-                        (T) readObjectFromNode(
-                                keySpacePath
-                                + PATH_SEPARATOR
-                                + ZK_HIT_KEYSPACE_MAX_NODE);
-
-                     if (keySpaceClassName != null
-                         && minValue != null
-                         && maxValue != null)
-                     {
-                         KeySpace<T> keySpace =
-                             (KeySpace<T>) Class.forName(keySpaceClassName)
-                                                .newInstance();
-                         keySpace.setMaximum(maxValue);
-                         keySpace.setMinimum(minValue);
-
-                         return new LinearPartitioner<T>(keySpace);
+                     if (domain != null) {
+                         return new LinearPartitioner<T>(domain);
                      }
                  }
              }
@@ -410,9 +365,7 @@ public class ZooKeeperClient implements RegistryService
          catch (KeeperException
                 | InterruptedException
                 | IOException
-                | ClassNotFoundException
-                | InstantiationException
-                | IllegalAccessException e)
+                | ClassNotFoundException e)
          {
              LOG.log(Level.SEVERE, e.getMessage(), e);
              throw new RuntimeException(e);

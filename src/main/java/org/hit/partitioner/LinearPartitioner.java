@@ -23,89 +23,74 @@ package org.hit.partitioner;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.math.BigInteger;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.TreeMap;
 
 import org.hit.communicator.NodeID;
+import org.hit.partitioner.domain.DiscreteDomain;
 
 /**
  * Defines the contract for the key space that's partitioned between the
  * nodes in a linear fashion.
- * 
+ *
  * @author Balraja Subbiah
  */
-public class LinearPartitioner<T extends Comparable<? super T>>
+public class LinearPartitioner<T extends Comparable<T>>
     implements Partitioner<T>
 {
-    private KeySpace<T> myKeySpace;
-    
+    private DiscreteDomain<T> myDomain;
+
     private TreeMap<T, NodeID> myKeyToNodeMap;
-    
-    private Map<NodeID, T> myNodeToMinValue;
-    
+
     /**
      * CTOR
      */
     public LinearPartitioner()
     {
-        myKeySpace = null;
+        myDomain = null;
         myKeyToNodeMap = null;
-        myNodeToMinValue = null;
-    }
-    
-    /**
-     * Returns the value of keySpace
-     */
-    public KeySpace<T> getKeySpace()
-    {
-        return myKeySpace;
     }
 
     /**
      * CTOR
      */
-    public LinearPartitioner(KeySpace<T> keyspace)
+    public LinearPartitioner(DiscreteDomain<T> domain)
     {
-        myKeySpace = keyspace;
+        myDomain = domain;
         myKeyToNodeMap = new TreeMap<>();
-        myNodeToMinValue = new HashMap<NodeID, T>();
     }
-    
+
     /** {@inheritDoc} */
     @Override
     public void distribute(Collection<NodeID> nodes)
     {
-        BigInteger offset = 
-            myKeySpace.getTotalElements().divide(
-                BigInteger.valueOf(nodes.size()));
-        
-        T minValue = myKeySpace.getMinimum();
-        T nodeValue = myKeySpace.nextAtOffset(minValue, offset);
+        long segmentSize =
+            myDomain.getTotalElements() / nodes.size();
+        int index = 1;
         for (NodeID node : nodes) {
-            myKeyToNodeMap.put(nodeValue, node);
-            myNodeToMinValue.put(node, minValue);
-            minValue = nodeValue;
-            nodeValue = myKeySpace.nextAtOffset(minValue, offset);
-            if (nodeValue.compareTo(
-                    myKeySpace.nextAtOffset(nodeValue, offset)) > 0)
-            {
-                nodeValue = myKeySpace.getMaximum();
+            long elementIndex = (index * segmentSize) - 1;
+            T nodeValue = myDomain.elementAt(elementIndex);
+            if (index == nodes.size()) {
+                if (myDomain.getTotalElements() > elementIndex
+                    && myDomain.getTotalElements() - elementIndex < segmentSize)
+                {
+                    nodeValue = myDomain.getMaximum();
+                }
             }
+            myKeyToNodeMap.put(nodeValue, node);
+            index++;
         }
     }
-    
+
     /**
-     * Returns the min value corresponding to the given range gaurded by the
-     * <code>NodeID</code>
+     * Returns the possible enumerations of a key.
      */
-    public T getMinValue(NodeID nodeId)
+    public DiscreteDomain<T> getDomain()
     {
-        return myNodeToMinValue.get(nodeId);
+        return myDomain;
     }
-    
+
+
     /** {@inheritDoc} */
     @Override
     public NodeID getNode(T value)
@@ -116,22 +101,21 @@ public class LinearPartitioner<T extends Comparable<? super T>>
     /**
      * {@inheritDoc}
      */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException
-    {
-        out.writeObject(myKeySpace);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     @SuppressWarnings("unchecked")
     @Override
     public void readExternal(ObjectInput in)
         throws IOException, ClassNotFoundException
     {
-        myKeySpace = (KeySpace<T>) in.readObject(); 
+        myDomain = (DiscreteDomain<T>) in.readObject();
         myKeyToNodeMap = new TreeMap<>();
-        myNodeToMinValue = new HashMap<NodeID, T>();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeObject(myDomain);
     }
 }

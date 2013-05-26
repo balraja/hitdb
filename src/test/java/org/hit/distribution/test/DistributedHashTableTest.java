@@ -26,8 +26,8 @@ import junit.framework.TestCase;
 import org.hit.communicator.NodeID;
 import org.hit.partitioner.HashPartitioner;
 import org.hit.partitioner.LinearPartitioner;
-import org.hit.partitioner.LongKeySpace;
 import org.hit.partitioner.Partitioner;
+import org.hit.partitioner.domain.LongKeySpace;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;

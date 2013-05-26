@@ -39,7 +39,6 @@ public class ClimateDataKey
 
     private int myYear;
 
-
     /**
      * CTOR
      */

@@ -37,7 +37,9 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
+import javax.tools.FileObject;
 import javax.tools.JavaFileObject;
+import javax.tools.StandardLocation;
 
 import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroup;
@@ -46,7 +48,7 @@ import org.stringtemplate.v4.STGroupFile;
 /**
  * Extends the <code>AbstractProcessor</code> for processing the
  * annotations.
- * 
+ *
  * @author Balraja Subbiah
  */
 @SupportedAnnotationTypes(value={"org.hit.db.apt.MetaColumn",
@@ -57,9 +59,9 @@ public class HitAnnotationProcessor extends AbstractProcessor
 {
     public static class FormattedMetaColumn
     {
-        private final MetaColumn myMetaColumn ;
-        
         private final int myIndex;
+
+        private final MetaColumn myMetaColumn ;
 
         /**
          * CTOR
@@ -70,53 +72,53 @@ public class HitAnnotationProcessor extends AbstractProcessor
             myMetaColumn = metaColumn;
             myIndex = index;
         }
-        
-        public String getName()
-        {
-            return myMetaColumn.name();
-        }
-        
-        public String getVariableName()
-        {
-            return Character.toLowerCase(myMetaColumn.name().charAt(0))
-                   + myMetaColumn.name().substring(1);
-        }
-        
-        public boolean isPrimary()
-        {
-            return myMetaColumn.primary();
-        }
-        
+
         public int getIndex()
         {
             return myIndex;
         }
-        
+
+        public String getName()
+        {
+            return myMetaColumn.name();
+        }
+
+        public String getQualifiedType()
+        {
+            return myMetaColumn.type();
+        }
+
         public String getType()
         {
             int lastIndex = myMetaColumn.type().lastIndexOf('.');
             return  lastIndex > -1 ? myMetaColumn.type().substring(lastIndex + 1)
                                    : myMetaColumn.type();
         }
-        
+
+        public String getVariableName()
+        {
+            return Character.toLowerCase(myMetaColumn.name().charAt(0))
+                   + myMetaColumn.name().substring(1);
+        }
+
         public boolean isImportNecessary()
         {
             return myMetaColumn.type().indexOf('.') > -1;
         }
-        
-        public String getQualifiedType()
+
+        public boolean isPrimary()
         {
-            return myMetaColumn.type();
+            return myMetaColumn.primary();
         }
     }
-    
+
     /**
      * CTOR
      */
     public HitAnnotationProcessor()
     {
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -125,7 +127,7 @@ public class HitAnnotationProcessor extends AbstractProcessor
     {
         super.init(processingEnv);
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -134,34 +136,51 @@ public class HitAnnotationProcessor extends AbstractProcessor
                            RoundEnvironment           roundEnv)
     {
         for (Element e : roundEnv.getElementsAnnotatedWith(MetaTable.class)) {
-            
+
             if (e.getKind() == ElementKind.INTERFACE) {
-                
+
                 TypeElement typeElement = (TypeElement) e;
-                
-                PackageElement packageElement = 
+
+                PackageElement packageElement =
                     (PackageElement) typeElement.getEnclosingElement();
 
                 MetaTable metaTable =
                     typeElement.getAnnotation(MetaTable.class);
-                
+
+                try {
+                    FileObject r =
+                        processingEnv.getFiler().getResource(
+                           StandardLocation.SOURCE_PATH,
+                           packageElement.getQualifiedName().toString(),
+                            metaTable.tableName());
+
+                    if (r != null) {
+                        r.delete();
+                    }
+                }
+                catch (IOException e2) {
+                    e2.printStackTrace();
+                }
+
                 List<MetaColumn> metaColumns = new ArrayList<>();
-                
+
                 for (Element enclosedElement :
                         typeElement.getEnclosedElements())
                 {
                     if (enclosedElement.getKind() == ElementKind.METHOD) {
                         MetaColumns metaColumnsAnnotation =
                             enclosedElement.getAnnotation(MetaColumns.class);
-                        
+
                         if (metaColumnsAnnotation != null) {
                             metaColumns.addAll(
                                 Arrays.asList(metaColumnsAnnotation.columns()));
                         }
                     }
                 }
-                
+
                 try {
+
+
                     JavaFileObject jfo =
                         processingEnv.getFiler().createSourceFile(
                             packageElement.getQualifiedName().toString()
@@ -172,16 +191,16 @@ public class HitAnnotationProcessor extends AbstractProcessor
 
                     STGroup group = new STGroupFile("db_model_templates.stg");
                     ST st = group.getInstanceOf("dbmodel");
-                    st.add("packageName", 
+                    st.add("packageName",
                            packageElement.getQualifiedName().toString());
                     st.add("tableName", metaTable.tableName());
                     st.add("keyClassName", metaTable.keyClassName());
-                   
-                    List<FormattedMetaColumn> formattedColumns = 
+
+                    List<FormattedMetaColumn> formattedColumns =
                         new ArrayList<>();
                     int index = 0;
                     for (MetaColumn column : metaColumns) {
-                        formattedColumns.add(new FormattedMetaColumn(column, 
+                        formattedColumns.add(new FormattedMetaColumn(column,
                                                                      index));
                         index++;
                     }

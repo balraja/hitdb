@@ -33,8 +33,12 @@ import org.hit.facade.DBOperationResponse;
 import org.hit.facade.HitDBFacade;
 import org.hit.facade.TableCreationResponse;
 import org.hit.partitioner.LinearPartitioner;
+import org.hit.partitioner.domain.ComposedDomain;
+import org.hit.partitioner.domain.DiscreteDomain;
+import org.hit.partitioner.domain.IntegerDomain;
 import org.hit.util.LogFactory;
 
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 
 /**
@@ -69,7 +73,13 @@ public class HitDbTest implements DBClient
                        ClimateData.class,
                        ClimateDataKey.class,
                        PartitioningType.PARTITIONABLE,
-                       new LinearPartitioner<>(new ClimateDataKeySpace()));
+                       new LinearPartitioner<ClimateDataKey>(
+                           new ComposedDomain<ClimateDataKey>(
+                               Lists.<DiscreteDomain<?>>newArrayList(
+                                  new IntegerDomain(2004, 2005),
+                                  new IntegerDomain(1, 365),
+                                  new IntegerDomain(1, 10)),
+                               ClimateDataKey.class)));
 
         ListenableFuture<TableCreationResponse> futureResponse =
             myServerFacade.createTable(schema);

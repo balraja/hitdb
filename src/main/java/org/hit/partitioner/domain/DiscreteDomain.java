@@ -18,29 +18,29 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.partitioner;
+package org.hit.partitioner.domain;
 
 import java.io.Externalizable;
-import java.util.Collection;
-
-import org.hit.communicator.NodeID;
 
 /**
- * Defines the contract for partitoning the <code>KeySpace</code> among
- * the <code>NodeId</code>
+ * Defines the contract for a domain that defines the discrete countable
+ * elements of a particual type.
  *
  * @author Balraja Subbiah
  */
-public interface Partitioner<T extends Comparable<T>>
-   extends Externalizable
+public interface DiscreteDomain<T extends Comparable<T>> extends Externalizable
 {
     /**
-     * A helper method to distribute the nodes among the key space.
+     * Returns the value at the position offset from the given value.
      */
-    public void distribute(Collection<NodeID> nodes);
+    T elementAt(long index);
 
-    /**
-     * Returns the <code>NodeID</code> corresponding to the key.
-     */
-    public NodeID getNode(T keyValue);
+    /** Returns the maximum value of a domain */
+    T getMaximum();
+
+    /** Returns the minimum value of a domain */
+    T getMinimum();
+
+    /** Returns the total number of elements in a domain */
+    long getTotalElements();
 }
