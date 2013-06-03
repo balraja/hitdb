@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.distribution.test;
+package org.hit.partitioner.test;
 
 import java.util.Collection;
 import junit.framework.TestCase;
@@ -27,7 +27,7 @@ import org.hit.communicator.NodeID;
 import org.hit.partitioner.HashPartitioner;
 import org.hit.partitioner.LinearPartitioner;
 import org.hit.partitioner.Partitioner;
-import org.hit.partitioner.domain.LongKeySpace;
+import org.hit.partitioner.domain.LongDomain;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -52,7 +52,7 @@ public class DistributedHashTableTest extends TestCase
             Lists.newArrayList(FIRST_NODE, SECOND_NODE, THIRD_NODE);
         
         Partitioner<Long> longHashTable =
-            new LinearPartitioner<>(new LongKeySpace(1L, 11L));
+            new LinearPartitioner<>(new LongDomain(1L, 10L));
             
         longHashTable.distribute(testNodes);
         

@@ -76,13 +76,20 @@ public class ComposedDomain<C extends Comparable<C>>
     
     private void initialize()
     {
-        List<Object> minValues = new ArrayList<>(myDomains.size());
-        List<Object> maxValues = new ArrayList<>(myDomains.size());
+        List<Object> minValues = 
+            Lists.newArrayListWithCapacity(myDomains.size());
+        List<Object> maxValues = 
+            Lists.newArrayListWithCapacity(myDomains.size());
+        
+        for (int i = 0; i < myDomains.size(); i++) {
+            minValues.add(myDomains.get(i).getMinimum());
+            maxValues.add(myDomains.get(i).getMaximum());
+        }
+        
         myLowerIndexSize = new long[myDomains.size()];
         long totalElements = 1;
-        for (int index = myDomains.size() -1; index >= 0; index--) {
-            minValues.add(myDomains.get(index).getMinimum());
-            maxValues.add(myDomains.get(index).getMaximum());
+        for (int index = myDomains.size() - 1; index >= 0; index--) {
+          
             if (index == myDomains.size() - 1) {
                 myLowerIndexSize[index] = 1;
             }

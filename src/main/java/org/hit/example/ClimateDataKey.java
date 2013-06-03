@@ -50,7 +50,7 @@ public class ClimateDataKey
     /**
      * CTOR
      */
-    public ClimateDataKey(int year, int dayOfYear, int stationNumber)
+    public ClimateDataKey(Integer year, Integer dayOfYear, Integer stationNumber)
     {
         super();
         myYear = year;

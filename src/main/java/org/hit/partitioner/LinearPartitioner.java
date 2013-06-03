@@ -65,20 +65,17 @@ public class LinearPartitioner<T extends Comparable<T>>
     public void distribute(Collection<NodeID> nodes)
     {
         long segmentSize =
-            myDomain.getTotalElements() / nodes.size();
-        int index = 1;
+            (long) Math.round(((double) myDomain.getTotalElements()) / nodes.size());
+        long index = segmentSize - 1;
         for (NodeID node : nodes) {
-            long elementIndex = (index * segmentSize) - 1;
-            T nodeValue = myDomain.elementAt(elementIndex);
-            if (index == nodes.size()) {
-                if (myDomain.getTotalElements() > elementIndex
-                    && myDomain.getTotalElements() - elementIndex < segmentSize)
-                {
-                    nodeValue = myDomain.getMaximum();
-                }
+            T nodeValue = myDomain.elementAt(index);
+            if (myDomain.getTotalElements() > index
+                && ((myDomain.getTotalElements() - 1) - index) < segmentSize)
+            {
+                nodeValue = myDomain.getMaximum();
             }
             myKeyToNodeMap.put(nodeValue, node);
-            index++;
+            index += segmentSize;
         }
     }
 

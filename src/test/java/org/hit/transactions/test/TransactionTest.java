@@ -39,10 +39,14 @@ import org.hit.db.transactions.DatabaseAdaptor;
 import org.hit.db.transactions.impl.TransactableHitDatabase;
 import org.hit.example.ClimateData;
 import org.hit.example.ClimateDataKey;
-import org.hit.example.ClimateDataKeySpace;
 import org.hit.example.HitDbTest;
 import org.hit.partitioner.LinearPartitioner;
+import org.hit.partitioner.domain.ComposedDomain;
+import org.hit.partitioner.domain.DiscreteDomain;
+import org.hit.partitioner.domain.IntegerDomain;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
 
 /**
  * Defines the testcase for validating the functionality of
@@ -141,6 +145,14 @@ public class TransactionTest
     {
         DatabaseAdaptor database =
             new DatabaseAdaptor(new TransactableHitDatabase(), 1L);
+        
+        DiscreteDomain<ClimateDataKey> domain = 
+            new ComposedDomain<ClimateDataKey>(
+               Lists.<DiscreteDomain<?>>newArrayList(
+                    new IntegerDomain(2013, 2014),
+                    new IntegerDomain(1, 365),
+                    new IntegerDomain(1, 200)),
+               ClimateDataKey.class);
 
         Schema schema =
             new Schema(HitDbTest.TABLE_NAME,
@@ -148,7 +160,7 @@ public class TransactionTest
                        ClimateData.class,
                        ClimateDataKey.class,
                        PartitioningType.PARTITIONABLE,
-                       new LinearPartitioner<>(new ClimateDataKeySpace()));
+                       new LinearPartitioner<>(domain));
 
         database.createTable(schema);
         ClimateData newClimateDataRow =
