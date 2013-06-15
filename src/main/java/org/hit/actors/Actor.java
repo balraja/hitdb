@@ -22,6 +22,7 @@ package org.hit.actors;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.hit.event.Event;
@@ -46,7 +47,7 @@ public abstract class Actor
     
     private final EventBus myEventBus;
     
-    private final ExecutorService myActorExecutor;
+    private final ScheduledExecutorService myActorExecutor;
     
     /**
      * CTOR
@@ -61,6 +62,14 @@ public abstract class Actor
                 new NamedThreadFactory(id.getIdentifier()));
     }
     
+    /**
+     * Returns the value of actorExecutor
+     */
+    public ScheduledExecutorService getActorExecutor()
+    {
+        return myActorExecutor;
+    }
+
     /**
      * Returns the value of actorID
      */

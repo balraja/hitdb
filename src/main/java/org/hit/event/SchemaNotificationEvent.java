@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,34 +18,40 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.partitioner;
+package org.hit.event;
 
-import java.io.Externalizable;
-import java.util.Collection;
-
-import org.hit.communicator.NodeID;
+import org.hit.db.model.Schema;
 
 /**
- * Defines the contract for partitoning the <code>KeySpace</code> among
- * the <code>NodeId</code>
- *
+ * Defines an <code>Event</code> to notify the addition of <code>Schema</code>
+ * 
  * @author Balraja Subbiah
  */
-public interface Partitioner<T extends Comparable<T>>
-   extends Externalizable
+public class SchemaNotificationEvent implements Event
 {
-    /**
-     * A helper method to distribute the nodes among the key space.
-     */
-    public void distribute(Collection<NodeID> nodes);
+    private Schema mySchema;
 
     /**
-     * Returns <code>NodeID</code> corresponding to the key.
+     * CTOR
      */
-    public NodeID getNode(T keyValue);
-    
+    public SchemaNotificationEvent()
+    {
+    }
+
     /**
-     * Maps node to specified key in the ring.
+     * CTOR
      */
-    public void addNode(T key, NodeID node);
+    public SchemaNotificationEvent(Schema schema)
+    {
+        super();
+        mySchema = schema;
+    }
+
+    /**
+     * Returns the value of schema
+     */
+    public Schema getSchema()
+    {
+        return mySchema;
+    }
 }

@@ -24,6 +24,7 @@ import gnu.trove.map.TObjectLongMap;
 import gnu.trove.map.hash.TObjectLongHashMap;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,6 +101,30 @@ public class Repository implements Cloneable
         }
         
         return new Digest(keyToVersionMap);
+    }
+    
+    /**
+     * A helper method to process the digest and return latest <code>
+     * Information</code> whose version is greater than the version
+     * number specified in the digest.
+     */
+    public List<Information> processDigest(Digest digest)
+    {
+        List<Information> latestInformation = new ArrayList<>();
+        for (Map.Entry<Serializable, Information> entry : 
+                myKeyToInformationMap.entrySet())
+        {
+            long otherVersion = digest.getKeyToVersionMap().get(entry.getKey());
+            if (entry.getValue().getTimestamp() > otherVersion) {
+                latestInformation.add(entry.getValue());
+            }
+            else if (otherVersion 
+                            == digest.getKeyToVersionMap().getNoEntryValue())
+            {
+                latestInformation.add(entry.getValue());
+            }
+        }
+        return latestInformation;
     }
     
     /**

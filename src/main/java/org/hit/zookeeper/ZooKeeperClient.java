@@ -39,10 +39,13 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
+import org.hit.actors.EventBus;
+import org.hit.actors.EventBusException;
 import org.hit.communicator.NodeID;
 import org.hit.communicator.nio.IPNodeID;
 import org.hit.db.model.PartitioningType;
 import org.hit.db.model.Schema;
+import org.hit.event.MasterDownEvent;
 import org.hit.partitioner.HashPartitioner;
 import org.hit.partitioner.HashPartitioner.HashFunctionID;
 import org.hit.partitioner.LinearPartitioner;
@@ -77,6 +80,35 @@ public class ZooKeeperClient implements RegistryService
             }
         }
     }
+    
+    private class MasterWatcher implements Watcher
+    {
+        private final EventBus myEventBus;
+        
+        /**
+         * CTOR
+         */
+        public MasterWatcher(EventBus eventBus)
+        {
+            myEventBus = eventBus;
+        }
+        
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void process(WatchedEvent event)
+        {
+            if (event.getState() == KeeperState.Disconnected) {
+                 try {
+                    myEventBus.publish(new MasterDownEvent());
+                }
+                catch (EventBusException e) {
+                    LOG.log(Level.SEVERE, e.getMessage(), e);
+                }
+            }
+        }
+    }
 
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(ZooKeeperClient.class);
@@ -90,6 +122,8 @@ public class ZooKeeperClient implements RegistryService
     private static final String ZK_HIT_HASH_FUNNEL_NODE = "funnel";
 
     private static final String ZK_HIT_HOSTS_ROOT = "/hit_hosts";
+    
+    private static final String ZK_HIT_HOSTS_MASTER = "master";
 
     private static final String ZK_HIT_PARTITION_NODE = "partition";
 
@@ -216,13 +250,96 @@ public class ZooKeeperClient implements RegistryService
             LOG.log(Level.SEVERE, e.getMessage(), e);
             throw new RuntimeException(e);
         }
+    }
+    
+    /**
+     * Creates a master node under hosts and marks the given node 
+     * as master
+     */
+    public boolean claimMasterNode(NodeID nodeID)
+    {
+        if (!isUp()) {
+            return false;
+        }
+        
+        try {
+            
+            if (!checkAndCreateRootNode()) {
+                return false;
+            }
+            
+            if (myZooKeeper.exists(ZK_HIT_HOSTS_MASTER, false) == null) {
+                LOG.info("Created path "+ ZK_HIT_HOSTS_MASTER 
+                         + " in the zookeeper");
 
+                myZooKeeper.create(ZK_HIT_HOSTS_MASTER,
+                                   null,
+                                   Ids.OPEN_ACL_UNSAFE,
+                                   CreateMode.EPHEMERAL);
+                
+                String masterNodePath = 
+                    ZK_HIT_HOSTS_ROOT 
+                    + PATH_SEPARATOR
+                    + ZK_HIT_HOSTS_MASTER
+                    + PATH_SEPARATOR
+                    + nodeID.toString();
+                    
+                myZooKeeper.create(masterNodePath,
+                                   null,
+                                   Ids.OPEN_ACL_UNSAFE,
+                                   CreateMode.EPHEMERAL);
+                return true;
+            }
+        }
+        catch (KeeperException | InterruptedException e) {
+            LOG.log(Level.SEVERE, e.toString(), e);
+        }
+        return false;
+    }
+    
+    /**
+     * A helper method to return the node that's master.
+     */
+    public NodeID lookupMasterNode()
+    {
+        try {
+            String masterNodePath = 
+                ZK_HIT_HOSTS_ROOT + PATH_SEPARATOR + ZK_HIT_HOSTS_MASTER;
+            
+            for (String child : myZooKeeper.getChildren(masterNodePath, false)) 
+            {
+                if (child != null) {
+                    return IPNodeID.parseString(child);
+                }
+            }
+        }
+        catch (KeeperException | InterruptedException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+        }
+        return null;
+    }
+    
+    /**
+     * A helper method to register for the watcher service.
+     */
+    public void watchMaster(EventBus eventBus)
+    {
+        String masterNodePath = 
+            ZK_HIT_HOSTS_ROOT + PATH_SEPARATOR + ZK_HIT_HOSTS_MASTER;
+        
+        try {
+            myZooKeeper.exists(masterNodePath, 
+                               new MasterWatcher(eventBus));
+        }
+        catch (KeeperException | InterruptedException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+        }
     }
 
     /**
      * Creates a root node for all hit servers.
      */
-    public boolean check_and_create_root_node()
+    public boolean checkAndCreateRootNode()
     {
         if (!isUp()) {
             return false;
@@ -250,7 +367,7 @@ public class ZooKeeperClient implements RegistryService
     /**
      * Creates a root node for the table schemas.
      */
-    public boolean check_and_create_tables_root_node()
+    public boolean checkAndCreateTableRoot()
     {
         if (!isUp()) {
             return false;

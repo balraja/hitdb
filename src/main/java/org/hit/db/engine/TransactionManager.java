@@ -51,6 +51,7 @@ import org.hit.db.transactions.journal.WAL;
 import org.hit.event.CreateConsensusLeaderEvent;
 import org.hit.event.ProposalNotificationEvent;
 import org.hit.event.ProposalNotificationResponse;
+import org.hit.event.SchemaNotificationEvent;
 import org.hit.event.SendMessageEvent;
 import org.hit.messages.CreateTableResponseMessage;
 import org.hit.messages.DBOperationFailureMessage;
@@ -315,6 +316,7 @@ public class TransactionManager
         try {
             myDatabase.createTable(schema);
             myZooKeeperClient.addSchema(schema);
+            myEventBus.publish(new SchemaNotificationEvent(schema));
             response = 
                 new CreateTableResponseMessage(myServerID, 
                                                schema.getTableName(), 

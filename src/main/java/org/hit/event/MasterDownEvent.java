@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,34 +18,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.partitioner;
-
-import java.io.Externalizable;
-import java.util.Collection;
-
-import org.hit.communicator.NodeID;
+package org.hit.event;
 
 /**
- * Defines the contract for partitoning the <code>KeySpace</code> among
- * the <code>NodeId</code>
- *
+ * An {@link Event} to denote that master is down.
+ * 
  * @author Balraja Subbiah
  */
-public interface Partitioner<T extends Comparable<T>>
-   extends Externalizable
+public class MasterDownEvent implements Event
 {
-    /**
-     * A helper method to distribute the nodes among the key space.
-     */
-    public void distribute(Collection<NodeID> nodes);
-
-    /**
-     * Returns <code>NodeID</code> corresponding to the key.
-     */
-    public NodeID getNode(T keyValue);
-    
-    /**
-     * Maps node to specified key in the ring.
-     */
-    public void addNode(T key, NodeID node);
 }

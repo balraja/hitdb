@@ -23,9 +23,9 @@ package org.hit.broadcast;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
@@ -34,9 +34,12 @@ import org.hit.actors.EventBusException;
 import org.hit.communicator.NodeID;
 import org.hit.event.Event;
 import org.hit.event.SendMessageEvent;
+import org.hit.messages.NodeAdvertisement;
 import org.hit.messages.ReconcillationRequest;
 import org.hit.messages.ReconcilliationResponse;
-import org.hit.util.NamedThreadFactory;
+import org.hit.util.LogFactory;
+
+import com.google.inject.Inject;
 
 /**
  * Defines the contract for a manager that's responsible for disseminating
@@ -46,6 +49,9 @@ import org.hit.util.NamedThreadFactory;
  */
 public class Disseminator extends Actor
 {
+    private static final Logger LOG = 
+        LogFactory.getInstance().getLogger(Disseminator.class);
+
     private class SendDigestTask implements Runnable
     {
         private final NodeID myParticipatingNode;
@@ -78,9 +84,48 @@ public class Disseminator extends Actor
                     new ReconcillationRequest(myOwner, myDigest)));
             }
             catch (EventBusException e) {
+                LOG.log(Level.SEVERE, e.getMessage(), e);
             }            
         }
     }
+    
+    private class ApplyDigestTask implements Runnable
+    {
+        private final NodeID myDigestOwner;
+        
+        private final Digest myDigest;
+        
+        /**
+         * CTOR
+         */
+        public ApplyDigestTask(NodeID owner, Digest digest)
+        {
+            myDigestOwner = owner;
+            myDigest = digest;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void run()
+        {
+            try {
+                if (!myParticipants.contains(myDigestOwner)) {
+                    myParticipants.add(myDigestOwner);
+                }
+                getEventBus().publish(new SendMessageEvent(
+                    Collections.singletonList(myDigestOwner),
+                    new ReconcilliationResponse(
+                        myOwner,
+                        myRepository.processDigest(myDigest))));
+            }
+            catch (EventBusException e) {
+                LOG.log(Level.SEVERE, e.getMessage(), e);
+            }            
+        }
+    }
+
     
     private class ReconcillationResponseTask implements Runnable
     {
@@ -114,7 +159,8 @@ public class Disseminator extends Actor
         {
             Digest digest = myRepository.makeDigest();
             for (NodeID nodeID : myParticipants) {
-                myScheduler.submit(new SendDigestTask(nodeID, myOwner, digest));
+                getActorExecutor().submit(
+                    new SendDigestTask(nodeID, myOwner, digest));
             }
         }
     }
@@ -144,8 +190,6 @@ public class Disseminator extends Actor
     
     private final List<NodeID> myParticipants;
     
-    private final ScheduledExecutorService myScheduler;
-    
     private final NodeID myOwner;
     
     private final Repository myRepository;
@@ -153,16 +197,13 @@ public class Disseminator extends Actor
     /**
      * CTOR
      */
+    @Inject
     public Disseminator(EventBus eventBus, NodeID node)
     {
         super(eventBus, new ActorID(Disseminator.class.getSimpleName()));
         myParticipants = new ArrayList<>();
         myOwner = node;
         myRepository = new Repository();
-        myScheduler = 
-            Executors.newScheduledThreadPool(1,
-                                             new NamedThreadFactory(
-                                                 Disseminator.class));
     }
 
     /**
@@ -174,9 +215,20 @@ public class Disseminator extends Actor
         if (event instanceof ReconcilliationResponse) {
             ReconcilliationResponse response = 
                 (ReconcilliationResponse) event;
-            myScheduler.submit(
+            getActorExecutor().submit(
                 new ReconcillationResponseTask(
                     response.getInformationList()));
+        }
+        else if (event instanceof ReconcillationRequest) {
+            ReconcillationRequest rr = (ReconcillationRequest) event;
+            getActorExecutor().submit(new ApplyDigestTask(
+                myOwner, rr.getDigest()));
+        }
+        else if (event instanceof NodeAdvertisement) {
+            NodeAdvertisement advertisement = 
+                (NodeAdvertisement) event;
+            getActorExecutor().submit(
+                new AddParticipantTask(advertisement.getNodeId()));
         }
     }
     
@@ -187,7 +239,7 @@ public class Disseminator extends Actor
     public void start()
     {
         super.start();
-        myScheduler.scheduleAtFixedRate(
+        getActorExecutor().scheduleAtFixedRate(
             new SendDigestPeriodicTask(), 1, 1, TimeUnit.SECONDS);
     }
     
@@ -201,5 +253,10 @@ public class Disseminator extends Actor
         getEventBus().registerForEvent(ReconcilliationResponse.class, 
                                        getActorID());
         
+        getEventBus().registerForEvent(NodeAdvertisement.class,
+                                       getActorID());
+        
+        getEventBus().registerForEvent(ReconcillationRequest.class,
+                                       getActorID());
     }
 }

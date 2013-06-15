@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,34 +18,26 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.partitioner;
-
-import java.io.Externalizable;
-import java.util.Collection;
+package org.hit.server;
 
 import org.hit.communicator.NodeID;
+import org.hit.db.model.Schema;
 
 /**
- * Defines the contract for partitoning the <code>KeySpace</code> among
- * the <code>NodeId</code>
- *
+ * Defines an interface that can be used for allocating the keyspace to 
+ * various nodes.
+ * 
  * @author Balraja Subbiah
  */
-public interface Partitioner<T extends Comparable<T>>
-   extends Externalizable
+public interface KeyspaceAllocator
 {
     /**
-     * A helper method to distribute the nodes among the key space.
+     * The schema to be monitored.
      */
-    public void distribute(Collection<NodeID> nodes);
-
-    /**
-     * Returns <code>NodeID</code> corresponding to the key.
-     */
-    public NodeID getNode(T keyValue);
+    public void addSchema(Schema tableSchema);
     
     /**
-     * Maps node to specified key in the ring.
+     * Returns the <code>Allocation</code> corresponding to the given node.
      */
-    public void addNode(T key, NodeID node);
+    public Allocation getAllocation(NodeID nodeID);
 }

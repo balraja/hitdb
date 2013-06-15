@@ -22,12 +22,13 @@ package org.hit.server;
 
 import java.util.logging.Logger;
 
+import org.hit.actors.EventBus;
+import org.hit.broadcast.Disseminator;
 import org.hit.communicator.CommunicatingActor;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.ConsensusManager;
 import org.hit.db.engine.DBEngine;
 import org.hit.di.HitServerModule;
-import org.hit.hms.HealthMonitor;
 import org.hit.util.Application;
 import org.hit.util.ApplicationLauncher;
 import org.hit.util.LogFactory;
@@ -58,13 +59,17 @@ public class HitServer implements Application
     
     private final ConsensusManager   myConsensusManager;
     
-    private final HealthMonitor      myHealthMonitor;
+    private final Disseminator       myDisseminator;
     
     private final DBEngine           myDBEngine;
     
     private final ZooKeeperClient    myZooKeeperClient;
     
     private final NodeID             myServerNodeID;
+    
+    private final ServerConfig       myConfig;
+    
+    private final EventBus           myEventBus;
 
     /**
      * CTOR
@@ -72,12 +77,14 @@ public class HitServer implements Application
     public HitServer()
     {
         Injector injector = Guice.createInjector(new HitServerModule());
+        myEventBus = injector.getInstance(EventBus.class);
         myServerNodeID = injector.getInstance(NodeID.class);
         myCommunicatingActor = injector.getInstance(CommunicatingActor.class);
         myConsensusManager = injector.getInstance(ConsensusManager.class);
-        myHealthMonitor = injector.getInstance(HealthMonitor.class);
+        myDisseminator = injector.getInstance(Disseminator.class);
         myDBEngine      = injector.getInstance(DBEngine.class);
         myZooKeeperClient = injector.getInstance(ZooKeeperClient.class);
+        myConfig = injector.getInstance(ServerConfig.class);
     }
 
     /**
@@ -95,14 +102,20 @@ public class HitServer implements Application
         LOG.info("Communicator started");
         myConsensusManager.start();
         LOG.info("Consensus manager started");
-        myHealthMonitor.start();
-        LOG.info("Health monitor started");
-        myDBEngine.start();
-        LOG.info("Database engine started");
-        
-        myZooKeeperClient.check_and_create_root_node();
-        myZooKeeperClient.check_and_create_tables_root_node();
+        myDisseminator.start();
+        LOG.info("Gossiper started");
+       
+        myZooKeeperClient.checkAndCreateRootNode();
         myZooKeeperClient.addHostNode(myServerNodeID);
+        
+        if (myConfig.isMaster()) {
+            myZooKeeperClient.claimMasterNode(myServerNodeID);
+        }
+        else {
+            myDBEngine.start();
+            LOG.info("Database engine started");
+            
+        }
         
         LOG.info("Node registered with the zookeeper");
     }
@@ -115,7 +128,7 @@ public class HitServer implements Application
     {
         myCommunicatingActor.stop();
         myConsensusManager.stop();
-        myHealthMonitor.stop();
+        myDisseminator.stop();
         myDBEngine.stop();
     }
 }
