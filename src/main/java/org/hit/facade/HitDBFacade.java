@@ -52,12 +52,12 @@ import org.hit.db.query.parser.HitSQLLexer;
 import org.hit.db.query.parser.HitSQLParser;
 import org.hit.db.query.parser.HitSQLTree;
 import org.hit.di.HitFacadeModule;
+import org.hit.key.Partition;
 import org.hit.messages.CreateTableMessage;
 import org.hit.messages.CreateTableResponseMessage;
 import org.hit.messages.DBOperationFailureMessage;
 import org.hit.messages.DBOperationMessage;
 import org.hit.messages.DBOperationSuccessMessage;
-import org.hit.partitioner.Partitioner;
 import org.hit.registry.RegistryService;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
@@ -81,6 +81,12 @@ import com.google.inject.Injector;
  */
 public class HitDBFacade
 {
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(HitDBFacade.class);
+
+    private static final String TABLE_CREATION_FAILURE =
+        "Creation of table %s on host %s failed";
+
     /**
      * A simple class that wraps the functionality of handling the
      * response from the server.
@@ -433,13 +439,7 @@ public class HitDBFacade
             }
         }
     }
-
-    private static final Logger LOG =
-        LogFactory.getInstance().getLogger(HitDBFacade.class);
-
-    private static final String TABLE_CREATION_FAILURE =
-        "Creation of table %s on host %s failed";
-
+    
     private final NodeID myClientID;
 
     private final Communicator myCommunicator;
@@ -459,7 +459,7 @@ public class HitDBFacade
 
     private final RegistryService myRegistryService;
 
-    private final Map<String, Partitioner<? extends Comparable<?>>>
+    private final Map<String, Partition<? extends Comparable<?>>>
         myTable2Partitoner;
     
 
@@ -526,8 +526,8 @@ public class HitDBFacade
             SingleKeyMutation<K> mutation, String tableName)
     {
         @SuppressWarnings("unchecked")
-        Partitioner<K> partitioner =
-            (Partitioner<K>) myTable2Partitoner.get(tableName);
+        Partition<K> partitioner =
+            (Partition<K>) myTable2Partitoner.get(tableName);
 
         if (partitioner == null) {
             partitioner =

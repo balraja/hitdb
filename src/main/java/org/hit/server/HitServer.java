@@ -22,13 +22,13 @@ package org.hit.server;
 
 import java.util.logging.Logger;
 
-import org.hit.actors.EventBus;
-import org.hit.broadcast.Disseminator;
 import org.hit.communicator.CommunicatingActor;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.ConsensusManager;
 import org.hit.db.engine.DBEngine;
 import org.hit.di.HitServerModule;
+import org.hit.gossip.Disseminator;
+import org.hit.node.NodeMonitor;
 import org.hit.util.Application;
 import org.hit.util.ApplicationLauncher;
 import org.hit.util.LogFactory;
@@ -69,7 +69,7 @@ public class HitServer implements Application
     
     private final ServerConfig       myConfig;
     
-    private final EventBus           myEventBus;
+    private final NodeMonitor        myNodeMonitor;
 
     /**
      * CTOR
@@ -77,7 +77,6 @@ public class HitServer implements Application
     public HitServer()
     {
         Injector injector = Guice.createInjector(new HitServerModule());
-        myEventBus = injector.getInstance(EventBus.class);
         myServerNodeID = injector.getInstance(NodeID.class);
         myCommunicatingActor = injector.getInstance(CommunicatingActor.class);
         myConsensusManager = injector.getInstance(ConsensusManager.class);
@@ -85,6 +84,7 @@ public class HitServer implements Application
         myDBEngine      = injector.getInstance(DBEngine.class);
         myZooKeeperClient = injector.getInstance(ZooKeeperClient.class);
         myConfig = injector.getInstance(ServerConfig.class);
+        myNodeMonitor = injector.getInstance(NodeMonitor.class);
     }
 
     /**

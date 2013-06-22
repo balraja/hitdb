@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,34 +18,26 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.partitioner;
+package org.hit.gossip;
 
 import java.io.Externalizable;
-import java.util.Collection;
-
-import org.hit.communicator.NodeID;
+import java.io.Serializable;
 
 /**
- * Defines the contract for partitoning the <code>KeySpace</code> among
- * the <code>NodeId</code>
- *
+ * Defines the contract for an interface that defines the characteristics 
+ * of information that can be shared via gossip protocol.
+ * 
  * @author Balraja Subbiah
  */
-public interface Partitioner<T extends Comparable<T>>
-   extends Externalizable
+public interface Gossip extends Externalizable
 {
     /**
-     * A helper method to distribute the nodes among the key space.
+     * Returns the key corresponding to this gossip.
      */
-    public void distribute(Collection<NodeID> nodes);
-
-    /**
-     * Returns <code>NodeID</code> corresponding to the key.
-     */
-    public NodeID getNode(T keyValue);
+    public Serializable getKey();
     
     /**
-     * Maps node to specified key in the ring.
+     * The timestamp at which this information is created.
      */
-    public void addNode(T key, NodeID node);
+    public long getTimestamp();
 }

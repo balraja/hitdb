@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.server;
+package org.hit.node;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -30,7 +30,7 @@ import java.util.Map;
 import org.hit.db.model.Schema;
 
 /**
- * Defines the allocation of points on keyspace corresponding to the
+ * Defines the allocation of points on key space corresponding to the
  * new node.
  * 
  * @author Balraja Subbiah

@@ -46,11 +46,11 @@ import org.hit.communicator.nio.IPNodeID;
 import org.hit.db.model.PartitioningType;
 import org.hit.db.model.Schema;
 import org.hit.event.MasterDownEvent;
-import org.hit.partitioner.HashPartitioner;
-import org.hit.partitioner.HashPartitioner.HashFunctionID;
-import org.hit.partitioner.LinearPartitioner;
-import org.hit.partitioner.Partitioner;
-import org.hit.partitioner.domain.DiscreteDomain;
+import org.hit.key.HashKeyspace;
+import org.hit.key.LinearKeyspace;
+import org.hit.key.Partition;
+import org.hit.key.HashKeyspace.HashFunctionID;
+import org.hit.key.domain.DiscreteDomain;
 import org.hit.registry.RegistryService;
 import org.hit.util.LogFactory;
 
@@ -207,8 +207,8 @@ public class ZooKeeperClient implements RegistryService
                 if (schema.getKeyPartitioningType()
                         == PartitioningType.HASHABLE)
                 {
-                    HashPartitioner<?> partitioner =
-                        (HashPartitioner<?>) schema.getPartitioner();
+                    HashKeyspace<?> partitioner =
+                        (HashKeyspace<?>) schema.getPartitioner();
 
                     String hashFunctionPath =
                         path + PATH_SEPARATOR + ZK_HIT_HASH_FUNCTION_NODE;
@@ -230,8 +230,8 @@ public class ZooKeeperClient implements RegistryService
                 }
                 else {
 
-                    LinearPartitioner<?> partitoner =
-                        (LinearPartitioner<?>) schema.getPartitioner();
+                    LinearKeyspace<?> partitoner =
+                        (LinearKeyspace<?>) schema.getPartitioner();
 
                     String keySpacePath =
                         path + PATH_SEPARATOR + ZK_HIT_DOMAIN_NODE;
@@ -422,7 +422,7 @@ public class ZooKeeperClient implements RegistryService
      */
     @SuppressWarnings("unchecked")
     @Override
-    public <T extends Comparable<T>> Partitioner<T>
+    public <T extends Comparable<T>> Partition<T>
         getTablePartitioner(String tableName)
     {
         String path =
@@ -460,7 +460,7 @@ public class ZooKeeperClient implements RegistryService
                          (Funnel<T>) readObjectFromNode(funnelPath);
 
                      if (funnel != null && hashFunctionName != null) {
-                         return new HashPartitioner<>(
+                         return new HashKeyspace<>(
                              HashFunctionID.valueOf(hashFunctionName),
                              funnel);
                      }
@@ -473,7 +473,7 @@ public class ZooKeeperClient implements RegistryService
                          (DiscreteDomain<T>) readObjectFromNode(domainPath);
 
                      if (domain != null) {
-                         return new LinearPartitioner<T>(domain);
+                         return new LinearKeyspace<T>(domain);
                      }
                  }
              }

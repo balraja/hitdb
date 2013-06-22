@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,26 +18,29 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.server;
+package org.hit.key.domain;
 
+import java.io.Externalizable;
 
 /**
- * A default implementation of {@link ServerConfig} which reads the value 
- * from properties.
- * 
+ * Defines the contract for a domain that defines the discrete countable
+ * elements of a particual type.
+ *
  * @author Balraja Subbiah
  */
-public class ServerConfigImpl implements ServerConfig
+public interface DiscreteDomain<T extends Comparable<T>> extends Externalizable
 {
-    private static final String MASTER_PROPERTY = 
-        "org.hit.server.isMaster";
-    
     /**
-     * {@inheritDoc}
+     * Returns the value at the position offset from the given value.
      */
-    @Override
-    public boolean isMaster()
-    {
-        return Boolean.valueOf(System.getProperty(MASTER_PROPERTY));
-    }
+    T elementAt(long index);
+
+    /** Returns the maximum value of a domain */
+    T getMaximum();
+
+    /** Returns the minimum value of a domain */
+    T getMinimum();
+
+    /** Returns the total number of elements in a domain */
+    long getTotalElements();
 }

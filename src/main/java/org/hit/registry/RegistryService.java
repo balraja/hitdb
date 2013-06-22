@@ -23,7 +23,7 @@ package org.hit.registry;
 import java.util.List;
 
 import org.hit.communicator.NodeID;
-import org.hit.partitioner.Partitioner;
+import org.hit.key.Partition;
 
 /**
  * Defines the contract for the lookup service for accessing the
@@ -36,7 +36,7 @@ public interface RegistryService
     /**
      * Returns the table schema.
      */
-    public <T extends Comparable<T>> Partitioner<T> getTablePartitioner(
+    public <T extends Comparable<T>> Partition<T> getTablePartitioner(
         String tableName);
     
     /**

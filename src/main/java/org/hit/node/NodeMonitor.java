@@ -18,11 +18,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.server;
+package org.hit.node;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
@@ -33,9 +33,11 @@ import org.hit.event.Event;
 import org.hit.event.MasterDownEvent;
 import org.hit.event.SchemaNotificationEvent;
 import org.hit.event.SendMessageEvent;
+import org.hit.facade.HitDBFacade;
 import org.hit.messages.NodeAdvertisement;
 import org.hit.messages.NodeAdvertisementResponse;
-import org.hit.partitioner.Partitioner;
+import org.hit.server.ServerConfig;
+import org.hit.util.LogFactory;
 
 import com.google.inject.Inject;
 
@@ -44,13 +46,14 @@ import com.google.inject.Inject;
  * 
  * @author Balraja Subbiah
  */
-public class NodeManager extends Actor
+public class NodeMonitor extends Actor
 {
+    private static final Logger LOG =
+       LogFactory.getInstance().getLogger(HitDBFacade.class);
+
     private final ServerConfig myConfig;
     
-    private final Map<String, Partitioner<?>> myTableToKeySpaceMap;
-    
-    private final KeyspaceAllocator myAllocator;
+    private final DataAllocator myAllocator;
     
     private NodeID myNodeID;
     
@@ -58,15 +61,14 @@ public class NodeManager extends Actor
      * CTOR
      */
     @Inject
-    public NodeManager(EventBus eventBus, 
+    public NodeMonitor(EventBus eventBus, 
                        ServerConfig config,
                        NodeID nodeID,
-                       KeyspaceAllocator allocator)
+                       DataAllocator allocator)
     {
-        super(eventBus, new ActorID(NodeManager.class.getSimpleName()));
+        super(eventBus, new ActorID(NodeMonitor.class.getSimpleName()));
         myConfig = config;
         myNodeID = nodeID;
-        myTableToKeySpaceMap = new HashMap<>();
         myAllocator = allocator;
     }
 
@@ -91,6 +93,7 @@ public class NodeManager extends Actor
                         new NodeAdvertisementResponse(myNodeID, allocation)));
             }
             catch (EventBusException e) {
+                LOG.log(Level.SEVERE, e.getMessage(), e);
             }
         }
     }

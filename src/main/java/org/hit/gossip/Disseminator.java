@@ -18,11 +18,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.broadcast;
+package org.hit.gossip;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -33,6 +35,7 @@ import org.hit.actors.EventBus;
 import org.hit.actors.EventBusException;
 import org.hit.communicator.NodeID;
 import org.hit.event.Event;
+import org.hit.event.GossipUpdateEvent;
 import org.hit.event.SendMessageEvent;
 import org.hit.messages.NodeAdvertisement;
 import org.hit.messages.ReconcillationRequest;
@@ -129,12 +132,12 @@ public class Disseminator extends Actor
     
     private class ReconcillationResponseTask implements Runnable
     {
-        private final List<Information> myResponse;
+        private final List<Gossip> myResponse;
         
         /**
          * CTOR
          */
-        public ReconcillationResponseTask(List<Information> response)
+        public ReconcillationResponseTask(List<Gossip> response)
         {
             myResponse = response;
         }
@@ -185,6 +188,40 @@ public class Disseminator extends Actor
         public void run()
         {
             myParticipants.add(myNodeID);
+        }
+    }
+    
+    private class GossipUpdateTask implements Runnable
+    {
+        private final GossipUpdateEvent myUpdateEvent;
+
+        /**
+         * CTOR
+         */
+        public GossipUpdateTask(GossipUpdateEvent updateEvent)
+        {
+            super();
+            myUpdateEvent = updateEvent;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void run()
+        {
+            for (Gossip gossip : myUpdateEvent.getGossip())
+            {
+                Gossip old = myRepository.lookup(gossip.getKey());
+                if (old != null
+                    && old.getTimestamp() < gossip.getTimestamp()) 
+                {
+                    myRepository.update(gossip);
+                }
+                else if (old == null){
+                    myRepository.update(gossip);
+                }
+            }
         }
     }
     

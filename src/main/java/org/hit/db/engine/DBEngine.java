@@ -38,7 +38,6 @@ import org.hit.messages.CreateTableMessage;
 import org.hit.messages.DBOperationMessage;
 import org.hit.messages.DistributedDBOperationMessage;
 import org.hit.time.Clock;
-import org.hit.topology.Topology;
 import org.hit.util.LogFactory;
 import org.hit.zookeeper.ZooKeeperClient;
 
@@ -71,7 +70,6 @@ public class DBEngine extends Actor
                     NodeID               nodeID,
                     Clock                clock,
                     WAL                  wal,
-                    Topology             topology,
                     ZooKeeperClient      zooKeeperClient)
     {
         super(eventBus, new ActorID(DBEngine.class.getName()));

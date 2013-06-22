@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,94 +18,39 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.partitioner.domain;
+package org.hit.key.domain;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.List;
-import java.util.SortedSet;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 
 /**
- * Defines the contract for domain that holds a set of it's sorted elements
- *
+ * Defines the contract for a discrete domain containing long values
+ * 
  * @author Balraja Subbiah
  */
-public class SetDomain<T extends Comparable<T>>
-    implements DiscreteDomain<T>
+public class LongDomain implements DiscreteDomain<Long>
 {
-    private List<T> myElements;
-
+    private long myMinValue;
+    
+    private long myMaxValue;
+    
     /**
      * CTOR
      */
-    public SetDomain()
+    public LongDomain()
     {
-        myElements = null;
+        myMinValue = -1L;
+        myMaxValue = -1L;
     }
-
+    
     /**
      * CTOR
      */
-    public SetDomain(SortedSet<T> elements)
+    public LongDomain(long minValue, long maxValue)
     {
-        myElements = Lists.newArrayList(elements.iterator());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public T elementAt(long index)
-    {
-        Preconditions.checkArgument(
-            index < myElements.size(),
-            "The given index " + index
-            + "exceeds the number of elements "
-            + myElements.size());
-
-        return myElements.get((int) index);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public T getMaximum()
-    {
-        return myElements.get(myElements.size() - 1);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public T getMinimum()
-    {
-        return myElements.get(0);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public long getTotalElements()
-    {
-        return myElements.size();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @SuppressWarnings("unchecked")
-    @Override
-    public void readExternal(ObjectInput in)
-        throws IOException, ClassNotFoundException
-    {
-        myElements = (List<T>) in.readObject();
+        myMinValue = minValue;
+        myMaxValue = maxValue;
     }
 
     /**
@@ -114,6 +59,54 @@ public class SetDomain<T extends Comparable<T>>
     @Override
     public void writeExternal(ObjectOutput out) throws IOException
     {
-        out.writeObject(myElements);
+        out.writeLong(myMinValue);
+        out.writeLong(myMaxValue);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readExternal(ObjectInput in)
+        throws IOException,ClassNotFoundException
+    {
+        myMinValue = in.readLong();
+        myMaxValue = in.readLong();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Long elementAt(long index)
+    {
+        return Long.valueOf(myMinValue + index);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Long getMaximum()
+    {
+        return Long.valueOf(myMaxValue);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Long getMinimum()
+    {
+        return Long.valueOf(myMinValue);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getTotalElements()
+    {
+        return myMaxValue - myMinValue + 1;
     }
 }

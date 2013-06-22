@@ -18,26 +18,26 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.server;
+package org.hit.node;
 
+import org.hit.communicator.NodeID;
+import org.hit.db.model.Schema;
 
 /**
- * A default implementation of {@link ServerConfig} which reads the value 
- * from properties.
+ * Defines an interface that can be used for allocating the keyspace to 
+ * various nodes.
  * 
  * @author Balraja Subbiah
  */
-public class ServerConfigImpl implements ServerConfig
+public interface DataAllocator
 {
-    private static final String MASTER_PROPERTY = 
-        "org.hit.server.isMaster";
+    /**
+     * The schema to be monitored.
+     */
+    public void addSchema(Schema tableSchema);
     
     /**
-     * {@inheritDoc}
+     * Returns the <code>Allocation</code> corresponding to the given node.
      */
-    @Override
-    public boolean isMaster()
-    {
-        return Boolean.valueOf(System.getProperty(MASTER_PROPERTY));
-    }
+    public Allocation getAllocation(NodeID nodeID);
 }

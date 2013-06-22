@@ -28,6 +28,7 @@ import org.hit.db.model.Persistable;
 import org.hit.db.model.Schema;
 import org.hit.db.transactions.TransactableDatabase;
 import org.hit.db.transactions.TransactableTable;
+import org.hit.key.HashKeyspace;
 
 /**
  * Defines an implementation for the hit database that stores the
@@ -83,7 +84,7 @@ public class TransactableHitDatabase implements TransactableDatabase
     private <K extends Comparable<K>, P extends Persistable<K>>
         TransactableTable<K, P> makeTable(Schema schema)
     {
-        if (schema.getKeyPartitioningType() == PartitioningType.PARTITIONABLE)
+        if (schema.getKeyspace() instanceof HashKeyspace<?>)
         {
             return new TransactablePartitionedTable<>(schema);
         }

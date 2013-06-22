@@ -18,16 +18,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.partitioner;
+package org.hit.key;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Collection;
-import java.util.TreeMap;
 
-import org.hit.communicator.NodeID;
-import org.hit.partitioner.domain.DiscreteDomain;
+import org.hit.key.domain.DiscreteDomain;
 
 /**
  * Defines the contract for the key space that's partitioned between the
@@ -35,64 +32,33 @@ import org.hit.partitioner.domain.DiscreteDomain;
  *
  * @author Balraja Subbiah
  */
-public class LinearPartitioner<T extends Comparable<T>>
-    implements Partitioner<T>
+public class LinearKeyspace<S extends Comparable<S>>
+    implements Keyspace<S,S>
 {
-    private DiscreteDomain<T> myDomain;
-
-    private TreeMap<T, NodeID> myKeyToNodeMap;
+    private DiscreteDomain<S> myDomain;
 
     /**
      * CTOR
      */
-    public LinearPartitioner()
+    public LinearKeyspace()
     {
         myDomain = null;
-        myKeyToNodeMap = null;
     }
 
     /**
      * CTOR
      */
-    public LinearPartitioner(DiscreteDomain<T> domain)
+    public LinearKeyspace(DiscreteDomain<S> domain)
     {
         myDomain = domain;
-        myKeyToNodeMap = new TreeMap<>();
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void distribute(Collection<NodeID> nodes)
-    {
-        long segmentSize =
-            (long) Math.round(((double) myDomain.getTotalElements()) / nodes.size());
-        long index = segmentSize - 1;
-        for (NodeID node : nodes) {
-            T nodeValue = myDomain.elementAt(index);
-            if (myDomain.getTotalElements() > index
-                && ((myDomain.getTotalElements() - 1) - index) < segmentSize)
-            {
-                nodeValue = myDomain.getMaximum();
-            }
-            myKeyToNodeMap.put(nodeValue, node);
-            index += segmentSize;
-        }
     }
 
     /**
      * Returns the possible enumerations of a key.
      */
-    public DiscreteDomain<T> getDomain()
+    public DiscreteDomain<S> getDomain()
     {
         return myDomain;
-    }
-
-
-    /** {@inheritDoc} */
-    @Override
-    public NodeID getNode(T value)
-    {
-        return myKeyToNodeMap.ceilingEntry(value).getValue();
     }
 
     /**
@@ -103,8 +69,7 @@ public class LinearPartitioner<T extends Comparable<T>>
     public void readExternal(ObjectInput in)
         throws IOException, ClassNotFoundException
     {
-        myDomain = (DiscreteDomain<T>) in.readObject();
-        myKeyToNodeMap = new TreeMap<>();
+        myDomain = (DiscreteDomain<S>) in.readObject();
     }
 
     /**
@@ -114,5 +79,14 @@ public class LinearPartitioner<T extends Comparable<T>>
     public void writeExternal(ObjectOutput out) throws IOException
     {
         out.writeObject(myDomain);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public S map(S key)
+    {
+        return key;
     }
 }

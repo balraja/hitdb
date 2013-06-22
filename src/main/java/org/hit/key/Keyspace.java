@@ -18,26 +18,29 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.server;
+package org.hit.key;
 
+import java.io.Externalizable;
+
+import org.hit.key.domain.DiscreteDomain;
 
 /**
- * A default implementation of {@link ServerConfig} which reads the value 
- * from properties.
+ * Defines the type that defines key space for a table. A key space can be 
+ * as simple as enumeration of all the keys possible or it can be the hash
+ * range to which the keys are mapped by a hash function.
  * 
  * @author Balraja Subbiah
  */
-public class ServerConfigImpl implements ServerConfig
+public interface Keyspace<S extends Comparable<S>, T extends Comparable<T>>
+    extends Externalizable
 {
-    private static final String MASTER_PROPERTY = 
-        "org.hit.server.isMaster";
+    /**
+     * Returns the <code>DiscreteDomain</code> that defines the key space.
+     */
+    public DiscreteDomain<T> getDomain();
     
     /**
-     * {@inheritDoc}
+     * Maps the key to target key space.
      */
-    @Override
-    public boolean isMaster()
-    {
-        return Boolean.valueOf(System.getProperty(MASTER_PROPERTY));
-    }
+    public T map(S key);
 }

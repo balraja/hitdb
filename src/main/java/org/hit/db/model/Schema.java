@@ -26,7 +26,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.List;
 
-import org.hit.partitioner.Partitioner;
+import org.hit.key.Keyspace;
 
 /**
  * Defines the contract for schema of a table.
@@ -37,11 +37,9 @@ public class Schema implements Externalizable
 {
     private List<Column> myColumns;
 
-    private Partitioner<?> myPartitioner;
-
+    private Keyspace<?,?> myKeyspace;
+    
     private Class<? extends Comparable<?>>  myKeyClass;
-
-    private PartitioningType myKeyPartitioningType;
 
     private Class<? extends Persistable<?>> myPersistableClass;
 
@@ -52,7 +50,7 @@ public class Schema implements Externalizable
      */
     public Schema()
     {
-        this(null, null, null, null, null, null);
+        this(null, null, null, null, null);
     }
 
     /**
@@ -62,15 +60,13 @@ public class Schema implements Externalizable
                   List<Column> columns,
                   Class<? extends Persistable<?>> persistableclass,
                   Class<? extends Comparable<?>> keyclass,
-                  PartitioningType keyType,
-                  Partitioner<?> partitioner)
+                  Keyspace<?,?> keyspace)
     {
         myColumns = columns;
         myTableName = tableName;
         myPersistableClass = persistableclass;
         myKeyClass = keyclass;
-        myKeyPartitioningType = keyType;
-        myPartitioner = partitioner;
+        myKeyspace = keyspace;
     }
 
     /**
@@ -82,12 +78,12 @@ public class Schema implements Externalizable
     }
 
     /**
-     * Returns the {@link Partitioner} that can be used for partitioning
-     * the data in a table among the various servers in a database.
+     * Returns the {@link Keyspace} that defines the possible values
+     * to which the keys in a table can map to.
      */
-    public Partitioner<?> getPartitioner()
+    public Keyspace<?,?> getKeyspace()
     {
-        return myPartitioner;
+        return myKeyspace;
     }
 
     /**
@@ -96,14 +92,6 @@ public class Schema implements Externalizable
     public Class<? extends Comparable<?>> getKeyClass()
     {
         return myKeyClass;
-    }
-
-    /**
-     * Returns the value of keyPartitoiningType
-     */
-    public PartitioningType getKeyPartitioningType()
-    {
-        return myKeyPartitioningType;
     }
 
     /**
@@ -134,8 +122,7 @@ public class Schema implements Externalizable
         myPersistableClass = (Class<? extends Persistable<?>>) in.readObject();
         myKeyClass = (Class<? extends Comparable<?>>) in.readObject();
         myColumns = (List<Column>) in.readObject();
-        myKeyPartitioningType = (PartitioningType) in.readObject();
-        myPartitioner = (Partitioner<?>) in.readObject();
+        myKeyspace = (Keyspace<?,?>) in.readObject();
     }
 
     /**
@@ -151,10 +138,8 @@ public class Schema implements Externalizable
                + myKeyClass
                + ", myColumns="
                + myColumns
-               + ", myKeyPartitioningType="
-               + myKeyPartitioningType
                + ", myHashRing="
-               + myPartitioner
+               + myKeyspace
                + "]";
     }
 
@@ -168,7 +153,6 @@ public class Schema implements Externalizable
         out.writeObject(myPersistableClass);
         out.writeObject(myKeyClass);
         out.writeObject(myColumns);
-        out.writeObject(myKeyPartitioningType);
-        out.writeObject(myPartitioner);
+        out.writeObject(myKeyspace);
     }
 }

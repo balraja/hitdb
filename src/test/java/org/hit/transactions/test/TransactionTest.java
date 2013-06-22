@@ -40,10 +40,10 @@ import org.hit.db.transactions.impl.TransactableHitDatabase;
 import org.hit.example.ClimateData;
 import org.hit.example.ClimateDataKey;
 import org.hit.example.HitDbTest;
-import org.hit.partitioner.LinearPartitioner;
-import org.hit.partitioner.domain.ComposedDomain;
-import org.hit.partitioner.domain.DiscreteDomain;
-import org.hit.partitioner.domain.IntegerDomain;
+import org.hit.key.LinearKeyspace;
+import org.hit.key.domain.ComposedDomain;
+import org.hit.key.domain.DiscreteDomain;
+import org.hit.key.domain.IntegerDomain;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -160,7 +160,7 @@ public class TransactionTest
                        ClimateData.class,
                        ClimateDataKey.class,
                        PartitioningType.PARTITIONABLE,
-                       new LinearPartitioner<>(domain));
+                       new LinearKeyspace<>(domain));
 
         database.createTable(schema);
         ClimateData newClimateDataRow =

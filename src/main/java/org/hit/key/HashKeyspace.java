@@ -18,18 +18,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.partitioner;
+package org.hit.key;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.math.BigInteger;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.TreeMap;
 
-import org.hit.communicator.NodeID;
+import org.hit.key.domain.BigIntegerDomain;
+import org.hit.key.domain.DiscreteDomain;
 
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashFunction;
@@ -42,8 +39,8 @@ import com.google.common.hash.Hashing;
  *
  * @author Balraja Subbiah
  */
-public class HashPartitioner<T extends Comparable<T>>
-    implements Partitioner<T>
+public class HashKeyspace<S extends Comparable<S>>
+    implements Keyspace<S, BigInteger>
 {
     /**
      * An enum to denote the various types of hash functions used in a
@@ -70,63 +67,37 @@ public class HashPartitioner<T extends Comparable<T>>
         }
     }
 
-    private TreeMap<BigInteger, NodeID> myClaimedPositions;
-
-    private Funnel<T> myFunnel;
+    private Funnel<S> myFunnel;
 
     private HashFunctionID myHashFunctionID;
 
-    private ArbitraryNumberRange myRange;
+    private BigIntegerDomain myRange;
 
     /**
      * CTOR
      */
-    public HashPartitioner()
+    public HashKeyspace()
     {
         myHashFunctionID = null;
         myFunnel = null;
         myRange = null;
-        myClaimedPositions = null;
     }
 
     /**
      * CTOR
      */
-    public HashPartitioner(HashFunctionID functionID, Funnel<T> funnel)
+    public HashKeyspace(HashFunctionID functionID, Funnel<S> funnel)
     {
         myHashFunctionID = functionID;
         myFunnel = funnel;
         myRange =
-            new ArbitraryNumberRange(functionID.getHashFunction().bits());
-        myClaimedPositions = new TreeMap<>();
-    }
-
-    /** Distributes the nodes over a hash ring */
-    @Override
-    public void distribute(Collection<NodeID> nodes)
-    {
-        BigInteger offset =
-            myRange.getSize().divide(BigInteger.valueOf(nodes.size()));
-        BigInteger nodeValue = myRange.getMinimum().add(offset);
-        for (NodeID node : nodes) {
-            myClaimedPositions.put(nodeValue, node);
-            nodeValue = nodeValue.add(offset);
-        }
-    }
-
-    /**
-     * Returns the value of claimedPositions
-     */
-    public Map<BigInteger, NodeID> getClaimedPositions()
-    {
-        return Collections.<BigInteger, NodeID>unmodifiableMap(
-            myClaimedPositions);
+            new BigIntegerDomain(functionID.getHashFunction().bits());
     }
 
     /**
      * Returns the value of funnel
      */
-    public Funnel<T> getFunnel()
+    public Funnel<S> getFunnel()
     {
         return myFunnel;
     }
@@ -141,7 +112,7 @@ public class HashPartitioner<T extends Comparable<T>>
 
     /** Returns the node corresponding to the given key */
     @Override
-    public NodeID getNode(T key)
+    public BigInteger map(S key)
     {
         BigInteger hashValue =
             new BigInteger(
@@ -150,28 +121,8 @@ public class HashPartitioner<T extends Comparable<T>>
                                 .putObject(key, myFunnel)
                                 .hash()
                                 .asBytes());
+        return hashValue;
 
-        NodeID holdingNode = myClaimedPositions.get(hashValue);
-        if (holdingNode == null) {
-            Map.Entry<BigInteger, NodeID> nextEntry =
-                myClaimedPositions.ceilingEntry(hashValue);
-            if (nextEntry != null) {
-                holdingNode = nextEntry.getValue();
-            }
-            else {
-               BigInteger maxValue =  myClaimedPositions.lastKey();
-               if (maxValue.compareTo(hashValue) < 0) {
-                   nextEntry =
-                       myClaimedPositions.ceilingEntry(
-                           myRange.getMinimum());
-
-                   if (nextEntry != null) {
-                       holdingNode = nextEntry.getValue();
-                   }
-               }
-            }
-        }
-        return holdingNode;
     }
 
     /**
@@ -183,11 +134,9 @@ public class HashPartitioner<T extends Comparable<T>>
         throws IOException, ClassNotFoundException
     {
         myHashFunctionID = HashFunctionID.valueOf(in.readUTF());
-        myFunnel = (Funnel<T>) in.readObject();
+        myFunnel = (Funnel<S>) in.readObject();
         myRange =
-            new ArbitraryNumberRange(myHashFunctionID.getHashFunction().bits());
-        myClaimedPositions = new TreeMap<>();
-
+            new BigIntegerDomain(myHashFunctionID.getHashFunction().bits());
     }
 
     /**
@@ -198,5 +147,14 @@ public class HashPartitioner<T extends Comparable<T>>
     {
         out.writeUTF(myHashFunctionID.name());
         out.writeObject(myFunnel);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public DiscreteDomain<BigInteger> getDomain()
+    {
+        return myRange;
     }
 }

@@ -26,9 +26,9 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.hit.broadcast.Information;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.gossip.Gossip;
 
 /**
  * Defines the contract for a message that can be used for sending back the 
@@ -38,7 +38,7 @@ import org.hit.communicator.NodeID;
  */
 public class ReconcilliationResponse extends Message
 {
-    private List<Information> myInformationList;
+    private List<Gossip> myInformationList;
     
     /**
      * CTOR
@@ -52,7 +52,7 @@ public class ReconcilliationResponse extends Message
      * CTOR
      */
     public ReconcilliationResponse(NodeID source, 
-                                  List<Information> informationList)
+                                  List<Gossip> informationList)
     {
         super(source);
         myInformationList = informationList;
@@ -61,7 +61,7 @@ public class ReconcilliationResponse extends Message
     /**
      * Returns the value of informationList
      */
-    public List<Information> getInformationList()
+    public List<Gossip> getInformationList()
     {
         return myInformationList;
     }
@@ -76,7 +76,7 @@ public class ReconcilliationResponse extends Message
             ClassNotFoundException
     {
         super.readExternal(in);
-        myInformationList = (List<Information>) in.readObject();
+        myInformationList = (List<Gossip>) in.readObject();
     }
 
     /**

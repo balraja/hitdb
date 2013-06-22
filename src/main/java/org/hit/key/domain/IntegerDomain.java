@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.partitioner.domain;
+package org.hit.key.domain;
 
 import java.io.IOException;
 import java.io.ObjectInput;

@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,29 +18,35 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.partitioner.domain;
+package org.hit.event;
 
-import java.io.Externalizable;
+import java.util.Collection;
+
+import org.hit.gossip.Gossip;
 
 /**
- * Defines the contract for a domain that defines the discrete countable
- * elements of a particual type.
- *
+ * Defines an event for updating the information to be spread via gossip
+ * 
  * @author Balraja Subbiah
  */
-public interface DiscreteDomain<T extends Comparable<T>> extends Externalizable
+public class GossipUpdateEvent implements Event
 {
+    private final Collection<Gossip> myGossip;
+
     /**
-     * Returns the value at the position offset from the given value.
+     * CTOR
      */
-    T elementAt(long index);
+    public GossipUpdateEvent(Collection<Gossip> gossip)
+    {
+        super();
+        myGossip = gossip;
+    }
 
-    /** Returns the maximum value of a domain */
-    T getMaximum();
-
-    /** Returns the minimum value of a domain */
-    T getMinimum();
-
-    /** Returns the total number of elements in a domain */
-    long getTotalElements();
+    /**
+     * Returns the value of gossip
+     */
+    public Collection<Gossip> getGossip()
+    {
+        return myGossip;
+    } 
 }

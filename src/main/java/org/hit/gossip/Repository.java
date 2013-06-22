@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.broadcast;
+package org.hit.gossip;
 
 import gnu.trove.map.TObjectLongMap;
 import gnu.trove.map.hash.TObjectLongHashMap;
@@ -37,7 +37,7 @@ import java.util.Map;
  */
 public class Repository implements Cloneable
 {
-    private final Map<Serializable, Information> myKeyToInformationMap;
+    private final Map<Serializable, Gossip> myKeyToInformationMap;
     
     /**
      * CTOR
@@ -51,7 +51,7 @@ public class Repository implements Cloneable
      * CTOR
      */
     public Repository(
-        Map<Serializable, Information> keyToInformationMap)
+        Map<Serializable, Gossip> keyToInformationMap)
     {
         super();
         myKeyToInformationMap = keyToInformationMap;
@@ -60,7 +60,7 @@ public class Repository implements Cloneable
     /**
      * Returns <code>Information</code> corresponding to the key.
      */
-    public Information lookup(Serializable key)
+    public Gossip lookup(Serializable key)
     {
         return myKeyToInformationMap.get(key);
     }
@@ -68,18 +68,17 @@ public class Repository implements Cloneable
     /**
      * Updates the key and value pairs.
      */
-    public void update(Serializable key, Serializable value)
+    public void update(Gossip gossip)
     {
-        myKeyToInformationMap.put(
-            key, new Information(key, value, System.currentTimeMillis()));
+        myKeyToInformationMap.put(gossip.getKey(), gossip);
     }
     
     /**
      * Updates the key and value pairs.
      */
-    public void update(List<Information> updates)
+    public void update(List<Gossip> updates)
     {
-        for (Information i : updates) {
+        for (Gossip i : updates) {
             myKeyToInformationMap.put(i.getKey(), i);
         }
     }
@@ -93,7 +92,7 @@ public class Repository implements Cloneable
         TObjectLongMap<Serializable> keyToVersionMap = 
             new TObjectLongHashMap<>();
             
-        for (Map.Entry<Serializable, Information> entry : 
+        for (Map.Entry<Serializable, Gossip> entry : 
                 myKeyToInformationMap.entrySet())
         {
             keyToVersionMap.put(entry.getKey(), 
@@ -108,10 +107,10 @@ public class Repository implements Cloneable
      * Information</code> whose version is greater than the version
      * number specified in the digest.
      */
-    public List<Information> processDigest(Digest digest)
+    public List<Gossip> processDigest(Digest digest)
     {
-        List<Information> latestInformation = new ArrayList<>();
-        for (Map.Entry<Serializable, Information> entry : 
+        List<Gossip> latestInformation = new ArrayList<>();
+        for (Map.Entry<Serializable, Gossip> entry : 
                 myKeyToInformationMap.entrySet())
         {
             long otherVersion = digest.getKeyToVersionMap().get(entry.getKey());

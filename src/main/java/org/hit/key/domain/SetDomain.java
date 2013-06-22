@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,87 +18,74 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.partitioner.domain;
+package org.hit.key.domain;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.List;
+import java.util.SortedSet;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 /**
- * Defines the contract for a discrete domain containing long values
- * 
+ * Defines the contract for domain that holds a set of it's sorted elements
+ *
  * @author Balraja Subbiah
  */
-public class LongDomain implements DiscreteDomain<Long>
+public class SetDomain<T extends Comparable<T>>
+    implements DiscreteDomain<T>
 {
-    private long myMinValue;
-    
-    private long myMaxValue;
-    
+    private List<T> myElements;
+
     /**
      * CTOR
      */
-    public LongDomain()
+    public SetDomain()
     {
-        myMinValue = -1L;
-        myMaxValue = -1L;
+        myElements = null;
     }
-    
+
     /**
      * CTOR
      */
-    public LongDomain(long minValue, long maxValue)
+    public SetDomain(SortedSet<T> elements)
     {
-        myMinValue = minValue;
-        myMaxValue = maxValue;
+        myElements = Lists.newArrayList(elements.iterator());
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException
+    public T elementAt(long index)
     {
-        out.writeLong(myMinValue);
-        out.writeLong(myMaxValue);
+        Preconditions.checkArgument(
+            index < myElements.size(),
+            "The given index " + index
+            + "exceeds the number of elements "
+            + myElements.size());
+
+        return myElements.get((int) index);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void readExternal(ObjectInput in)
-        throws IOException,ClassNotFoundException
+    public T getMaximum()
     {
-        myMinValue = in.readLong();
-        myMaxValue = in.readLong();
+        return myElements.get(myElements.size() - 1);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public Long elementAt(long index)
+    public T getMinimum()
     {
-        return Long.valueOf(myMinValue + index);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Long getMaximum()
-    {
-        return Long.valueOf(myMaxValue);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Long getMinimum()
-    {
-        return Long.valueOf(myMinValue);
+        return myElements.get(0);
     }
 
     /**
@@ -107,6 +94,26 @@ public class LongDomain implements DiscreteDomain<Long>
     @Override
     public long getTotalElements()
     {
-        return myMaxValue - myMinValue + 1;
+        return myElements.size();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public void readExternal(ObjectInput in)
+        throws IOException, ClassNotFoundException
+    {
+        myElements = (List<T>) in.readObject();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeObject(myElements);
     }
 }

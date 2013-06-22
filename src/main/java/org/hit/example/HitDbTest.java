@@ -32,10 +32,10 @@ import org.hit.db.model.Schema;
 import org.hit.facade.DBOperationResponse;
 import org.hit.facade.HitDBFacade;
 import org.hit.facade.TableCreationResponse;
-import org.hit.partitioner.LinearPartitioner;
-import org.hit.partitioner.domain.ComposedDomain;
-import org.hit.partitioner.domain.DiscreteDomain;
-import org.hit.partitioner.domain.IntegerDomain;
+import org.hit.key.LinearKeyspace;
+import org.hit.key.domain.ComposedDomain;
+import org.hit.key.domain.DiscreteDomain;
+import org.hit.key.domain.IntegerDomain;
 import org.hit.util.LogFactory;
 
 import com.google.common.collect.Lists;
@@ -73,7 +73,7 @@ public class HitDbTest implements DBClient
                        ClimateData.class,
                        ClimateDataKey.class,
                        PartitioningType.PARTITIONABLE,
-                       new LinearPartitioner<ClimateDataKey>(
+                       new LinearKeyspace<ClimateDataKey>(
                            new ComposedDomain<ClimateDataKey>(
                                Lists.<DiscreteDomain<?>>newArrayList(
                                   new IntegerDomain(2004, 2005),

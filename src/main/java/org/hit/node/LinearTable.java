@@ -18,26 +18,39 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.server;
+package org.hit.node;
 
+import java.util.Map.Entry;
+import java.util.TreeMap;
+
+import org.hit.communicator.NodeID;
+import org.hit.key.Keyspace;
 
 /**
- * A default implementation of {@link ServerConfig} which reads the value 
- * from properties.
+ * Extends <code>PartitionTable</code> to support lookup on a linear fashion.
  * 
  * @author Balraja Subbiah
  */
-public class ServerConfigImpl implements ServerConfig
+public class LinearTable<S extends Comparable<S>, 
+                         T extends Comparable<T>> 
+    extends PartitionTable<S,T>
 {
-    private static final String MASTER_PROPERTY = 
-        "org.hit.server.isMaster";
-    
+    /**
+     * CTOR
+     */
+    public LinearTable(String tableName, Keyspace<S,T> keyspace)
+    {
+        super(tableName, keyspace);
+    }
+
     /**
      * {@inheritDoc}
      */
     @Override
-    public boolean isMaster()
+    protected NodeID doLookup(T                  key,
+                              TreeMap<T, NodeID> nodeMap)
     {
-        return Boolean.valueOf(System.getProperty(MASTER_PROPERTY));
+        Entry<T, NodeID> maxEntry = nodeMap.ceilingEntry(key);
+        return maxEntry != null ? maxEntry.getValue() : null;
     }
 }

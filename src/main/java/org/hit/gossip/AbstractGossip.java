@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.broadcast;
+package org.hit.gossip;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -27,22 +27,18 @@ import java.io.ObjectOutput;
 import java.io.Serializable;
 
 /**
- * Defines the contract for an interface that defines the characteristics 
- * of shared information.
+ * Defines an abstract implementation of information to be shared via 
+ * gossip.
  * 
  * @author Balraja Subbiah
  */
-public class Information implements Externalizable
+public abstract class AbstractGossip<U>
+    implements Externalizable,Gossip
 {
     /**
      * The key that uniquely identifies the information.
      */
     private Serializable myKey;
-    
-    /**
-     * The value of this key.
-     */
-    private Serializable myValue;
     
     /**
      * Returns the timestamp at which this information is last updated.
@@ -54,7 +50,7 @@ public class Information implements Externalizable
     /**
      * CTOR
      */
-    public Information()
+    public AbstractGossip()
     {
         super();
     }
@@ -62,12 +58,11 @@ public class Information implements Externalizable
     /**
      * CTOR
      */
-    public Information(Serializable key, Serializable value, long timestamp)
+    public AbstractGossip(Serializable key)
     {
         super();
         myKey = key;
-        myValue = value;
-        myTimestamp = timestamp;
+        myTimestamp = System.currentTimeMillis();
     }
 
     /**
@@ -77,15 +72,7 @@ public class Information implements Externalizable
     {
         return myKey;
     }
-
-    /**
-     * Returns the value of value
-     */
-    public Serializable getValue()
-    {
-        return myValue;
-    }
-
+    
     /**
      * Returns the value of timestamp
      */
@@ -93,6 +80,20 @@ public class Information implements Externalizable
     {
         return myTimestamp;
     }
+    
+    /**
+     * Updates the gossip.
+     */
+    public void update(U update) throws IllegalArgumentException
+    {
+        myTimestamp = System.currentTimeMillis();
+        doUpdate(update);
+    }
+    
+    /**
+     * Subclasses should override this method to handle gossip.
+     */
+    protected abstract void doUpdate(U update);
 
     /**
      * {@inheritDoc}
@@ -101,7 +102,6 @@ public class Information implements Externalizable
     public void writeExternal(ObjectOutput out) throws IOException
     {
         out.writeObject(myKey);
-        out.writeObject(myValue);
         out.writeLong(myTimestamp);
     }
 
@@ -113,7 +113,6 @@ public class Information implements Externalizable
         throws IOException, ClassNotFoundException
     {
         myKey = (Serializable) in.readObject();
-        myValue = (Serializable) in.readObject();
         myTimestamp = in.readLong();
     }
 }

@@ -18,26 +18,35 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.server;
+package org.hit.node;
 
-import org.hit.communicator.NodeID;
-import org.hit.db.model.Schema;
+import gnu.trove.map.hash.TObjectLongHashMap;
+
+import org.hit.communicator.Message;
 
 /**
- * Defines an interface that can be used for allocating the keyspace to 
- * various nodes.
+ * Defines the heartbeat to be published by client nodes to the master.
  * 
  * @author Balraja Subbiah
  */
-public interface KeyspaceAllocator
+public class Heartbeat extends Message
 {
+    private TObjectLongHashMap<String> myTableToRowCountMap;
+
     /**
-     * The schema to be monitored.
+     * CTOR
      */
-    public void addSchema(Schema tableSchema);
-    
+    public Heartbeat(TObjectLongHashMap<String> tableToRowCountMap)
+    {
+        super();
+        myTableToRowCountMap = tableToRowCountMap;
+    }
+
     /**
-     * Returns the <code>Allocation</code> corresponding to the given node.
+     * Returns the value of tableToRowCountMap
      */
-    public Allocation getAllocation(NodeID nodeID);
+    public TObjectLongHashMap<String> getTableToRowCountMap()
+    {
+        return myTableToRowCountMap;
+    }
 }

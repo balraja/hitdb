@@ -18,29 +18,27 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.messages;
+package org.hit.node;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.math.BigInteger;
+import java.util.Map;
+import java.util.TreeMap;
 
-import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
-import org.hit.gossip.Digest;
+import org.hit.key.Keyspace;
 
 /**
- * The message that can be used for sharing digests between nodes.  
+ * Extends <code>PartitionTable</code> to support mapping as a DHT.
  * 
  * @author Balraja Subbiah
  */
-public class ReconcillationRequest extends Message
+public class HashTable<S extends Comparable<S>> 
+    extends PartitionTable<S, BigInteger>
 {
-    private Digest myDigest;
-
     /**
      * CTOR
      */
-    public ReconcillationRequest()
+    public HashTable()
     {
         super();
     }
@@ -48,39 +46,30 @@ public class ReconcillationRequest extends Message
     /**
      * CTOR
      */
-    public ReconcillationRequest(NodeID nodeId, Digest digest)
+    public HashTable(String tableName, Keyspace<S, BigInteger> keyspace)
     {
-        super(nodeId);
-        myDigest = digest;
-    }
-
-    /**
-     * Returns the value of digest
-     */
-    public Digest getDigest()
-    {
-        return myDigest;
+        super(tableName, keyspace);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void readExternal(ObjectInput in)
-        throws IOException,
-            ClassNotFoundException
+    protected NodeID doLookup(BigInteger                  key,
+                              TreeMap<BigInteger, NodeID> nodeMap)
     {
-        super.readExternal(in);
-        myDigest = (Digest) in.readObject();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException
-    {
-        super.writeExternal(out);
-        out.writeObject(myDigest);
+        NodeID holdingNode = nodeMap.get(key);
+        if (holdingNode == null) {
+            Map.Entry<BigInteger, NodeID> nextEntry = 
+                nodeMap.ceilingEntry(key);
+            
+            if (nextEntry != null) {
+                holdingNode = nextEntry.getValue();
+            }
+            else {
+                holdingNode = nodeMap.firstEntry().getValue();
+            }
+        }
+        return holdingNode;
     }
 }
