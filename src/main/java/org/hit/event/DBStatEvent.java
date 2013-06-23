@@ -18,16 +18,41 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.server;
+package org.hit.event;
+
+import gnu.trove.map.TObjectLongMap;
+import gnu.trove.map.hash.TObjectLongHashMap;
 
 /**
- * Defines the contract for an interface that provides configuration
- * for the server.
+ * Defines the contract for an <code>Event</code> that publishes the 
+ * db statistics to other parts of the system. For now it prints the
+ * number of rows in each table.
  * 
  * @author Balraja Subbiah
  */
-public interface ServerConfig
+public class DBStatEvent implements Event
 {
-    /** Returns true if the server is marked as mater during startup */
-    public boolean isMaster();
+    private final TObjectLongMap<String> myTableToRowCountMap;
+
+    /**
+     * CTOR
+     */
+    public DBStatEvent()
+    {
+        super();
+        myTableToRowCountMap = new TObjectLongHashMap<>();
+    }
+    
+    public void addTableRowCount(String tableName, long rowCount)
+    {
+        myTableToRowCountMap.put(tableName, rowCount);
+    }
+
+    /**
+     * Returns the value of tableToRowCountMap
+     */
+    public TObjectLongMap<String> getTableToRowCountMap()
+    {
+        return myTableToRowCountMap;
+    }
 }

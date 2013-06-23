@@ -43,4 +43,14 @@ public interface DiscreteDomain<T extends Comparable<T>> extends Externalizable
 
     /** Returns the total number of elements in a domain */
     long getTotalElements();
+    
+    /**
+     * Returns the middle of values between given lowerValue and upperValue
+     */
+    T getMiddleOf(T lowerValue, T upperValue);
+    
+    /**
+     * Returns the middle of values between given lowerValue and upperValue
+     */
+    T getMiddleOf(Object lowerValue, Object upperValue);
 }

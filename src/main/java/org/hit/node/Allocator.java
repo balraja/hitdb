@@ -20,8 +20,14 @@
 
 package org.hit.node;
 
+import java.util.Collection;
+
 import org.hit.communicator.NodeID;
 import org.hit.db.model.Schema;
+import org.hit.event.GossipUpdateEvent;
+import org.hit.gossip.Gossip;
+import org.hit.messages.Allocation;
+import org.hit.messages.Heartbeat;
 
 /**
  * Defines an interface that can be used for allocating the keyspace to 
@@ -29,7 +35,7 @@ import org.hit.db.model.Schema;
  * 
  * @author Balraja Subbiah
  */
-public interface DataAllocator
+public interface Allocator
 {
     /**
      * The schema to be monitored.
@@ -37,7 +43,18 @@ public interface DataAllocator
     public void addSchema(Schema tableSchema);
     
     /**
+     * Listens to heartbeats from  the given <code>NodeID</code>.
+     */
+    public void listenTO(NodeID nodeID, Heartbeat heartbeat);
+    
+    /**
      * Returns the <code>Allocation</code> corresponding to the given node.
      */
-    public Allocation getAllocation(NodeID nodeID);
+    public Allocation getAllocation(NodeID nodeID) throws IllegalAccessException;
+    
+    /**
+     * Returns an <code>GossipUpdateEvent</code> to get updates about 
+     * the latest keyspace partitions.
+     */
+    public GossipUpdateEvent getGossipUpdates();
 }

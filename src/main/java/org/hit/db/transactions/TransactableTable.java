@@ -64,6 +64,9 @@ public interface TransactableTable<K extends Comparable<K>, P extends Persistabl
     /** Returns schema of the table */
     public Schema getSchema();
     
+    /** Returns the number of rows in this table */
+    public long rowCount();
+    
     /**
      * Removes the transactable from the table.
      */

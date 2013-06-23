@@ -26,7 +26,6 @@ import java.io.ObjectOutput;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
-import org.hit.node.Allocation;
 
 /**
  * The response to the <code>NodeAdvertisement</code>

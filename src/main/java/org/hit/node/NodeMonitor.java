@@ -34,9 +34,9 @@ import org.hit.event.MasterDownEvent;
 import org.hit.event.SchemaNotificationEvent;
 import org.hit.event.SendMessageEvent;
 import org.hit.facade.HitDBFacade;
+import org.hit.messages.Allocation;
 import org.hit.messages.NodeAdvertisement;
 import org.hit.messages.NodeAdvertisementResponse;
-import org.hit.server.ServerConfig;
 import org.hit.util.LogFactory;
 
 import com.google.inject.Inject;
@@ -51,9 +51,9 @@ public class NodeMonitor extends Actor
     private static final Logger LOG =
        LogFactory.getInstance().getLogger(HitDBFacade.class);
 
-    private final ServerConfig myConfig;
+    private final NodeConfig myConfig;
     
-    private final DataAllocator myAllocator;
+    private final Allocator myAllocator;
     
     private NodeID myNodeID;
     
@@ -62,9 +62,9 @@ public class NodeMonitor extends Actor
      */
     @Inject
     public NodeMonitor(EventBus eventBus, 
-                       ServerConfig config,
+                       NodeConfig config,
                        NodeID nodeID,
-                       DataAllocator allocator)
+                       Allocator allocator)
     {
         super(eventBus, new ActorID(NodeMonitor.class.getSimpleName()));
         myConfig = config;
@@ -85,15 +85,19 @@ public class NodeMonitor extends Actor
         }
         else if (event instanceof NodeAdvertisement) {
             NodeAdvertisement na = (NodeAdvertisement) event;
-            Allocation allocation = myAllocator.getAllocation(na.getNodeId());
+            Allocation allocation;
             try {
-                getEventBus().publish(
-                    new SendMessageEvent(
-                        Collections.singletonList(na.getNodeId()),
-                        new NodeAdvertisementResponse(myNodeID, allocation)));
+                allocation = myAllocator.getAllocation(na.getNodeId());
+                if (allocation != null) {
+                    getEventBus().publish(
+                        new SendMessageEvent(
+                            Collections.singletonList(na.getNodeId()),
+                            new NodeAdvertisementResponse(myNodeID, allocation)));
+                    getEventBus().publish(myAllocator.getGossipUpdates());
+                }
             }
-            catch (EventBusException e) {
-                LOG.log(Level.SEVERE, e.getMessage(), e);
+            catch (IllegalAccessException | EventBusException e1) {
+                LOG.log(Level.SEVERE, e1.getMessage(), e1);
             }
         }
     }

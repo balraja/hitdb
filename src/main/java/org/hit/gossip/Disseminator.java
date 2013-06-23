@@ -20,11 +20,11 @@
 
 package org.hit.gossip;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -35,12 +35,14 @@ import org.hit.actors.EventBus;
 import org.hit.actors.EventBusException;
 import org.hit.communicator.NodeID;
 import org.hit.event.Event;
+import org.hit.event.GossipNotificationEvent;
 import org.hit.event.GossipUpdateEvent;
 import org.hit.event.SendMessageEvent;
 import org.hit.messages.NodeAdvertisement;
 import org.hit.messages.ReconcillationRequest;
 import org.hit.messages.ReconcilliationResponse;
 import org.hit.util.LogFactory;
+import org.hit.util.NamedThreadFactory;
 
 import com.google.inject.Inject;
 
@@ -149,6 +151,13 @@ public class Disseminator extends Actor
         public void run()
         {
             myRepository.update(myResponse);
+            try {
+                getEventBus().publish(new GossipNotificationEvent(
+                    myRepository.getLatestInformation()));
+            }
+            catch (EventBusException e) {
+                LOG.log(Level.SEVERE, e.getMessage(), e);
+            }
         }
     }
     
@@ -162,7 +171,7 @@ public class Disseminator extends Actor
         {
             Digest digest = myRepository.makeDigest();
             for (NodeID nodeID : myParticipants) {
-                getActorExecutor().submit(
+                myScheduler.submit(
                     new SendDigestTask(nodeID, myOwner, digest));
             }
         }
@@ -231,6 +240,8 @@ public class Disseminator extends Actor
     
     private final Repository myRepository;
     
+    private final ScheduledExecutorService myScheduler;
+    
     /**
      * CTOR
      */
@@ -241,6 +252,9 @@ public class Disseminator extends Actor
         myParticipants = new ArrayList<>();
         myOwner = node;
         myRepository = new Repository();
+        myScheduler = 
+            Executors.newScheduledThreadPool(
+                1, new NamedThreadFactory("Disseminator Worker "));
     }
 
     /**
@@ -252,20 +266,25 @@ public class Disseminator extends Actor
         if (event instanceof ReconcilliationResponse) {
             ReconcilliationResponse response = 
                 (ReconcilliationResponse) event;
-            getActorExecutor().submit(
+            myScheduler.submit(
                 new ReconcillationResponseTask(
                     response.getInformationList()));
         }
         else if (event instanceof ReconcillationRequest) {
             ReconcillationRequest rr = (ReconcillationRequest) event;
-            getActorExecutor().submit(new ApplyDigestTask(
+            myScheduler.submit(new ApplyDigestTask(
                 myOwner, rr.getDigest()));
         }
         else if (event instanceof NodeAdvertisement) {
             NodeAdvertisement advertisement = 
                 (NodeAdvertisement) event;
-            getActorExecutor().submit(
+            myScheduler.submit(
                 new AddParticipantTask(advertisement.getNodeId()));
+        }
+        else if (event instanceof GossipUpdateEvent) {
+            GossipUpdateEvent update = 
+                (GossipUpdateEvent) event;
+            myScheduler.submit(new GossipUpdateTask(update));
         }
     }
     
@@ -276,7 +295,7 @@ public class Disseminator extends Actor
     public void start()
     {
         super.start();
-        getActorExecutor().scheduleAtFixedRate(
+        myScheduler.scheduleAtFixedRate(
             new SendDigestPeriodicTask(), 1, 1, TimeUnit.SECONDS);
     }
     
@@ -294,6 +313,9 @@ public class Disseminator extends Actor
                                        getActorID());
         
         getEventBus().registerForEvent(ReconcillationRequest.class,
+                                       getActorID());
+        
+        getEventBus().registerForEvent(GossipUpdateEvent.class, 
                                        getActorID());
     }
 }

@@ -1,8 +1,8 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,25 +16,38 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+*/
 
-package org.hit.db.model;
+package org.hit.messages;
+
+import gnu.trove.map.TObjectLongMap;
+import gnu.trove.map.hash.TObjectLongHashMap;
+
+import org.hit.communicator.Message;
 
 /**
- * Defines the type by which key space can be partitioned.
+ * Defines the heart beat to be published by client nodes to the master.
  * 
  * @author Balraja Subbiah
  */
-public enum PartitioningType
+public class Heartbeat extends Message
 {
-    /**
-     * Defines the contract where key range is partitionable into tablets
-     */
-    PARTITIONABLE,
+    private TObjectLongHashMap<String> myTableToRowCountMap;
 
     /**
-     * Defines the access where row access are mostly independent and hence
-     * we can distribute them to multiple nodes using distributed hash tables.
+     * CTOR
      */
-    HASHABLE
+    public Heartbeat(TObjectLongMap<String> tableRowCountMap)
+    {
+        super();
+        myTableToRowCountMap = new TObjectLongHashMap<>(tableRowCountMap);
+    }
+
+    /**
+     * Returns the value of tableToRowCountMap
+     */
+    public TObjectLongHashMap<String> getTableToRowCountMap()
+    {
+        return myTableToRowCountMap;
+    }
 }

@@ -203,4 +203,13 @@ public class TransactableHashedTable <K extends Comparable<K>, P extends Persist
                        transactable);
         
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long rowCount()
+    {
+        return myIndex.count();
+    }
 }

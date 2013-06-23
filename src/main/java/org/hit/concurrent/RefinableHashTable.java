@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicMarkableReference;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -60,6 +61,9 @@ public class RefinableHashTable<K, V> implements HashTable<K, V>
 
     /** The size of the set */
     private final AtomicInteger mySize;
+    
+    /** The number of values stored in this hash table */
+    private final AtomicLong myCount;
 
     /**
      * CTOR
@@ -78,6 +82,8 @@ public class RefinableHashTable<K, V> implements HashTable<K, V>
         for (int i = 0; i < INIT_TABLE_SIZE; i++) {
             myData.add(LinkedListMultimap.<K,V>create());
         }
+        
+        myCount = new AtomicLong(0L);
     }
 
     private int acquireLock(K key)
@@ -120,6 +126,7 @@ public class RefinableHashTable<K, V> implements HashTable<K, V>
             resize();
         }
         posData.put(key, value);
+        myCount.incrementAndGet();
         releaseLock(tablePos);
         return true;
     }
@@ -177,7 +184,11 @@ public class RefinableHashTable<K, V> implements HashTable<K, V>
             return false;
         }
         ListMultimap<K, V> posData = myData.get(tablePos);
-        return posData.remove(key, value);
+        boolean isRemoved = posData.remove(key, value);
+        if (isRemoved) {
+            myCount.decrementAndGet();
+        }
+        return isRemoved;
     }
 
     private void resize()
@@ -221,5 +232,14 @@ public class RefinableHashTable<K, V> implements HashTable<K, V>
             myLocks = newLocks;
             myOwner.set(null, false);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long count()
+    {
+        return myCount.get();
     }
 }

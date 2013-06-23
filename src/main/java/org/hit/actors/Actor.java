@@ -47,7 +47,7 @@ public abstract class Actor
     
     private final EventBus myEventBus;
     
-    private final ScheduledExecutorService myActorExecutor;
+    private final ExecutorService myActorExecutor;
     
     /**
      * CTOR
@@ -58,16 +58,8 @@ public abstract class Actor
         myEventBus = eventBus;
         myShouldStop = new AtomicBoolean(false);
         myActorExecutor =
-            Executors.newSingleThreadScheduledExecutor(
+            Executors.newSingleThreadExecutor(
                 new NamedThreadFactory(id.getIdentifier()));
-    }
-    
-    /**
-     * Returns the value of actorExecutor
-     */
-    public ScheduledExecutorService getActorExecutor()
-    {
-        return myActorExecutor;
     }
 
     /**

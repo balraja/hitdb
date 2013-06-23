@@ -18,33 +18,22 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.event;
-
-import org.hit.db.model.Schema;
+package org.hit.node;
 
 /**
- * Defines an <code>Event</code> to notify the addition of <code>Schema</code>
+ * Defines the contract for an interface that provides configuration
+ * for the server.
  * 
  * @author Balraja Subbiah
  */
-public class SchemaNotificationEvent implements Event
+public interface NodeConfig
 {
-    private final Schema mySchema;
-
-    /**
-     * CTOR
+    /** Returns true if the server is marked as mater during startup */
+    public boolean isMaster();
+    
+    /** 
+     * Returns the interval in seconds in which the heart beat is to be  
+     * published.
      */
-    public SchemaNotificationEvent(Schema schema)
-    {
-        super();
-        mySchema = schema;
-    }
-
-    /**
-     * Returns the value of schema
-     */
-    public Schema getSchema()
-    {
-        return mySchema;
-    }
+    public int getHeartBeatInterval();
 }

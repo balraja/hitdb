@@ -139,4 +139,13 @@ public class TransactablePartitionedTable<K extends Comparable<K>, P extends Per
         myIndex.remove(transactable.getPersistable().primaryKey(),
                        transactable);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long rowCount()
+    {
+        return myIndex.getCount();
+    }
 }

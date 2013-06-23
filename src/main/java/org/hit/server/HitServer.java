@@ -22,13 +22,16 @@ package org.hit.server;
 
 import java.util.logging.Logger;
 
+import org.hit.actors.Actor;
 import org.hit.communicator.CommunicatingActor;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.ConsensusManager;
 import org.hit.db.engine.DBEngine;
 import org.hit.di.HitServerModule;
 import org.hit.gossip.Disseminator;
+import org.hit.node.NodeCoordinator;
 import org.hit.node.NodeMonitor;
+import org.hit.node.NodeConfig;
 import org.hit.util.Application;
 import org.hit.util.ApplicationLauncher;
 import org.hit.util.LogFactory;
@@ -67,9 +70,9 @@ public class HitServer implements Application
     
     private final NodeID             myServerNodeID;
     
-    private final ServerConfig       myConfig;
+    private final NodeConfig         myConfig;
     
-    private final NodeMonitor        myNodeMonitor;
+    private final Actor              myNodeActor;
 
     /**
      * CTOR
@@ -83,8 +86,9 @@ public class HitServer implements Application
         myDisseminator = injector.getInstance(Disseminator.class);
         myDBEngine      = injector.getInstance(DBEngine.class);
         myZooKeeperClient = injector.getInstance(ZooKeeperClient.class);
-        myConfig = injector.getInstance(ServerConfig.class);
-        myNodeMonitor = injector.getInstance(NodeMonitor.class);
+        myConfig = injector.getInstance(NodeConfig.class);
+        myNodeActor = myConfig.isMaster() ? injector.getInstance(NodeMonitor.class)
+                                          : injector.getInstance(NodeCoordinator.class);
     }
 
     /**
@@ -104,20 +108,27 @@ public class HitServer implements Application
         LOG.info("Consensus manager started");
         myDisseminator.start();
         LOG.info("Gossiper started");
-       
+        myDBEngine.start();
+        LOG.info("Database engine started");
+        
         myZooKeeperClient.checkAndCreateRootNode();
         myZooKeeperClient.addHostNode(myServerNodeID);
+        LOG.info("Node registered with the zookeeper");
         
         if (myConfig.isMaster()) {
             myZooKeeperClient.claimMasterNode(myServerNodeID);
+            LOG.info("Master node claimed in zookeeper");
         }
         else {
-            myDBEngine.start();
-            LOG.info("Database engine started");
-            
+           NodeID masterNode = myZooKeeperClient.lookupMasterNode();
+           while (masterNode == null) {
+               // Spin till the master is started
+               masterNode = myZooKeeperClient.lookupMasterNode();
+           }
+           ((NodeCoordinator) myNodeActor).setMaster(masterNode);
         }
-        
-        LOG.info("Node registered with the zookeeper");
+        myNodeActor.start();
+        LOG.info("Node coordinator started");
     }
     
     /**

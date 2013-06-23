@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.node;
+package org.hit.messages;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.hit.db.model.Schema;
+import org.hit.node.PartitionTable;
 
 /**
  * Defines the allocation of points on key space corresponding to the
@@ -39,14 +40,14 @@ public class Allocation implements Externalizable
 {
     private Map<String, Schema> myTable2SchemaMap;
     
-    private Map<String, Comparable<?>> myTable2KeyMap;
+    private Map<String, PartitionTable<?,?>> myTable2PartitionMap;
     
     /**
      * CTOR
      */
     public Allocation()
     {
-        myTable2KeyMap = new HashMap<>();
+        myTable2PartitionMap = new HashMap<>();
         myTable2SchemaMap = new HashMap<>();
     }
 
@@ -54,11 +55,11 @@ public class Allocation implements Externalizable
      * CTOR
      */
     public Allocation(Map<String, Schema> table2SchemaMap,
-                      Map<String, Comparable<?>> table2KeyMap)
+                      Map<String, PartitionTable<?,?>> table2PartitionMap)
     {
         super();
         myTable2SchemaMap = table2SchemaMap;
-        myTable2KeyMap = table2KeyMap;
+        myTable2PartitionMap = table2PartitionMap;
     }
 
     /**
@@ -70,27 +71,11 @@ public class Allocation implements Externalizable
     }
 
     /**
-     * Setter for the table2SchemaMap
+     * Returns the value of table2PartitionMap
      */
-    public void setTable2SchemaMap(Map<String, Schema> table2SchemaMap)
+    public Map<String, PartitionTable<?,?>> getTable2PartitionMap()
     {
-        myTable2SchemaMap = table2SchemaMap;
-    }
-
-    /**
-     * Returns the value of table2KeyMap
-     */
-    public Map<String, Comparable<?>> getTable2KeyMap()
-    {
-        return myTable2KeyMap;
-    }
-
-    /**
-     * Setter for the table2KeyMap
-     */
-    public void setTable2KeyMap(Map<String, Comparable<?>> table2KeyMap)
-    {
-        myTable2KeyMap = table2KeyMap;
+        return myTable2PartitionMap;
     }
 
     /**
@@ -99,7 +84,7 @@ public class Allocation implements Externalizable
     @Override
     public void writeExternal(ObjectOutput out) throws IOException
     {
-        out.writeObject(myTable2KeyMap);
+        out.writeObject(myTable2PartitionMap);
         out.writeObject(myTable2SchemaMap);
     }
 
@@ -109,10 +94,10 @@ public class Allocation implements Externalizable
     @SuppressWarnings("unchecked")
     @Override
     public void readExternal(ObjectInput in)
-        throws IOException,
-            ClassNotFoundException
+        throws IOException,ClassNotFoundException
     {
-        myTable2KeyMap = (Map<String, Comparable<?>>) in.readObject();
+        myTable2PartitionMap = 
+           (Map<String, PartitionTable<?,?>>) in.readObject();
         myTable2SchemaMap = (Map<String, Schema>) in.readObject();
     }
 }

@@ -18,35 +18,35 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.node;
+package org.hit.event;
 
-import gnu.trove.map.hash.TObjectLongHashMap;
+import java.util.Collection;
 
-import org.hit.communicator.Message;
+import org.hit.gossip.Gossip;
 
 /**
- * Defines the heartbeat to be published by client nodes to the master.
+ * An event to publish the latest updates received via gossip protocol
  * 
  * @author Balraja Subbiah
  */
-public class Heartbeat extends Message
+public class GossipNotificationEvent implements Event
 {
-    private TObjectLongHashMap<String> myTableToRowCountMap;
+    private final Collection<Gossip> myGossip;
 
     /**
      * CTOR
      */
-    public Heartbeat(TObjectLongHashMap<String> tableToRowCountMap)
+    public GossipNotificationEvent(Collection<Gossip> gossip)
     {
         super();
-        myTableToRowCountMap = tableToRowCountMap;
+        myGossip = gossip;
     }
 
     /**
-     * Returns the value of tableToRowCountMap
+     * Returns the value of gossip
      */
-    public TObjectLongHashMap<String> getTableToRowCountMap()
+    public Collection<Gossip> getGossip()
     {
-        return myTableToRowCountMap;
+        return myGossip;
     }
 }

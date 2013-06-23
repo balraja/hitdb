@@ -129,7 +129,7 @@ public class TransactionManager
         public void onSuccess(TransactionResult result)
         {
             try {
-               
+                myEventBus.publish(myDatabase.getStatistics());
                 Message message =
                     result.isCommitted() ?
                         new DBOperationSuccessMessage(

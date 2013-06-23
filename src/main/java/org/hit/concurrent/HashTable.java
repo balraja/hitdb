@@ -47,4 +47,7 @@ public interface HashTable<K,V>
      * Removes the given key value pair from the map.
      */
     public boolean remove(K key, V value);
+    
+    /** Returns the number of elements in hash table */
+    public long count();
 }

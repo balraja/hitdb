@@ -257,4 +257,14 @@ public class LocklessHashTable<K,V> implements HashTable<K, V>
         // TODO Auto-generated method stub
         return false;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long count()
+    {
+        // TODO Auto-generated method stub
+        return 0;
+    }
 }

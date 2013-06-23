@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicMarkableReference;
 
 import com.google.common.collect.Lists;
@@ -216,7 +217,9 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
     /** Defines the level of the skip list */
     private final int myListLevel;
 
-    private ThreadLocal<Random> myLocalRandom;
+    private final ThreadLocal<Random> myLocalRandom;
+    
+    private final AtomicLong myCount;
 
     /**
      * CTOR
@@ -232,6 +235,7 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
                 return new Random();
             }
         };
+        myCount = new AtomicLong(0L);
     }
 
     /**
@@ -253,6 +257,7 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
         boolean isThere = find(key, preds, succs);
         if (isThere) {
            succs.get(0).getValues().add(value);
+           myCount.incrementAndGet();
            return true;
         }
         else {
@@ -287,6 +292,7 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
                     }
                 }
             }
+            myCount.incrementAndGet();
             return true;
         }
     }
@@ -478,6 +484,7 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
                                         .get(0)
                                         .compareAndSet(succ, succ, false, true))
                     {
+                        myCount.decrementAndGet();
                         return true;
                     }
                     else if (marked[0]) {
@@ -486,9 +493,17 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
                 }
             }
             else {
+                myCount.decrementAndGet();
                 return true;
             }
         }
     }
 
+    /**
+     * Returns the value of count
+     */
+    public long getCount()
+    {
+        return myCount.get();
+    }
 }

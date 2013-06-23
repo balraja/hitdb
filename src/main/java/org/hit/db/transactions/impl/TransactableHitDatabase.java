@@ -23,11 +23,11 @@ package org.hit.db.transactions.impl;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.hit.db.model.PartitioningType;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Schema;
 import org.hit.db.transactions.TransactableDatabase;
 import org.hit.db.transactions.TransactableTable;
+import org.hit.event.DBStatEvent;
 import org.hit.key.HashKeyspace;
 
 /**
@@ -84,13 +84,32 @@ public class TransactableHitDatabase implements TransactableDatabase
     private <K extends Comparable<K>, P extends Persistable<K>>
         TransactableTable<K, P> makeTable(Schema schema)
     {
-        if (schema.getKeyspace() instanceof HashKeyspace<?>)
+        if (schema.getKeyspace() instanceof HashKeyspace)
         {
             return new TransactablePartitionedTable<>(schema);
         }
         else {
             return new TransactableHashedTable<>(schema);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public DBStatEvent getStatistics()
+    {
+        DBStatEvent stat = new DBStatEvent();
+        for (String tableName : myTable2Schema.keySet()) {
+            TransactableTable<?, ?> table = myDatabaseTables.get(tableName);
+            if (table != null) {
+                stat.addTableRowCount(tableName, table.rowCount());
+            }
+            else {
+                stat.addTableRowCount(tableName, 0L);
+            }
+        }
+        return stat;
     }
 }
 

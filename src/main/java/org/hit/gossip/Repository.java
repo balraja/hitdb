@@ -25,6 +25,7 @@ import gnu.trove.map.hash.TObjectLongHashMap;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,9 +55,14 @@ public class Repository implements Cloneable
         Map<Serializable, Gossip> keyToInformationMap)
     {
         super();
-        myKeyToInformationMap = keyToInformationMap;
+        myKeyToInformationMap = new HashMap<>(keyToInformationMap);
     }
-
+    
+    public Collection<Gossip> getLatestInformation()
+    {
+        return new ArrayList<>(myKeyToInformationMap.values());
+    }
+    
     /**
      * Returns <code>Information</code> corresponding to the key.
      */

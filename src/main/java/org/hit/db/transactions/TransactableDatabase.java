@@ -22,6 +22,7 @@ package org.hit.db.transactions;
 
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Schema;
+import org.hit.event.DBStatEvent;
 
 /**
  * Wraps <code>Database</code> to keep track of the keys accessed by a
@@ -37,4 +38,9 @@ public interface TransactableDatabase
     /** Returns the <code>TransactableTable</code> from the database. */
     public <K extends Comparable<K>, P extends Persistable<K>> TransactableTable<K, P>
         lookUpTable(String tableName);
+    
+    /**
+     * Generates the statistics for database.
+     */
+    public DBStatEvent getStatistics();
 }

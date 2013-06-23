@@ -18,19 +18,25 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.server;
+package org.hit.node;
 
+import org.hit.util.ApplicationProperties;
 
 /**
- * A default implementation of {@link ServerConfig} which reads the value 
+ * A default implementation of {@link NodeConfig} which reads the value 
  * from properties.
  * 
  * @author Balraja Subbiah
  */
-public class ServerConfigImpl implements ServerConfig
+public class NodePropertyConfig implements NodeConfig
 {
     private static final String MASTER_PROPERTY = 
-        "org.hit.server.isMaster";
+        "org.hit.node.isMaster";
+    
+    private static final String HEARTBEAT_PROPERTY =
+        "org.hit.node.heartbeatInterval";
+    
+    private static final int DEFAULT_HB_INTERVAL = 5;
     
     /**
      * {@inheritDoc}
@@ -38,6 +44,17 @@ public class ServerConfigImpl implements ServerConfig
     @Override
     public boolean isMaster()
     {
-        return Boolean.valueOf(System.getProperty(MASTER_PROPERTY));
+        return Boolean.valueOf(
+            ApplicationProperties.getProperty(MASTER_PROPERTY));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getHeartBeatInterval()
+    {
+        String value = ApplicationProperties.getProperty(HEARTBEAT_PROPERTY);
+        return value != null ? Integer.parseInt(value) : DEFAULT_HB_INTERVAL;
     }
 }

@@ -23,6 +23,7 @@ package org.hit.node;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Map;
 import java.util.TreeMap;
 
 import org.hit.communicator.NodeID;
@@ -37,7 +38,7 @@ import org.hit.util.Pair;
  */
 public abstract class PartitionTable<S extends Comparable<S>, 
                                      T extends Comparable<T>>
-    extends AbstractGossip<Pair<T, NodeID>>
+    extends AbstractGossip<Pair<Comparable<?>, NodeID>>
 {
     private TreeMap<T, NodeID> myKeyToNodeMap;
     
@@ -66,10 +67,11 @@ public abstract class PartitionTable<S extends Comparable<S>,
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("unchecked")
     @Override
-    protected void doUpdate(Pair<T, NodeID> update)
+    protected void doUpdate(Pair<Comparable<?>, NodeID> update)
     {
-        myKeyToNodeMap.put(update.getFirst(), update.getSecond());
+        myKeyToNodeMap.put(((T)update.getFirst()), update.getSecond());
     }
     
     /**
@@ -82,6 +84,24 @@ public abstract class PartitionTable<S extends Comparable<S>,
             return null;
         }
         return doLookup(myKeyspace.map(key), myKeyToNodeMap);
+    }
+    
+    public Pair<T,T> getNodeRange(NodeID nodeID)
+    {
+        Map.Entry<T, NodeID> oldEntry = null;
+        for (Map.Entry<T, NodeID> entry : myKeyToNodeMap.entrySet())
+        {
+            if (entry.getValue().equals(nodeID)) {
+                if (oldEntry != null) {
+                    return new Pair<>(oldEntry.getKey(), entry.getKey());
+                }
+                else {
+                    return new Pair<>(null, entry.getKey());
+                }
+            }
+            oldEntry = entry;
+        }
+        return null;
     }
     
     /**
