@@ -120,10 +120,10 @@ public class HitServer implements Application
             LOG.info("Master node claimed in zookeeper");
         }
         else {
-           NodeID masterNode = myZooKeeperClient.lookupMasterNode();
+           NodeID masterNode = myZooKeeperClient.getMasterNode();
            while (masterNode == null) {
                // Spin till the master is started
-               masterNode = myZooKeeperClient.lookupMasterNode();
+               masterNode = myZooKeeperClient.getMasterNode();
            }
            ((NodeCoordinator) myNodeActor).setMaster(masterNode);
         }

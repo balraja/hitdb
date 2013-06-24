@@ -113,4 +113,22 @@ public class IntegerDomain implements DiscreteDomain<Integer>
         out.writeInt(myStart);
         out.writeInt(myEnd);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Integer getMiddleOf(Integer lowerValue, Integer upperValue)
+    {
+        return Integer.valueOf(lowerValue + (upperValue - lowerValue / 2));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Integer getMiddleOf(Object lowerValue, Object upperValue)
+    {
+        return getMiddleOf((Integer) lowerValue, (Integer) upperValue);
+    }
 }

@@ -27,7 +27,6 @@ import java.util.logging.Logger;
 
 import org.hit.client.DBClient;
 import org.hit.db.model.Column;
-import org.hit.db.model.PartitioningType;
 import org.hit.db.model.Schema;
 import org.hit.facade.DBOperationResponse;
 import org.hit.facade.HitDBFacade;
@@ -72,7 +71,6 @@ public class HitDbTest implements DBClient
                        new ArrayList<Column>(),
                        ClimateData.class,
                        ClimateDataKey.class,
-                       PartitioningType.PARTITIONABLE,
                        new LinearKeyspace<ClimateDataKey>(
                            new ComposedDomain<ClimateDataKey>(
                                Lists.<DiscreteDomain<?>>newArrayList(

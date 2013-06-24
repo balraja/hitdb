@@ -27,10 +27,12 @@ import org.hit.db.transactions.journal.FileSystemFacacde;
 import org.hit.db.transactions.journal.StandardFileSystem;
 import org.hit.db.transactions.journal.WALConfig;
 import org.hit.db.transactions.journal.WALPropertyConfig;
+import org.hit.node.Allocator;
+import org.hit.node.NodeConfig;
+import org.hit.node.NodePropertyConfig;
+import org.hit.node.SimpleAllocator;
 import org.hit.time.Clock;
 import org.hit.time.SimpleSystemClock;
-import org.hit.topology.SingletonTopology;
-import org.hit.topology.Topology;
 
 import com.google.inject.Provides;
 
@@ -63,7 +65,8 @@ public class HitServerModule extends HitModule
         bind(Clock.class).to(SimpleSystemClock.class);
         bind(WALConfig.class).to(WALPropertyConfig.class);
         bind(FileSystemFacacde.class).to(StandardFileSystem.class);
-        bind(Topology.class).to(SingletonTopology.class);
+        bind(NodeConfig.class).to(NodePropertyConfig.class);
+        bind(Allocator.class).to(SimpleAllocator.class);
     }
 
     /**

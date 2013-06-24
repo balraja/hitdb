@@ -1,8 +1,8 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,25 +18,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.db.apt;
+package org.hit.key.domain;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.util.List;
 
 /**
- * Defines an annotation for defining the characteristics of a HIT table.
+ * Defines the contract for an interface that defines the composed elements.
  * 
  * @author Balraja Subbiah
  */
-@Target(ElementType.TYPE)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface MetaTable
+public interface Composed<T> extends Comparable<T>
 {
-    /** The type  of the class that can be used as key for this table */
-    String keyClassName();
-
-    /** Returns name of the table */
-    String tableName();
+    /** Returns the list of objects composed from this element */
+    public List<Object> getComposedValues();
 }

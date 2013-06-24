@@ -42,6 +42,8 @@ public class HitServerLauncher extends AbstractLauncher
     private static final String SERVER_LAUNCHER_FILE = "hit_db_server";
 
     private static final String TRANSACTION_LOG_DIR = "transaction_log_dir";
+    
+    private static final String IS_MASTER = "is_master";
 
     private static final String WAL_BASE_DIR_PROPERTY = "org.hit.wal.basePath";
 
@@ -72,6 +74,12 @@ public class HitServerLauncher extends AbstractLauncher
              true,
              "The directory under which trnsaction logs are stored"
          );
+        
+        myServerCommandLineOptions.addOption(
+            IS_MASTER,
+            IS_MASTER,
+            true,
+            "Option to determine whether this servers is marked as master");
 
         myServerCommandLineOptions.addOption(
              HELP,

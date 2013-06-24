@@ -117,4 +117,23 @@ public class DateDomain implements DiscreteDomain<Date>
         out.writeLong(myStartMillis);
         out.writeLong(myEndMillis);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Date getMiddleOf(Date lowerValue, Date upperValue)
+    {
+        long delta = (upperValue.getTime() - lowerValue.getTime()) << 1;
+        return new Date(lowerValue.getTime() + delta);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Date getMiddleOf(Object lowerValue, Object upperValue)
+    {
+        return getMiddleOf((Date) lowerValue, (Date) upperValue);
+    }
 }

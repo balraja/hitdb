@@ -23,7 +23,6 @@ package org.hit.registry;
 import java.util.List;
 
 import org.hit.communicator.NodeID;
-import org.hit.key.Partition;
 
 /**
  * Defines the contract for the lookup service for accessing the
@@ -34,15 +33,14 @@ import org.hit.key.Partition;
 public interface RegistryService
 {
     /**
-     * Returns the table schema.
-     */
-    public <T extends Comparable<T>> Partition<T> getTablePartitioner(
-        String tableName);
-    
-    /**
      * Returns the topology of hit server.
      */
     public List<NodeID> getServerNodes();
+    
+    /**
+     * Returns the master node.
+     */
+    public NodeID getMasterNode();
     
     /** Returns true if the registry service is up and running */
     public boolean isUp();

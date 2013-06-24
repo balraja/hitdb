@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import org.hit.db.model.Column;
 import org.hit.db.model.Database;
 import org.hit.db.model.Mutation;
-import org.hit.db.model.PartitioningType;
 import org.hit.db.model.Query;
 import org.hit.db.model.Schema;
 import org.hit.db.model.Table;
@@ -159,7 +158,6 @@ public class TransactionTest
                        new ArrayList<Column>(),
                        ClimateData.class,
                        ClimateDataKey.class,
-                       PartitioningType.PARTITIONABLE,
                        new LinearKeyspace<>(domain));
 
         database.createTable(schema);

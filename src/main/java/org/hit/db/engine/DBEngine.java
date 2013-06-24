@@ -69,8 +69,7 @@ public class DBEngine extends Actor
     public DBEngine(EventBus             eventBus,
                     NodeID               nodeID,
                     Clock                clock,
-                    WAL                  wal,
-                    ZooKeeperClient      zooKeeperClient)
+                    WAL                  wal)
     {
         super(eventBus, new ActorID(DBEngine.class.getName()));
 
@@ -82,8 +81,7 @@ public class DBEngine extends Actor
                 clock,
                 eventBus,
                 nodeID,
-                wal,
-                zooKeeperClient);
+                wal);
     }
 
     /**

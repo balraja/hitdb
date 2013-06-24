@@ -109,4 +109,22 @@ public class LongDomain implements DiscreteDomain<Long>
     {
         return myMaxValue - myMinValue + 1;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Long getMiddleOf(Long lowerValue, Long upperValue)
+    {
+        return Long.valueOf(lowerValue + (upperValue - lowerValue / 2));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Long getMiddleOf(Object lowerValue, Object upperValue)
+    {
+        return getMiddleOf((Long) lowerValue, (Long) upperValue);
+    }
 }

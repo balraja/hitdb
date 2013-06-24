@@ -1,8 +1,8 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,25 +18,34 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.db.apt;
+package org.hit.messages;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import org.hit.communicator.Message;
+import org.hit.communicator.NodeID;
 
 /**
- * Defines an annotation for defining the characteristics of a HIT table.
+ * An marker {@link Message} to be used loading the tables.
  * 
  * @author Balraja Subbiah
  */
-@Target(ElementType.TYPE)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface MetaTable
+public class FacadeInitRequest extends Message
 {
-    /** The type  of the class that can be used as key for this table */
-    String keyClassName();
 
-    /** Returns name of the table */
-    String tableName();
+    /**
+     * CTOR
+     */
+    public FacadeInitRequest()
+    {
+        super();
+        // TODO Auto-generated constructor stub
+    }
+
+    /**
+     * CTOR
+     */
+    public FacadeInitRequest(NodeID nodeId)
+    {
+        super(nodeId);
+        // TODO Auto-generated constructor stub
+    }
 }

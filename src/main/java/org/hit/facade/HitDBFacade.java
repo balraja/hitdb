@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
@@ -52,12 +53,14 @@ import org.hit.db.query.parser.HitSQLLexer;
 import org.hit.db.query.parser.HitSQLParser;
 import org.hit.db.query.parser.HitSQLTree;
 import org.hit.di.HitFacadeModule;
-import org.hit.key.Partition;
 import org.hit.messages.CreateTableMessage;
 import org.hit.messages.CreateTableResponseMessage;
 import org.hit.messages.DBOperationFailureMessage;
 import org.hit.messages.DBOperationMessage;
 import org.hit.messages.DBOperationSuccessMessage;
+import org.hit.messages.FacadeInitRequest;
+import org.hit.messages.FacadeInitResponse;
+import org.hit.node.PartitionTable;
 import org.hit.registry.RegistryService;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
@@ -111,7 +114,11 @@ public class HitDBFacade
         @Override
         public void run()
         {
-            if (myMessage instanceof CreateTableResponseMessage) {
+            if (myMessage instanceof FacadeInitResponse) {
+                FacadeInitResponse fir = (FacadeInitResponse) myMessage;
+                myTable2Partitions.putAll(fir.getPartitions());
+            }
+            else if (myMessage instanceof CreateTableResponseMessage) {
                 final CreateTableResponseMessage createTableResponse =
                     (CreateTableResponseMessage) myMessage;
 
@@ -459,10 +466,10 @@ public class HitDBFacade
 
     private final RegistryService myRegistryService;
 
-    private final Map<String, Partition<? extends Comparable<?>>>
-        myTable2Partitoner;
+    private final Map<String, PartitionTable<?,?>> myTable2Partitions;
     
-
+    private final AtomicBoolean myIsInitialized;
+    
     /**
      * CTOR
      */
@@ -472,7 +479,7 @@ public class HitDBFacade
         myCommunicator = injector.getInstance(Communicator.class);
         myRegistryService = injector.getInstance(RegistryService.class);
         myClientID = injector.getInstance(NodeID.class);
-        myTable2Partitoner = new HashMap<>();
+        myTable2Partitions = new HashMap<>();
         myMutationIDToFutureMap = new HashMap<>();
         myOperationsCount = new AtomicLong(0L);
         myPhasedTableCreationFutureMap = new HashMap<>();
@@ -482,7 +489,15 @@ public class HitDBFacade
             MoreExecutors.listeningDecorator(
                 Executors.newSingleThreadExecutor(
                     new NamedThreadFactory(HitDBFacade.class)));
+        
+        myIsInitialized = new AtomicBoolean(false);
 
+    }
+    
+    /** Returns true if the facade is initalized */
+    public boolean isInitialized()
+    {
+        return myIsInitialized.get();
     }
     
     /**
@@ -526,17 +541,14 @@ public class HitDBFacade
             SingleKeyMutation<K> mutation, String tableName)
     {
         @SuppressWarnings("unchecked")
-        Partition<K> partitioner =
-            (Partition<K>) myTable2Partitoner.get(tableName);
+        PartitionTable<K,?> partitions =
+            (PartitionTable<K, ?>) myTable2Partitions.get(tableName);
 
-        if (partitioner == null) {
-            partitioner =
-                myRegistryService.getTablePartitioner(tableName);
-            partitioner.distribute(myRegistryService.getServerNodes() );
-            myTable2Partitoner.put(tableName, partitioner);
+        if (partitions == null) {
+            return null;
         }
 
-        final NodeID serverNode = partitioner.getNode(mutation.getKey());
+        final NodeID serverNode = partitions.lookupNode(mutation.getKey());
         final SettableFuture<DBOperationResponse> futureResponse =
             SettableFuture.create();
         final long id = myOperationsCount.getAndIncrement();
@@ -571,7 +583,7 @@ public class HitDBFacade
         }
 
         LOG.info("Connection to the registry " +
-                        "service successfully established");
+                 "service successfully established");
 
         myCommunicator.start();
         LOG.info("Messaging service got started successfully");
@@ -588,6 +600,12 @@ public class HitDBFacade
         );
 
         LOG.info("Facade successfully started");
+        NodeID master = myRegistryService.getMasterNode();
+        myCommunicator.sendTo(master, new FacadeInitRequest(myClientID));
+        
+        while (!myIsInitialized.get()) {
+            // Loop till the facade is initialized.
+        }
     }
 
     /**

@@ -124,4 +124,22 @@ public class BigIntegerDomain implements DiscreteDomain<BigInteger>
     {
         return myMaximum.subtract(myMinimum).longValue();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public BigInteger getMiddleOf(BigInteger lowerValue, BigInteger upperValue)
+    {
+        return lowerValue.add(upperValue.subtract(lowerValue).shiftLeft(1));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public BigInteger getMiddleOf(Object lowerValue, Object upperValue)
+    {
+        return getMiddleOf((BigInteger) lowerValue, (BigInteger) upperValue);
+    }
 }

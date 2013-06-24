@@ -24,6 +24,11 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.List;
+
+import org.hit.key.domain.Composed;
+
+import com.google.common.collect.Lists;
 
 /**
  * Defines the key for the climate data represnted by <code>ClimateData</code>
@@ -31,7 +36,7 @@ import java.io.ObjectOutput;
  * @author Balraja Subbiah
  */
 public class ClimateDataKey
-    implements Comparable<ClimateDataKey>, Externalizable
+    implements Composed<ClimateDataKey>, Externalizable
 {
     private int myDayOfYear;
 
@@ -127,5 +132,17 @@ public class ClimateDataKey
         out.writeInt(myStationNumber);
         out.writeInt(myYear);
         out.writeInt(myDayOfYear);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<Object> getComposedValues()
+    {
+        return Lists.<Object>newArrayList(
+            Integer.valueOf(myYear),
+            Integer.valueOf(myDayOfYear),
+            Integer.valueOf(myStationNumber));
     }
 }

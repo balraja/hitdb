@@ -116,4 +116,26 @@ public class SetDomain<T extends Comparable<T>>
     {
         out.writeObject(myElements);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public T getMiddleOf(T lowerValue, T upperValue)
+    {
+        int lowerIndex = myElements.indexOf(lowerValue);
+        int upperIndex = myElements.indexOf(upperValue);
+        int middle = lowerIndex + (upperIndex - lowerIndex / 2);
+        return myElements.get(middle);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public T getMiddleOf(Object lowerValue, Object upperValue)
+    {
+        return getMiddleOf((T) lowerValue, (T) upperValue);
+    }
 }

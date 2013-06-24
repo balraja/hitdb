@@ -275,8 +275,6 @@ public class TransactionManager
     
     private final WAL    myWriteAheadLog;
     
-    private final ZooKeeperClient myZooKeeperClient;
-    
     private final Map<UnitID, Memento<?>> myAwaitingConsensusCommitMap;
     
     /**
@@ -287,8 +285,7 @@ public class TransactionManager
                               Clock                clock,
                               EventBus             eventBus,
                               NodeID               serverID,
-                              WAL                  writeAheadLog,
-                              ZooKeeperClient      zooKeeperClient)
+                              WAL                  writeAheadLog)
     {
         myDatabase = database;
         myClock = clock;
@@ -296,7 +293,6 @@ public class TransactionManager
         myServerID = serverID;
         myEventBus = eventBus;
         myWriteAheadLog = writeAheadLog;
-        myZooKeeperClient = zooKeeperClient;
         myAwaitingConsensusCommitMap = new ConcurrentHashMap<>();
         myExecutor =
             MoreExecutors.listeningDecorator(
@@ -315,7 +311,6 @@ public class TransactionManager
         CreateTableResponseMessage response = null;
         try {
             myDatabase.createTable(schema);
-            myZooKeeperClient.addSchema(schema);
             myEventBus.publish(new SchemaNotificationEvent(schema));
             response = 
                 new CreateTableResponseMessage(myServerID, 

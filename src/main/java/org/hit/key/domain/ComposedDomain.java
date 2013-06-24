@@ -37,7 +37,7 @@ import com.google.common.collect.Lists;
  *
  * @author Balraja Subbiah
  */
-public class ComposedDomain<C extends Comparable<C>>
+public class ComposedDomain<C extends Composed<C>>
     implements DiscreteDomain<C>
 {
     private Class<C> myClass;
@@ -198,5 +198,33 @@ public class ComposedDomain<C extends Comparable<C>>
     {
         myDomains = (List<DiscreteDomain<?>>) in.readObject();
         myClass = (Class<C>) Class.forName(in.readUTF());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public C getMiddleOf(C lowerValue, C upperValue)
+    {
+        List<Object> arguments = new ArrayList<>();
+        List<Object> lowerList = new ArrayList<>();
+        List<Object> upperList = new ArrayList<>();
+        
+        for (int i = 0; i < myDomains.size(); i++) {
+            arguments.add(myDomains.get(i)
+                                   .getMiddleOf(lowerList.get(i), 
+                                                upperList.get(i)));
+        }
+        return makeInstance(arguments);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public C getMiddleOf(Object lowerValue, Object upperValue)
+    {
+        // TODO Auto-generated method stub
+        return null;
     }
 }
