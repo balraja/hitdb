@@ -116,7 +116,10 @@ public class HitDBFacade
         {
             if (myMessage instanceof FacadeInitResponse) {
                 FacadeInitResponse fir = (FacadeInitResponse) myMessage;
-                myTable2Partitions.putAll(fir.getPartitions());
+                synchronized (myTable2Partitions) {
+                    myTable2Partitions.putAll(fir.getPartitions());
+                }
+                myIsInitialized.set(true);
             }
             else if (myMessage instanceof CreateTableResponseMessage) {
                 final CreateTableResponseMessage createTableResponse =

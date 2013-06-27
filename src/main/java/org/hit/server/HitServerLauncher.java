@@ -30,6 +30,7 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.hit.node.NodePropertyConfig;
 import org.hit.util.AbstractLauncher;
 
 /**
@@ -78,8 +79,8 @@ public class HitServerLauncher extends AbstractLauncher
         myServerCommandLineOptions.addOption(
             IS_MASTER,
             IS_MASTER,
-            true,
-            "Option to determine whether this servers is marked as master");
+            false,
+            "Option to determine whether this server is marked as master");
 
         myServerCommandLineOptions.addOption(
              HELP,
@@ -121,6 +122,12 @@ public class HitServerLauncher extends AbstractLauncher
                 optsBuilder.append(addProperty(
                     WAL_BASE_DIR_PROPERTY,
                     cmdLine.getOptionValue(TRANSACTION_LOG_DIR)));
+            }
+            
+            if (cmdLine.hasOption(IS_MASTER)) {
+                optsBuilder.append(addProperty(
+                    NodePropertyConfig.MASTER_PROPERTY,
+                    "true"));
             }
 
             String zooKeeperHome = System.getenv("ZOOKEEPER_INSTALL");

@@ -30,10 +30,10 @@ import org.hit.util.ApplicationProperties;
  */
 public class NodePropertyConfig implements NodeConfig
 {
-    private static final String MASTER_PROPERTY = 
+    public static final String MASTER_PROPERTY = 
         "org.hit.node.isMaster";
     
-    private static final String HEARTBEAT_PROPERTY =
+    public static final String HEARTBEAT_PROPERTY =
         "org.hit.node.heartbeatInterval";
     
     private static final int DEFAULT_HB_INTERVAL = 5;
