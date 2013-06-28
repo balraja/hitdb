@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.hit.db.model.Schema;
-import org.hit.node.PartitionTable;
+import org.hit.partitioner.Partitioner;
 
 /**
  * Defines the allocation of points on key space corresponding to the
@@ -40,7 +40,7 @@ public class Allocation implements Externalizable
 {
     private Map<String, Schema> myTable2SchemaMap;
     
-    private Map<String, PartitionTable<?,?>> myTable2PartitionMap;
+    private Map<String, Partitioner<?,?>> myTable2PartitionMap;
     
     /**
      * CTOR
@@ -55,7 +55,7 @@ public class Allocation implements Externalizable
      * CTOR
      */
     public Allocation(Map<String, Schema> table2SchemaMap,
-                      Map<String, PartitionTable<?,?>> table2PartitionMap)
+                      Map<String, Partitioner<?,?>> table2PartitionMap)
     {
         super();
         myTable2SchemaMap = table2SchemaMap;
@@ -73,7 +73,7 @@ public class Allocation implements Externalizable
     /**
      * Returns the value of table2PartitionMap
      */
-    public Map<String, PartitionTable<?,?>> getTable2PartitionMap()
+    public Map<String, Partitioner<?,?>> getTable2PartitionMap()
     {
         return myTable2PartitionMap;
     }
@@ -97,7 +97,7 @@ public class Allocation implements Externalizable
         throws IOException,ClassNotFoundException
     {
         myTable2PartitionMap = 
-           (Map<String, PartitionTable<?,?>>) in.readObject();
+           (Map<String, Partitioner<?,?>>) in.readObject();
         myTable2SchemaMap = (Map<String, Schema>) in.readObject();
     }
 }

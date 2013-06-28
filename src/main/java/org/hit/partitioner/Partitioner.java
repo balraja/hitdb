@@ -18,13 +18,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.node;
+package org.hit.partitioner;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.Map.Entry;
 
 import org.hit.communicator.NodeID;
 import org.hit.gossip.AbstractGossip;
@@ -36,8 +37,8 @@ import org.hit.util.Pair;
  * 
  * @author Balraja Subbiah
  */
-public abstract class PartitionTable<S extends Comparable<S>, 
-                                     T extends Comparable<T>>
+public class Partitioner<S extends Comparable<S>, 
+                               T extends Comparable<T>>
     extends AbstractGossip<Pair<Comparable<?>, NodeID>>
 {
     private TreeMap<T, NodeID> myKeyToNodeMap;
@@ -47,7 +48,7 @@ public abstract class PartitionTable<S extends Comparable<S>,
     /**
      * CTOR
      */
-    public PartitionTable()
+    public Partitioner()
     {
         super();
         myKeyToNodeMap = null;
@@ -57,7 +58,7 @@ public abstract class PartitionTable<S extends Comparable<S>,
     /**
      * CTOR
      */
-    public PartitionTable(String tableName, Keyspace<S, T> keyspace)
+    public Partitioner(String tableName, Keyspace<S, T> keyspace)
     {
         super(tableName);
         myKeyToNodeMap = new TreeMap<>();
@@ -107,8 +108,12 @@ public abstract class PartitionTable<S extends Comparable<S>,
     /**
      * Subclasses should override this method for performing node lookup.
      */
-    protected abstract NodeID doLookup(T                  key, 
-                                       TreeMap<T, NodeID> nodeMap);
+    protected NodeID doLookup(T                  key, 
+                              TreeMap<T, NodeID> nodeMap)
+    {
+        Entry<T, NodeID> maxEntry = nodeMap.ceilingEntry(key);
+        return maxEntry != null ? maxEntry.getValue() : null;
+    }
 
     /**
      * {@inheritDoc}

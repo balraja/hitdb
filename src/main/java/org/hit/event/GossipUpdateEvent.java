@@ -38,7 +38,6 @@ public class GossipUpdateEvent implements Event
      */
     public GossipUpdateEvent(Collection<Gossip> gossip)
     {
-        super();
         myGossip = gossip;
     }
 

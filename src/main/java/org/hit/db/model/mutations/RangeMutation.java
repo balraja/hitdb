@@ -37,9 +37,4 @@ public interface RangeMutation<K extends Comparable<K>>
      * is to be applied.
      */
     public Range<K> getKeyRange();
-    
-    /**
-     * Sets the range of keys  for which this mutation is to be applied.
-     */
-    public void setRange(Range<K> keyRange);
 }

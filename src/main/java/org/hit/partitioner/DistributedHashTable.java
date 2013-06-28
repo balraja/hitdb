@@ -18,9 +18,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.node;
+package org.hit.partitioner;
 
-import java.math.BigInteger;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -32,13 +31,14 @@ import org.hit.key.Keyspace;
  * 
  * @author Balraja Subbiah
  */
-public class HashTable<S extends Comparable<S>> 
-    extends PartitionTable<S, BigInteger>
+public class DistributedHashTable<S extends Comparable<S>, 
+                                  T extends Comparable<T>> 
+    extends Partitioner<S,T>
 {
     /**
      * CTOR
      */
-    public HashTable()
+    public DistributedHashTable()
     {
         super();
     }
@@ -46,7 +46,7 @@ public class HashTable<S extends Comparable<S>>
     /**
      * CTOR
      */
-    public HashTable(String tableName, Keyspace<S, BigInteger> keyspace)
+    public DistributedHashTable(String tableName, Keyspace<S,T> keyspace)
     {
         super(tableName, keyspace);
     }
@@ -55,12 +55,12 @@ public class HashTable<S extends Comparable<S>>
      * {@inheritDoc}
      */
     @Override
-    protected NodeID doLookup(BigInteger                  key,
-                              TreeMap<BigInteger, NodeID> nodeMap)
+    protected NodeID doLookup(T                  key,
+                              TreeMap<T, NodeID> nodeMap)
     {
         NodeID holdingNode = nodeMap.get(key);
         if (holdingNode == null) {
-            Map.Entry<BigInteger, NodeID> nextEntry = 
+            Map.Entry<T, NodeID> nextEntry = 
                 nodeMap.ceilingEntry(key);
             
             if (nextEntry != null) {

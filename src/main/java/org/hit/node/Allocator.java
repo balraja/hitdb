@@ -20,12 +20,9 @@
 
 package org.hit.node;
 
-import java.util.Collection;
-
 import org.hit.communicator.NodeID;
 import org.hit.db.model.Schema;
 import org.hit.event.GossipUpdateEvent;
-import org.hit.gossip.Gossip;
 import org.hit.messages.Allocation;
 import org.hit.messages.Heartbeat;
 

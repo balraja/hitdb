@@ -25,6 +25,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import org.hit.key.domain.DiscreteDomain;
+import org.hit.partitioner.Partitioner;
 
 /**
  * Defines the contract for the key space that's partitioned between the
@@ -88,5 +89,14 @@ public class LinearKeyspace<S extends Comparable<S>>
     public S map(S key)
     {
         return key;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Partitioner<S, S> makePartitioner(String tableName)
+    {
+        return new Partitioner<>(tableName, this);
     }
 }

@@ -28,7 +28,7 @@ import java.util.Map;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
-import org.hit.node.PartitionTable;
+import org.hit.partitioner.Partitioner;
 
 /**
  * Defines the contract for {@link Message} that's sent in response to 
@@ -38,7 +38,7 @@ import org.hit.node.PartitionTable;
  */
 public class FacadeInitResponse extends Message
 {
-    private Map<String, PartitionTable<?,?>> myPartitions;
+    private Map<String, Partitioner<?,?>> myPartitions;
 
     /**
      * CTOR
@@ -52,7 +52,7 @@ public class FacadeInitResponse extends Message
      * CTOR
      */
     public FacadeInitResponse(NodeID nodeId, 
-                              Map<String, PartitionTable<?,?>> table)
+                              Map<String, Partitioner<?,?>> table)
     {
         super(nodeId);
         myPartitions = new HashMap<>(table);
@@ -61,7 +61,7 @@ public class FacadeInitResponse extends Message
     /**
      * Returns the value of partitions
      */
-    public Map<String, PartitionTable<?, ?>> getPartitions()
+    public Map<String, Partitioner<?, ?>> getPartitions()
     {
         return myPartitions;
     }
@@ -76,7 +76,7 @@ public class FacadeInitResponse extends Message
             ClassNotFoundException
     {
         super.readExternal(in);
-        myPartitions = (Map<String, PartitionTable<?, ?>>) in.readObject();
+        myPartitions = (Map<String, Partitioner<?, ?>>) in.readObject();
     }
 
     /**

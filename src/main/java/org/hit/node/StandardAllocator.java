@@ -20,17 +20,19 @@
 
 package org.hit.node;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.hit.communicator.NodeID;
 import org.hit.db.model.Schema;
 import org.hit.event.GossipUpdateEvent;
+import org.hit.gossip.Gossip;
 import org.hit.messages.Allocation;
 import org.hit.messages.Heartbeat;
+import org.hit.partitioner.Partitioner;
 import org.hit.util.Pair;
 
 import com.google.inject.Inject;
@@ -38,16 +40,15 @@ import com.google.inject.Inject;
 import gnu.trove.iterator.TObjectDoubleIterator;
 import gnu.trove.map.hash.TObjectDoubleHashMap;
 import gnu.trove.map.hash.TObjectLongHashMap;
-import gnu.trove.procedure.TObjectDoubleProcedure;
 import gnu.trove.procedure.TObjectLongProcedure;
-import gnu.trove.procedure.TObjectProcedure;
 
 /**
- * Defines the contract for a simple allocator that allocates 
+ * Defines the contract for a simple allocator that allocates the key space of
+ * a table to the incoming node.
  * 
  * @author Balraja Subbiah
  */
-public class SimpleAllocator implements Allocator
+public class StandardAllocator implements Allocator
 {
     private final Map<NodeID, TObjectLongHashMap<String>> myNodeToRowCountMap;
     
@@ -55,17 +56,19 @@ public class SimpleAllocator implements Allocator
     
     private final Map<String, Schema> myTableToSchemaMap;
     
-    private final Map<String, PartitionTable<?, ?>> myTableToPartitionMap;
+    private final Map<String, Partitioner<?, ?>> myTableToPartitionMap;
     
     private final NodeConfig myNodeConfig;
     
     private final Set<NodeID> myNodes;
+    
+    private final NodeID myServerID;
 
     /**
      * CTOR
      */
     @Inject
-    public SimpleAllocator(NodeConfig nodeConfig)
+    public StandardAllocator(NodeConfig nodeConfig, NodeID serverID)
     {
         super();
         myNodeConfig = nodeConfig;
@@ -74,6 +77,7 @@ public class SimpleAllocator implements Allocator
         myTableToSchemaMap = new HashMap<>();
         myTableToPartitionMap = new HashMap<>();
         myNodes = new HashSet<>();
+        myServerID = serverID;
     }
 
     /**
@@ -83,6 +87,12 @@ public class SimpleAllocator implements Allocator
     public void addSchema(Schema tableSchema)
     {
         myTableToSchemaMap.put(tableSchema.getTableName(), tableSchema);
+        Partitioner<?,?> partitioner = 
+                        tableSchema.getKeyspace().makePartitioner(tableSchema.getTableName());
+        partitioner.update(new Pair<Comparable<?>, NodeID>(
+            tableSchema.getKeyspace().getDomain().getMaximum(),
+            myServerID));
+        myTableToPartitionMap.put(tableSchema.getTableName(), partitioner);
     }
 
     /**
@@ -98,7 +108,7 @@ public class SimpleAllocator implements Allocator
         myNodeToRowCountMap.put(nodeID, heartbeat.getTableToRowCountMap());
     }
     
-    private void updateFillRate(final NodeID                       nodeID, 
+    private void updateFillRate(final NodeID nodeID, 
                                 final TObjectLongHashMap<String>   
                                     oldNodeRowCountMap,
                                 final TObjectLongHashMap<String>   
@@ -138,12 +148,12 @@ public class SimpleAllocator implements Allocator
         }
         
         Map<String, Schema> tableSchemaMap = new HashMap<>();
-        Map<String, PartitionTable<?,?>> partitionTableMap = new HashMap<>();
+        Map<String, Partitioner<?,?>> partitionTableMap = new HashMap<>();
         for (Map.Entry<String, Schema> entry : myTableToSchemaMap.entrySet())
         {
             tableSchemaMap.put(entry.getKey(), entry.getValue());
             NodeID maxLoadedNode = lookupMaxLoadedNode(entry.getKey());
-            PartitionTable<?, ?> partition = 
+            Partitioner<?, ?> partition = 
                 myTableToPartitionMap.get(entry.getKey());
             Pair<?,?> nodeRange = partition.getNodeRange(maxLoadedNode);
             Comparable<?> newValue = 
@@ -181,7 +191,7 @@ public class SimpleAllocator implements Allocator
     @Override
     public GossipUpdateEvent getGossipUpdates()
     {
-        
-        return null;
+        return new GossipUpdateEvent(new ArrayList<Gossip>(
+            myTableToPartitionMap.values()));
     }
 }

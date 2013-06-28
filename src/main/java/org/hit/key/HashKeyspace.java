@@ -27,6 +27,8 @@ import java.math.BigInteger;
 
 import org.hit.key.domain.BigIntegerDomain;
 import org.hit.key.domain.DiscreteDomain;
+import org.hit.partitioner.DistributedHashTable;
+import org.hit.partitioner.Partitioner;
 
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashFunction;
@@ -156,5 +158,14 @@ public class HashKeyspace<S extends Comparable<S>>
     public DiscreteDomain<BigInteger> getDomain()
     {
         return myRange;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Partitioner<S, BigInteger> makePartitioner(String tableName)
+    {
+        return new DistributedHashTable<>(tableName, this);
     }
 }

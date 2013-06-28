@@ -23,6 +23,7 @@ package org.hit.key;
 import java.io.Externalizable;
 
 import org.hit.key.domain.DiscreteDomain;
+import org.hit.partitioner.Partitioner;
 
 /**
  * Defines the type that defines key space for a table. A key space can be 
@@ -43,4 +44,10 @@ public interface Keyspace<S extends Comparable<S>, T extends Comparable<T>>
      * Maps the key to target key space.
      */
     public T map(S key);
+    
+    /**
+     * A factory method for generating the {@link Partitioner} for this 
+     * key space.
+     */
+    public Partitioner<S,T> makePartitioner(String tableName);
 }

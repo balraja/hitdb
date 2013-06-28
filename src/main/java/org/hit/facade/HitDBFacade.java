@@ -60,7 +60,7 @@ import org.hit.messages.DBOperationMessage;
 import org.hit.messages.DBOperationSuccessMessage;
 import org.hit.messages.FacadeInitRequest;
 import org.hit.messages.FacadeInitResponse;
-import org.hit.node.PartitionTable;
+import org.hit.partitioner.Partitioner;
 import org.hit.registry.RegistryService;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
@@ -469,7 +469,7 @@ public class HitDBFacade
 
     private final RegistryService myRegistryService;
 
-    private final Map<String, PartitionTable<?,?>> myTable2Partitions;
+    private final Map<String, Partitioner<?,?>> myTable2Partitions;
     
     private final AtomicBoolean myIsInitialized;
     
@@ -544,8 +544,8 @@ public class HitDBFacade
             SingleKeyMutation<K> mutation, String tableName)
     {
         @SuppressWarnings("unchecked")
-        PartitionTable<K,?> partitions =
-            (PartitionTable<K, ?>) myTable2Partitions.get(tableName);
+        Partitioner<K,?> partitions =
+            (Partitioner<K, ?>) myTable2Partitions.get(tableName);
 
         if (partitions == null) {
             return null;

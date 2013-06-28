@@ -28,7 +28,9 @@ package org.hit.node;
  */
 public interface NodeConfig
 {
-    /** Returns true if the server is marked as mater during startup */
+    /** 
+     * Returns true if the server is marked as mater during startup 
+     */
     public boolean isMaster();
     
     /** 
@@ -36,4 +38,9 @@ public interface NodeConfig
      * published.
      */
     public int getHeartBeatInterval();
+    
+    /**
+     * Returns true if the server is running in single server mode.
+     */
+    public boolean isSingleServer();
 }

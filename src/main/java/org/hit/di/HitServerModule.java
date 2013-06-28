@@ -30,7 +30,7 @@ import org.hit.db.transactions.journal.WALPropertyConfig;
 import org.hit.node.Allocator;
 import org.hit.node.NodeConfig;
 import org.hit.node.NodePropertyConfig;
-import org.hit.node.SimpleAllocator;
+import org.hit.node.StandardAllocator;
 import org.hit.time.Clock;
 import org.hit.time.SimpleSystemClock;
 
@@ -66,7 +66,7 @@ public class HitServerModule extends HitModule
         bind(WALConfig.class).to(WALPropertyConfig.class);
         bind(FileSystemFacacde.class).to(StandardFileSystem.class);
         bind(NodeConfig.class).to(NodePropertyConfig.class);
-        bind(Allocator.class).to(SimpleAllocator.class);
+        bind(Allocator.class).to(StandardAllocator.class);
     }
 
     /**

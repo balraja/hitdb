@@ -141,5 +141,7 @@ public class HitServer implements Application
         myConsensusManager.stop();
         myDisseminator.stop();
         myDBEngine.stop();
+        myDisseminator.stop();
+        myNodeActor.stop();
     }
 }

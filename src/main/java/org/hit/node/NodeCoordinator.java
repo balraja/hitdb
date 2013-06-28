@@ -43,6 +43,7 @@ import org.hit.event.GossipNotificationEvent;
 import org.hit.event.SendMessageEvent;
 import org.hit.gossip.Gossip;
 import org.hit.messages.Heartbeat;
+import org.hit.partitioner.Partitioner;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
 
@@ -59,7 +60,7 @@ public class NodeCoordinator extends Actor
     private static final Logger LOG = 
         LogFactory.getInstance().getLogger(NodeCoordinator.class);
                                
-    private final Map<String, PartitionTable<?, ?>> myPartitions;
+    private final Map<String, Partitioner<?, ?>> myPartitions;
     
     private final TObjectLongMap<String> myTableRowCountMap;
     
@@ -147,9 +148,9 @@ public class NodeCoordinator extends Actor
         if (event instanceof GossipNotificationEvent) {
             GossipNotificationEvent gne = (GossipNotificationEvent) event;
             for (Gossip gossip : gne.getGossip()) {
-                if (gossip instanceof PartitionTable) {
+                if (gossip instanceof Partitioner) {
                     myPartitions.put((String)              gossip.getKey(), 
-                                     (PartitionTable<?,?>) gossip);
+                                     (Partitioner<?,?>) gossip);
                 }
             }
         }
