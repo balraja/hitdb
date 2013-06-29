@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,50 +18,37 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.client;
+package org.hit.client.shell;
+
+import java.util.Set;
 
 import org.hit.facade.HitDBFacade;
 
 /**
- * Defines an interface for the client that should be implemented by client 
- * applications when connecting to the database.
- *
+ * The command to display the list of tables known to this database server.
+ * 
  * @author Balraja Subbiah
  */
-public abstract class DBClient
+@MetaCommand(name = "list_tables", 
+             help = "Displays the list of tables in the database")
+public class ListTablesCommand implements Command
 {
-    private HitDBFacade myFacade;
-    
     /**
-     * Initiaizes the database.
+     * {@inheritDoc}
      */
-    public void init(HitDBFacade facade)
+    @Override
+    public void execute(HitDBFacade facade)
     {
-        myFacade = facade;
-    }
-    
-    /**
-     * Shuts down the client.
-     */
-    public void shutdown()
-    {
-        if (myFacade != null) {
-            myFacade.stop();
+        Set<String> tables = facade.listTables();
+        if (tables == null || tables.isEmpty()) {
+            System.out.println("There are no tables to display");
         }
-    }
-
-    /**
-     * Starts the facacde and provides access to the client code via this facade
-     */
-    public void start()
-    {
-        if (myFacade != null) {
-            myFacade.start();
+        else {
+            int i = 1;
+            for (String table : tables) {
+                System.out.println(i + " " + table);
+                i++;
+            }
         }
-    }
-    
-    protected HitDBFacade getFacade()
-    {
-        return myFacade;
     }
 }

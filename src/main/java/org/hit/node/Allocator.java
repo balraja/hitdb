@@ -22,6 +22,7 @@ package org.hit.node;
 
 import org.hit.communicator.NodeID;
 import org.hit.db.model.Schema;
+import org.hit.event.DBStatEvent;
 import org.hit.event.GossipUpdateEvent;
 import org.hit.messages.Allocation;
 import org.hit.messages.Heartbeat;
@@ -43,6 +44,12 @@ public interface Allocator
      * Listens to heartbeats from  the given <code>NodeID</code>.
      */
     public void listenTO(NodeID nodeID, Heartbeat heartbeat);
+    
+    /**
+     * Updates the statistics published by the db server running on the
+     * master node.
+     */
+    public void listenTO(DBStatEvent dbStats);
     
     /**
      * Returns the <code>Allocation</code> corresponding to the given node.

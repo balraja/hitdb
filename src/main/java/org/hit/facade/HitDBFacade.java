@@ -44,6 +44,7 @@ import org.hit.db.model.DBOperation;
 import org.hit.db.model.Query;
 import org.hit.db.model.Queryable;
 import org.hit.db.model.Schema;
+import org.hit.db.model.mutations.RangeMutation;
 import org.hit.db.model.mutations.SingleKeyMutation;
 import org.hit.db.query.merger.QueryMerger;
 import org.hit.db.query.merger.SimpleQueryMerger;
@@ -65,6 +66,7 @@ import org.hit.registry.RegistryService;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
 import org.hit.util.Pair;
+import org.hit.util.Range;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -503,6 +505,12 @@ public class HitDBFacade
         return myIsInitialized.get();
     }
     
+    /** Returns list of tables known to this database server */
+    public Set<String> listTables()
+    {
+        return myTable2Partitions.keySet();
+    }
+    
     /**
      * A helper method to query the database.
      */
@@ -559,6 +567,43 @@ public class HitDBFacade
             new WrappedMutation(id, mutation);
         myExecutorService.submit(new SubmitDBOperationTask(
             serverNode, wrappedMutation, futureResponse, id));
+        return futureResponse;
+    }
+    
+    /**
+     * Applies the {@link RangeMutation} to the database. However it expects
+     * that the mutation should be applicable to a single node.
+     */
+    public <K extends Comparable<K>>
+        ListenableFuture<DBOperationResponse> apply(
+            RangeMutation<K> mutation, String tableName)
+    {
+        @SuppressWarnings("unchecked")
+        Partitioner<K,K> partitions =
+            (Partitioner<K,K>) myTable2Partitions.get(tableName);
+
+        if (partitions == null) {
+            return null;
+        }
+
+        final Map<NodeID, Range<K>> split = 
+            partitions.lookupNodes(mutation.getKeyRange());
+        
+        if (split.size() > 1) {
+            return null;
+        }
+        final SettableFuture<DBOperationResponse> futureResponse =
+            SettableFuture.create();
+        final long id = myOperationsCount.getAndIncrement();
+        final WrappedMutation wrappedMutation = 
+            new WrappedMutation(id, mutation);
+        
+        myExecutorService.submit(new SubmitDBOperationTask(
+            split.keySet().iterator().next(), 
+            wrappedMutation, 
+            futureResponse, 
+            id));
+        
         return futureResponse;
     }
 

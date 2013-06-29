@@ -28,16 +28,20 @@ import java.util.Set;
 
 import org.hit.communicator.NodeID;
 import org.hit.db.model.Schema;
+import org.hit.event.DBStatEvent;
 import org.hit.event.GossipUpdateEvent;
 import org.hit.gossip.Gossip;
 import org.hit.messages.Allocation;
 import org.hit.messages.Heartbeat;
 import org.hit.partitioner.Partitioner;
 import org.hit.util.Pair;
+import org.hit.util.Range;
 
 import com.google.inject.Inject;
 
 import gnu.trove.iterator.TObjectDoubleIterator;
+import gnu.trove.map.TObjectDoubleMap;
+import gnu.trove.map.TObjectLongMap;
 import gnu.trove.map.hash.TObjectDoubleHashMap;
 import gnu.trove.map.hash.TObjectLongHashMap;
 import gnu.trove.procedure.TObjectLongProcedure;
@@ -50,9 +54,9 @@ import gnu.trove.procedure.TObjectLongProcedure;
  */
 public class StandardAllocator implements Allocator
 {
-    private final Map<NodeID, TObjectLongHashMap<String>> myNodeToRowCountMap;
+    private final Map<NodeID, TObjectLongMap<String>> myNodeToRowCountMap;
     
-    private final Map<String, TObjectDoubleHashMap<NodeID>> myTableFillRateMap;
+    private final Map<String, TObjectDoubleMap<NodeID>> myTableFillRateMap;
     
     private final Map<String, Schema> myTableToSchemaMap;
     
@@ -109,9 +113,9 @@ public class StandardAllocator implements Allocator
     }
     
     private void updateFillRate(final NodeID nodeID, 
-                                final TObjectLongHashMap<String>   
+                                final TObjectLongMap<String>   
                                     oldNodeRowCountMap,
-                                final TObjectLongHashMap<String>   
+                                final TObjectLongMap<String>   
                                     nodeRowCountMap)
     {
         nodeRowCountMap.forEachEntry(new TObjectLongProcedure<String>() 
@@ -124,7 +128,7 @@ public class StandardAllocator implements Allocator
                 double fillRate = 
                     ((double) (rowCount - oldRowCount)) / ((double) oldRowCount);
                 
-                TObjectDoubleHashMap<NodeID> nodeFillRate = 
+                TObjectDoubleMap<NodeID> nodeFillRate = 
                     myTableFillRateMap.get(tableName);
                 if (nodeFillRate == null) {
                     nodeFillRate = new TObjectDoubleHashMap<>();
@@ -155,10 +159,10 @@ public class StandardAllocator implements Allocator
             NodeID maxLoadedNode = lookupMaxLoadedNode(entry.getKey());
             Partitioner<?, ?> partition = 
                 myTableToPartitionMap.get(entry.getKey());
-            Pair<?,?> nodeRange = partition.getNodeRange(maxLoadedNode);
+            Range<?> nodeRange = partition.getNodeRange(maxLoadedNode);
             Comparable<?> newValue = 
                 entry.getValue().getKeyspace().getDomain().getMiddleOf(
-                    nodeRange.getFirst(), nodeRange.getSecond());
+                    nodeRange.getMinValue(), nodeRange.getMaxValue());
             partition.update(new Pair<Comparable<?>, NodeID>(newValue, nodeID));
             partitionTableMap.put(entry.getKey(), partition);
         }
@@ -170,7 +174,7 @@ public class StandardAllocator implements Allocator
      */
     private NodeID lookupMaxLoadedNode(String tableName)
     {
-        TObjectDoubleHashMap<NodeID> tableFillRateMap = 
+        TObjectDoubleMap<NodeID> tableFillRateMap = 
             myTableFillRateMap.get(tableName);
         TObjectDoubleIterator<NodeID> itr = tableFillRateMap.iterator();
         NodeID maxLoadedNode = null;
@@ -193,5 +197,17 @@ public class StandardAllocator implements Allocator
     {
         return new GossipUpdateEvent(new ArrayList<Gossip>(
             myTableToPartitionMap.values()));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void listenTO(DBStatEvent dbStats)
+    {
+        updateFillRate(myServerID,
+                       myNodeToRowCountMap.get(myServerID),
+                       dbStats.getTableToRowCountMap());
+        myNodeToRowCountMap.put(myServerID, dbStats.getTableToRowCountMap());
     }
 }

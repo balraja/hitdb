@@ -68,6 +68,7 @@ public class DBClientExecutor implements Application
         try {
             Class<?> clientClass = Class.forName(className);
             myClient = (DBClient) clientClass.newInstance();
+            myClient.init(myServerFacade);
         }
         catch (ClassNotFoundException
                | InstantiationException
@@ -84,8 +85,7 @@ public class DBClientExecutor implements Application
     @Override
     public void start()
     {
-        myServerFacade.start();
-        myClient.start(myServerFacade);
+        myClient.start();
     }
 
     /**
@@ -95,6 +95,5 @@ public class DBClientExecutor implements Application
     public void stop()
     {
         myClient.shutdown();
-        myServerFacade.stop();
     }
 }

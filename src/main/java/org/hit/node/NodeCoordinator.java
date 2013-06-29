@@ -72,7 +72,6 @@ public class NodeCoordinator extends Actor
     
     private class PublishHeartbeatTask implements Runnable
     {
-
         /**
          * {@inheritDoc}
          */
@@ -128,7 +127,7 @@ public class NodeCoordinator extends Actor
         myScheduler = 
             Executors.newScheduledThreadPool(
                 1,
-                new NamedThreadFactory("NodeCoordinatorSchedule"));
+                new NamedThreadFactory("NodeCoordinatorScheduler"));
     }
     
     /**

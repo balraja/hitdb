@@ -23,6 +23,7 @@ package org.hit.partitioner;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Map.Entry;
@@ -31,6 +32,7 @@ import org.hit.communicator.NodeID;
 import org.hit.gossip.AbstractGossip;
 import org.hit.key.Keyspace;
 import org.hit.util.Pair;
+import org.hit.util.Range;
 
 /**
  * Defines the contract for the table that defines the partitions.
@@ -87,22 +89,65 @@ public class Partitioner<S extends Comparable<S>,
         return doLookup(myKeyspace.map(key), myKeyToNodeMap);
     }
     
-    public Pair<T,T> getNodeRange(NodeID nodeID)
+    /**
+     * Returns the range of keys corresponding to this node.
+     */
+    public Range<T> getNodeRange(NodeID nodeID)
     {
         Map.Entry<T, NodeID> oldEntry = null;
         for (Map.Entry<T, NodeID> entry : myKeyToNodeMap.entrySet())
         {
             if (entry.getValue().equals(nodeID)) {
                 if (oldEntry != null) {
-                    return new Pair<>(oldEntry.getKey(), entry.getKey());
+                    return new Range<>(oldEntry.getKey(), entry.getKey());
                 }
                 else {
-                    return new Pair<>(null, entry.getKey());
+                    return new Range<>(myKeyspace.getDomain().getMinimum(), 
+                                       entry.getKey());
                 }
             }
             oldEntry = entry;
         }
         return null;
+    }
+    
+    /**
+     * Returns the map between {@link NodeID} and the sliced key ranges 
+     * that map to the nodes.
+     */
+    public Map<NodeID, Range<T>> lookupNodes(Range<S> sourceRange)
+    {
+        Range<T> range = new Range<T>(myKeyspace.map(sourceRange.getMinValue()),
+                                      myKeyspace.map(sourceRange.getMaxValue()));
+        
+        Map<NodeID,Range<T>> result = new HashMap<NodeID, Range<T>>();
+        T oldKey = null;
+        for (Map.Entry<T, NodeID> entry : myKeyToNodeMap.entrySet()) {
+            Range<T> nodeRange = 
+                oldKey == null ? new Range<T>(myKeyspace.getDomain().getMinimum(),
+                                              entry.getKey())
+                               : new Range<T>(oldKey, entry.getKey());
+                
+            if (nodeRange.contains(range)) {
+                result.put(entry.getValue(), range);
+                break;
+            }
+            else if (nodeRange.leftOverlap(range)) {
+                result.put(entry.getValue(), 
+                           new Range<T>(range.getMinValue(),
+                                        nodeRange.getMaxValue()));
+            }
+            else if (range.contains(nodeRange)) {
+                result.put(entry.getValue(), nodeRange);
+            }
+            else if (nodeRange.rightOverlap(range)) {
+                result.put(entry.getValue(), 
+                           new Range<T>(nodeRange.getMinValue(),
+                                        range.getMaxValue()));
+            }
+            oldKey = entry.getKey();
+        }
+        return result;
     }
     
     /**

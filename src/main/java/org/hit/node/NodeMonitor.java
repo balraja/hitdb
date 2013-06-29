@@ -29,6 +29,7 @@ import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.actors.EventBusException;
 import org.hit.communicator.NodeID;
+import org.hit.event.DBStatEvent;
 import org.hit.event.Event;
 import org.hit.event.MasterDownEvent;
 import org.hit.event.SchemaNotificationEvent;
@@ -83,6 +84,10 @@ public class NodeMonitor extends Actor
                 (SchemaNotificationEvent) event;
             myAllocator.addSchema(sne.getSchema());
         }
+        else if (event instanceof DBStatEvent) {
+            DBStatEvent stat = (DBStatEvent) event;
+            myAllocator.listenTO(stat);
+        }
         else if (event instanceof NodeAdvertisement) {
             NodeAdvertisement na = (NodeAdvertisement) event;
             Allocation allocation;
@@ -116,5 +121,6 @@ public class NodeMonitor extends Actor
             getEventBus().registerForEvent(
                 MasterDownEvent.class, getActorID());
         }
+        getEventBus().registerForEvent(DBStatEvent.class, getActorID());
     }
 }

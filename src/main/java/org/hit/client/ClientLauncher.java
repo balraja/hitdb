@@ -92,18 +92,18 @@ public class ClientLauncher extends AbstractLauncher
         try {
             CommandLine cmdLine =
                 parser.parse(myClientCommandLineOptions, args);
-            if (!cmdLine.hasOption(CLIENT_CLASS_NAME)
+            if (    !cmdLine.hasOption(CLIENT_CLASS_NAME)
                  || !cmdLine.hasOption(JAR_PATH))
             {
                 System.out.println("Both " + "--"+ CLIENT_CLASS_NAME +
                                    " and " + "--" + JAR_PATH +
                                    " has to be specified while launching the" +
                                    " client");
+                System.exit(1);
             }
 
             StringBuilder commandBuilder = new StringBuilder();
-            String applicationHome  =
-                System.getProperty(APP_HOME_PROPERTY);
+            String applicationHome  = System.getProperty(APP_HOME_PROPERTY);
 
             if (applicationHome == null) {
                 System.out.println("Application home is not defined");
@@ -163,7 +163,8 @@ public class ClientLauncher extends AbstractLauncher
         catch (ParseException e) {
             System.out.println(e.getMessage());
             HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp(CLIENT_LAUNCHER_FILE, myClientCommandLineOptions);
+            formatter.printHelp(CLIENT_LAUNCHER_FILE, 
+                                myClientCommandLineOptions);
         }
         catch (IOException e) {
             System.out.println("Error occured while launching the server : "

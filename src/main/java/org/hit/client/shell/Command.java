@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,50 +18,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.client;
+package org.hit.client.shell;
 
 import org.hit.facade.HitDBFacade;
 
 /**
- * Defines an interface for the client that should be implemented by client 
- * applications when connecting to the database.
- *
+ * Defines the contract for a command that can be executed in a shell.
+ * 
  * @author Balraja Subbiah
  */
-public abstract class DBClient
+public interface Command
 {
-    private HitDBFacade myFacade;
-    
     /**
-     * Initiaizes the database.
+     * Subclasses should override this method to execute the commands.
      */
-    public void init(HitDBFacade facade)
-    {
-        myFacade = facade;
-    }
-    
-    /**
-     * Shuts down the client.
-     */
-    public void shutdown()
-    {
-        if (myFacade != null) {
-            myFacade.stop();
-        }
-    }
-
-    /**
-     * Starts the facacde and provides access to the client code via this facade
-     */
-    public void start()
-    {
-        if (myFacade != null) {
-            myFacade.start();
-        }
-    }
-    
-    protected HitDBFacade getFacade()
-    {
-        return myFacade;
-    }
+    public void execute(HitDBFacade facade);
 }
