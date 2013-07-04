@@ -39,7 +39,6 @@ import org.hit.messages.DBOperationMessage;
 import org.hit.messages.DistributedDBOperationMessage;
 import org.hit.time.Clock;
 import org.hit.util.LogFactory;
-import org.hit.zookeeper.ZooKeeperClient;
 
 import com.google.inject.Inject;
 
@@ -51,16 +50,16 @@ import com.google.inject.Inject;
  */
 public class DBEngine extends Actor
 {
+    private static final String DB_OPERATION_LOG =
+        "Received request from %s for performing %s";
+
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(DBEngine.class);
 
     private static final String TABLE_CREATION_LOG =
         "Received request from %s for creating table %s";
-    
-    private static final String DB_OPERATION_LOG =
-        "Received request from %s for performing %s";
 
-    private TransactionManager myTransactionManager;
+    private final TransactionManager myTransactionManager;
 
     /**
      * CTOR
@@ -105,7 +104,7 @@ public class DBEngine extends Actor
 
             DBOperationMessage message =
                 (DBOperationMessage) event;
-            
+
             LOG.info(String.format(DB_OPERATION_LOG,
                                    message.getNodeId(),
                                    message.getOperation()));
@@ -115,22 +114,22 @@ public class DBEngine extends Actor
                 message.getNodeId(), operation);
         }
         else if (event instanceof DistributedDBOperationMessage) {
-            
-            DistributedDBOperationMessage ddbMessage = 
+
+            DistributedDBOperationMessage ddbMessage =
                 (DistributedDBOperationMessage) event;
-            
+
             LOG.info(String.format(DB_OPERATION_LOG,
                                    ddbMessage.getNodeId(),
                                    ddbMessage.getNodeToOperationMap().keySet()));
-            
+
             myTransactionManager.processOperation(
-                ddbMessage.getNodeId(), 
+                ddbMessage.getNodeId(),
                 ddbMessage.getNodeToOperationMap());
         }
         else if (event instanceof ProposalNotificationEvent) {
             ProposalNotificationEvent pne = (ProposalNotificationEvent) event;
             if (pne.getProposal() instanceof DistributedTrnProposal) {
-                
+
             }
         }
     }

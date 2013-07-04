@@ -27,11 +27,11 @@ import org.hit.communicator.CommunicatingActor;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.ConsensusManager;
 import org.hit.db.engine.DBEngine;
+import org.hit.db.engine.EngineConfig;
+import org.hit.db.engine.LocalWarden;
+import org.hit.db.engine.MasterWarden;
 import org.hit.di.HitServerModule;
 import org.hit.gossip.Disseminator;
-import org.hit.node.NodeCoordinator;
-import org.hit.node.NodeMonitor;
-import org.hit.node.NodeConfig;
 import org.hit.util.Application;
 import org.hit.util.ApplicationLauncher;
 import org.hit.util.LogFactory;
@@ -42,14 +42,14 @@ import com.google.inject.Injector;
 
 /**
  * The main application that starts the database engine.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class HitServer implements Application
 {
     private static final Logger LOG = LogFactory.getInstance()
                                                 .getLogger(HitServer.class);
-                    
+
     /** The main method that launches the system */
     public static void main(String[] args)
     {
@@ -57,22 +57,22 @@ public class HitServer implements Application
             new ApplicationLauncher(new HitServer());
         launcher.launch();
     }
-    
+
     private final CommunicatingActor myCommunicatingActor;
-    
+
+    private final EngineConfig         myConfig;
+
     private final ConsensusManager   myConsensusManager;
-    
-    private final Disseminator       myDisseminator;
-    
+
     private final DBEngine           myDBEngine;
-    
-    private final ZooKeeperClient    myZooKeeperClient;
-    
-    private final NodeID             myServerNodeID;
-    
-    private final NodeConfig         myConfig;
-    
+
+    private final Disseminator       myDisseminator;
+
     private final Actor              myNodeActor;
+
+    private final NodeID             myServerNodeID;
+
+    private final ZooKeeperClient    myZooKeeperClient;
 
     /**
      * CTOR
@@ -86,9 +86,9 @@ public class HitServer implements Application
         myDisseminator = injector.getInstance(Disseminator.class);
         myDBEngine      = injector.getInstance(DBEngine.class);
         myZooKeeperClient = injector.getInstance(ZooKeeperClient.class);
-        myConfig = injector.getInstance(NodeConfig.class);
-        myNodeActor = myConfig.isMaster() ? injector.getInstance(NodeMonitor.class)
-                                          : injector.getInstance(NodeCoordinator.class);
+        myConfig = injector.getInstance(EngineConfig.class);
+        myNodeActor = myConfig.isMaster() ? injector.getInstance(MasterWarden.class)
+                                          : injector.getInstance(LocalWarden.class);
     }
 
     /**
@@ -110,13 +110,14 @@ public class HitServer implements Application
         LOG.info("Gossiper started");
         myDBEngine.start();
         LOG.info("Database engine started");
-        
+
         myZooKeeperClient.checkAndCreateRootNode();
         myZooKeeperClient.addHostNode(myServerNodeID);
         LOG.info("Node registered with the zookeeper");
-        
+
         if (myConfig.isMaster()) {
-            myZooKeeperClient.claimMasterNode(myServerNodeID);
+            while(!myZooKeeperClient.claimMasterNode(myServerNodeID)) {
+            }
             LOG.info("Master node claimed in zookeeper");
         }
         else {
@@ -125,12 +126,12 @@ public class HitServer implements Application
                // Spin till the master is started
                masterNode = myZooKeeperClient.getMasterNode();
            }
-           ((NodeCoordinator) myNodeActor).setMaster(masterNode);
+           ((LocalWarden) myNodeActor).setMaster(masterNode);
         }
         myNodeActor.start();
-        LOG.info("Node coordinator started");
+        LOG.info(myNodeActor.getActorID() + " started");
     }
-    
+
     /**
      * {@inheritDoc}
      */

@@ -18,17 +18,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.node;
+package org.hit.db.engine;
 
 import org.hit.util.ApplicationProperties;
 
 /**
- * A default implementation of {@link NodeConfig} which reads the value 
+ * A default implementation of {@link EngineConfig} which reads the value 
  * from properties.
  * 
  * @author Balraja Subbiah
  */
-public class NodePropertyConfig implements NodeConfig
+public class EnginePropertyConfig implements EngineConfig
 {
     public static final String MASTER_PROPERTY = 
         "org.hit.node.isMaster";

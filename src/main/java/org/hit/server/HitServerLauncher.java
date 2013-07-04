@@ -30,7 +30,7 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.hit.node.NodePropertyConfig;
+import org.hit.db.engine.EnginePropertyConfig;
 import org.hit.util.AbstractLauncher;
 
 /**
@@ -126,7 +126,7 @@ public class HitServerLauncher extends AbstractLauncher
             
             if (cmdLine.hasOption(IS_MASTER)) {
                 optsBuilder.append(addProperty(
-                    NodePropertyConfig.MASTER_PROPERTY,
+                    EnginePropertyConfig.MASTER_PROPERTY,
                     "true"));
             }
 

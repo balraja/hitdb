@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,7 +18,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.node;
+package org.hit.db.engine;
+
+import gnu.trove.iterator.TObjectDoubleIterator;
+import gnu.trove.map.TObjectDoubleMap;
+import gnu.trove.map.TObjectLongMap;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
+import gnu.trove.procedure.TObjectLongProcedure;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,40 +45,33 @@ import org.hit.util.Range;
 
 import com.google.inject.Inject;
 
-import gnu.trove.iterator.TObjectDoubleIterator;
-import gnu.trove.map.TObjectDoubleMap;
-import gnu.trove.map.TObjectLongMap;
-import gnu.trove.map.hash.TObjectDoubleHashMap;
-import gnu.trove.map.hash.TObjectLongHashMap;
-import gnu.trove.procedure.TObjectLongProcedure;
-
 /**
  * Defines the contract for a simple allocator that allocates the key space of
  * a table to the incoming node.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class StandardAllocator implements Allocator
 {
-    private final Map<NodeID, TObjectLongMap<String>> myNodeToRowCountMap;
-    
-    private final Map<String, TObjectDoubleMap<NodeID>> myTableFillRateMap;
-    
-    private final Map<String, Schema> myTableToSchemaMap;
-    
-    private final Map<String, Partitioner<?, ?>> myTableToPartitionMap;
-    
-    private final NodeConfig myNodeConfig;
-    
+    private final EngineConfig myNodeConfig;
+
     private final Set<NodeID> myNodes;
-    
+
+    private final Map<NodeID, TObjectLongMap<String>> myNodeToRowCountMap;
+
     private final NodeID myServerID;
+
+    private final Map<String, TObjectDoubleMap<NodeID>> myTableFillRateMap;
+
+    private final Map<String, Partitioner<?, ?>> myTableToPartitionMap;
+
+    private final Map<String, Schema> myTableToSchemaMap;
 
     /**
      * CTOR
      */
     @Inject
-    public StandardAllocator(NodeConfig nodeConfig, NodeID serverID)
+    public StandardAllocator(EngineConfig nodeConfig, NodeID serverID)
     {
         super();
         myNodeConfig = nodeConfig;
@@ -91,53 +90,12 @@ public class StandardAllocator implements Allocator
     public void addSchema(Schema tableSchema)
     {
         myTableToSchemaMap.put(tableSchema.getTableName(), tableSchema);
-        Partitioner<?,?> partitioner = 
+        Partitioner<?,?> partitioner =
                         tableSchema.getKeyspace().makePartitioner(tableSchema.getTableName());
         partitioner.update(new Pair<Comparable<?>, NodeID>(
             tableSchema.getKeyspace().getDomain().getMaximum(),
             myServerID));
         myTableToPartitionMap.put(tableSchema.getTableName(), partitioner);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void listenTO(NodeID nodeID, Heartbeat heartbeat)
-    {
-        myNodes.add(nodeID);
-        updateFillRate(nodeID, 
-                       myNodeToRowCountMap.get(nodeID), 
-                       heartbeat.getTableToRowCountMap());
-        myNodeToRowCountMap.put(nodeID, heartbeat.getTableToRowCountMap());
-    }
-    
-    private void updateFillRate(final NodeID nodeID, 
-                                final TObjectLongMap<String>   
-                                    oldNodeRowCountMap,
-                                final TObjectLongMap<String>   
-                                    nodeRowCountMap)
-    {
-        nodeRowCountMap.forEachEntry(new TObjectLongProcedure<String>() 
-        {
-            @Override
-            public boolean execute(String tableName, long rowCount)
-            {
-                long oldRowCount = oldNodeRowCountMap != null ?
-                                       oldNodeRowCountMap.get(tableName) : 0;
-                double fillRate = 
-                    ((double) (rowCount - oldRowCount)) / ((double) oldRowCount);
-                
-                TObjectDoubleMap<NodeID> nodeFillRate = 
-                    myTableFillRateMap.get(tableName);
-                if (nodeFillRate == null) {
-                    nodeFillRate = new TObjectDoubleHashMap<>();
-                    myTableFillRateMap.put(tableName, nodeFillRate);
-                }
-                nodeFillRate.put(nodeID, fillRate);
-                return true;
-            }
-        });
     }
 
     /**
@@ -150,43 +108,23 @@ public class StandardAllocator implements Allocator
             throw new IllegalAccessException(
                 "Trying get allocation from a non master node");
         }
-        
+
         Map<String, Schema> tableSchemaMap = new HashMap<>();
         Map<String, Partitioner<?,?>> partitionTableMap = new HashMap<>();
         for (Map.Entry<String, Schema> entry : myTableToSchemaMap.entrySet())
         {
             tableSchemaMap.put(entry.getKey(), entry.getValue());
             NodeID maxLoadedNode = lookupMaxLoadedNode(entry.getKey());
-            Partitioner<?, ?> partition = 
+            Partitioner<?, ?> partition =
                 myTableToPartitionMap.get(entry.getKey());
             Range<?> nodeRange = partition.getNodeRange(maxLoadedNode);
-            Comparable<?> newValue = 
+            Comparable<?> newValue =
                 entry.getValue().getKeyspace().getDomain().getMiddleOf(
                     nodeRange.getMinValue(), nodeRange.getMaxValue());
             partition.update(new Pair<Comparable<?>, NodeID>(newValue, nodeID));
             partitionTableMap.put(entry.getKey(), partition);
         }
         return new Allocation(tableSchemaMap, partitionTableMap);
-    }
-    
-    /**
-     * A helper method to lookup a node whose partition is filling fast.
-     */
-    private NodeID lookupMaxLoadedNode(String tableName)
-    {
-        TObjectDoubleMap<NodeID> tableFillRateMap = 
-            myTableFillRateMap.get(tableName);
-        TObjectDoubleIterator<NodeID> itr = tableFillRateMap.iterator();
-        NodeID maxLoadedNode = null;
-        double fillRate = 0.0;
-        while (itr.hasNext()) {
-            if (itr.value() > fillRate) {
-                maxLoadedNode = itr.key();
-                fillRate = itr.value();
-            }
-            itr.advance();
-        }
-        return maxLoadedNode;
     }
 
     /**
@@ -203,11 +141,81 @@ public class StandardAllocator implements Allocator
      * {@inheritDoc}
      */
     @Override
+    public Map<String, Partitioner<?, ?>> getPartitions()
+    {
+        return new HashMap<>(myTableToPartitionMap);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void listenTO(DBStatEvent dbStats)
     {
         updateFillRate(myServerID,
                        myNodeToRowCountMap.get(myServerID),
                        dbStats.getTableToRowCountMap());
         myNodeToRowCountMap.put(myServerID, dbStats.getTableToRowCountMap());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void listenTO(NodeID nodeID, Heartbeat heartbeat)
+    {
+        myNodes.add(nodeID);
+        updateFillRate(nodeID,
+                       myNodeToRowCountMap.get(nodeID),
+                       heartbeat.getTableToRowCountMap());
+        myNodeToRowCountMap.put(nodeID, heartbeat.getTableToRowCountMap());
+    }
+
+    /**
+     * A helper method to lookup a node whose partition is filling fast.
+     */
+    private NodeID lookupMaxLoadedNode(String tableName)
+    {
+        TObjectDoubleMap<NodeID> tableFillRateMap =
+            myTableFillRateMap.get(tableName);
+        TObjectDoubleIterator<NodeID> itr = tableFillRateMap.iterator();
+        NodeID maxLoadedNode = null;
+        double fillRate = 0.0;
+        while (itr.hasNext()) {
+            if (itr.value() > fillRate) {
+                maxLoadedNode = itr.key();
+                fillRate = itr.value();
+            }
+            itr.advance();
+        }
+        return maxLoadedNode;
+    }
+
+    private void updateFillRate(final NodeID nodeID,
+                                final TObjectLongMap<String>
+                                    oldNodeRowCountMap,
+                                final TObjectLongMap<String>
+                                    nodeRowCountMap)
+    {
+        nodeRowCountMap.forEachEntry(new TObjectLongProcedure<String>()
+        {
+            @Override
+            public boolean execute(String tableName, long rowCount)
+            {
+                long oldRowCount = oldNodeRowCountMap != null ?
+                                       oldNodeRowCountMap.get(tableName) : 0;
+                double fillRate =
+                    ((double) (rowCount - oldRowCount)) / ((double) oldRowCount);
+
+                TObjectDoubleMap<NodeID> nodeFillRate =
+                    myTableFillRateMap.get(tableName);
+                if (nodeFillRate == null) {
+                    nodeFillRate = new TObjectDoubleHashMap<>();
+                    myTableFillRateMap.put(tableName, nodeFillRate);
+                }
+                nodeFillRate.put(nodeID, fillRate);
+                return true;
+            }
+        });
     }
 }

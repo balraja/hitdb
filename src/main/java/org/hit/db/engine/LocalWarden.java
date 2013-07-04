@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.node;
+package org.hit.db.engine;
 
 import gnu.trove.map.TObjectLongMap;
 import gnu.trove.map.hash.TObjectLongHashMap;
@@ -50,26 +50,35 @@ import org.hit.util.NamedThreadFactory;
 import com.google.inject.Inject;
 
 /**
- * Defines the <code>NodeCoordinator</code> that acts as client to the 
+ * Defines the <code>NodeCoordinator</code> that acts as client to the
  * <code>NodeMonitor</code> running on the master.
- * 
+ *
  * @author Balraja Subbiah
  */
-public class NodeCoordinator extends Actor
+public class LocalWarden extends Actor
 {
-    private static final Logger LOG = 
-        LogFactory.getInstance().getLogger(NodeCoordinator.class);
-                               
-    private final Map<String, Partitioner<?, ?>> myPartitions;
-    
-    private final TObjectLongMap<String> myTableRowCountMap;
-    
-    private final ScheduledExecutorService myScheduler;
-    
-    private NodeID myMaster;
-    
-    private NodeConfig myConfig;
-    
+    private class ApplyDBStatsTask implements Runnable
+    {
+        private final DBStatEvent myDBStat;
+
+        /**
+         * CTOR
+         */
+        public ApplyDBStatsTask(DBStatEvent stat)
+        {
+            myDBStat = stat;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void run()
+        {
+            myTableRowCountMap.putAll(myDBStat.getTableToRowCountMap());
+        }
+    }
+
     private class PublishHeartbeatTask implements Runnable
     {
         /**
@@ -91,51 +100,34 @@ public class NodeCoordinator extends Actor
             }
         }
     }
-    
-    private class ApplyDBStatsTask implements Runnable
-    {
-        private final DBStatEvent myDBStat;
-        
-        /**
-         * CTOR
-         */
-        public ApplyDBStatsTask(DBStatEvent stat)
-        {
-            myDBStat = stat;
-        }
-        
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void run()
-        {
-            myTableRowCountMap.putAll(myDBStat.getTableToRowCountMap());
-        }
-    }
-    
+
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(LocalWarden.class);
+
+    private final EngineConfig myConfig;
+
+    private NodeID myMaster;
+
+    private final Map<String, Partitioner<?, ?>> myPartitions;
+
+    private final ScheduledExecutorService myScheduler;
+
+    private final TObjectLongMap<String> myTableRowCountMap;
+
     /**
      * CTOR
      */
     @Inject
-    public NodeCoordinator(EventBus eventBus, NodeConfig config)
+    public LocalWarden(EventBus eventBus, EngineConfig config)
     {
-        super(eventBus, new ActorID(NodeCoordinator.class.getSimpleName()));
+        super(eventBus, new ActorID(LocalWarden.class.getSimpleName()));
         myPartitions = new HashMap<>();
         myTableRowCountMap = new TObjectLongHashMap<>();
         myConfig = config;
-        myScheduler = 
+        myScheduler =
             Executors.newScheduledThreadPool(
                 1,
                 new NamedThreadFactory("NodeCoordinatorScheduler"));
-    }
-    
-    /**
-     * Setter for the master
-     */
-    public void setMaster(NodeID master)
-    {
-        myMaster = master;
     }
 
     /**
@@ -148,7 +140,7 @@ public class NodeCoordinator extends Actor
             GossipNotificationEvent gne = (GossipNotificationEvent) event;
             for (Gossip gossip : gne.getGossip()) {
                 if (gossip instanceof Partitioner) {
-                    myPartitions.put((String)              gossip.getKey(), 
+                    myPartitions.put((String)              gossip.getKey(),
                                      (Partitioner<?,?>) gossip);
                 }
             }
@@ -167,12 +159,19 @@ public class NodeCoordinator extends Actor
     {
         getEventBus().registerForEvent(
             GossipNotificationEvent.class, getActorID());
-        
-        getEventBus().registerForEvent(
-            DBStatEvent.class, getActorID());
-        
+
+        getEventBus().registerForEvent(DBStatEvent.class, getActorID());
+
     }
-    
+
+    /**
+     * Setter for the master
+     */
+    public void setMaster(NodeID master)
+    {
+        myMaster = master;
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -186,7 +185,7 @@ public class NodeCoordinator extends Actor
             myConfig.getHeartBeatInterval(),
             TimeUnit.SECONDS);
     }
-    
+
     /**
      * {@inheritDoc}
      */

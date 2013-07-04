@@ -23,14 +23,14 @@ package org.hit.di;
 import org.hit.actors.EventBus;
 import org.hit.consensus.ConsensusProtocolProvider;
 import org.hit.consensus.paxos.PaxosProvider;
+import org.hit.db.engine.Allocator;
+import org.hit.db.engine.EngineConfig;
+import org.hit.db.engine.EnginePropertyConfig;
+import org.hit.db.engine.StandardAllocator;
 import org.hit.db.transactions.journal.FileSystemFacacde;
 import org.hit.db.transactions.journal.StandardFileSystem;
 import org.hit.db.transactions.journal.WALConfig;
 import org.hit.db.transactions.journal.WALPropertyConfig;
-import org.hit.node.Allocator;
-import org.hit.node.NodeConfig;
-import org.hit.node.NodePropertyConfig;
-import org.hit.node.StandardAllocator;
 import org.hit.time.Clock;
 import org.hit.time.SimpleSystemClock;
 
@@ -65,7 +65,7 @@ public class HitServerModule extends HitModule
         bind(Clock.class).to(SimpleSystemClock.class);
         bind(WALConfig.class).to(WALPropertyConfig.class);
         bind(FileSystemFacacde.class).to(StandardFileSystem.class);
-        bind(NodeConfig.class).to(NodePropertyConfig.class);
+        bind(EngineConfig.class).to(EnginePropertyConfig.class);
         bind(Allocator.class).to(StandardAllocator.class);
     }
 

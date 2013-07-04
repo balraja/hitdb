@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -29,25 +29,11 @@ import org.hit.facade.HitDBFacade;
 
 /**
  * The shell for interacting with the hit database.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class HitDBShell extends DBClient
 {
-    private static final String BANNER = 
-        "Hit Database Shell Copyright (C) 2013 Balraja Subbiah";
-    
-    private static final String HELP_MSG = 
-        "Use 'help' for assistance";
-    
-    private static final String PROMPT = ">";
-    
-    private HitDBFacade myFacade;
-    
-    private final ExecutorService myCommandExecutor;
-    
-    private final CommandParser myCommandParser;
-    
     private class CommandTask implements Runnable
     {
         private final Command myCommand;
@@ -71,7 +57,7 @@ public class HitDBShell extends DBClient
             myCommandExecutor.submit(new ReaderTask());
         }
     }
-    
+
     private class ReaderTask implements Runnable
     {
         /**
@@ -80,17 +66,33 @@ public class HitDBShell extends DBClient
         @Override
         public void run()
         {
-            Scanner scanner = new Scanner(System.in);
-            System.out.print(PROMPT);
-            while (!scanner.hasNextLine()){
-                // Do nothing
+
+            try (Scanner scanner = new Scanner(System.in)) {
+                System.out.print(PROMPT);
+                while (!scanner.hasNextLine()){
+                    // Do nothing
+                }
+                String line = scanner.nextLine();
+                Command command = myCommandParser.parse(line);
+                myCommandExecutor.submit(new CommandTask(command));
             }
-            String line = scanner.nextLine();
-            Command command = myCommandParser.parse(line);
-            myCommandExecutor.submit(new CommandTask(command));
         }
     }
-    
+
+    private static final String BANNER =
+        "Hit Database Shell Copyright (C) 2013 Balraja Subbiah";
+
+    private static final String HELP_MSG =
+        "Use 'help' for assistance";
+
+    public static final String PROMPT = ">";
+
+    private final ExecutorService myCommandExecutor;
+
+    private final CommandParser myCommandParser;
+
+    private HitDBFacade myFacade;
+
     /**
      * CTOR
      */

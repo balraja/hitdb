@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,29 +18,29 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.node;
+package org.hit.db.engine;
+
+import java.util.Collection;
+
+import org.hit.event.Event;
 
 /**
- * Defines the contract for an interface that provides configuration
- * for the server.
- * 
+ * Defines the contract for a type that's used for monitoring the
+ * database engine.
+ *
  * @author Balraja Subbiah
  */
-public interface NodeConfig
+public interface EngineWarden
 {
-    /** 
-     * Returns true if the server is marked as mater during startup 
-     */
-    public boolean isMaster();
-    
-    /** 
-     * Returns the interval in seconds in which the heart beat is to be  
-     * published.
-     */
-    public int getHeartBeatInterval();
-    
-    /**
-     * Returns true if the server is running in single server mode.
-     */
-    public boolean isSingleServer();
+    /** Handles the interested events */
+    public void handleEvent(Event event);
+
+    /** A helper method to get the interested events */
+    public Collection<Class<? extends Event>> interestedEvents();
+
+    /** A helper method to start the warden */
+    public void start();
+
+    /** Stops the warden */
+    public void stop();
 }

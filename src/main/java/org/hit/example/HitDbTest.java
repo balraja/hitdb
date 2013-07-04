@@ -28,16 +28,13 @@ import java.util.logging.Logger;
 import org.hit.client.DBClient;
 import org.hit.db.model.Column;
 import org.hit.db.model.Schema;
+import org.hit.db.model.mutations.AddRowMutation;
 import org.hit.facade.DBOperationResponse;
-import org.hit.facade.HitDBFacade;
 import org.hit.facade.TableCreationResponse;
 import org.hit.key.LinearKeyspace;
-import org.hit.key.domain.ComposedDomain;
-import org.hit.key.domain.DiscreteDomain;
-import org.hit.key.domain.IntegerDomain;
+import org.hit.key.domain.LongDomain;
 import org.hit.util.LogFactory;
 
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 
 /**
@@ -46,21 +43,18 @@ import com.google.common.util.concurrent.ListenableFuture;
  *
  * @author Balraja Subbiah
  */
-public class HitDbTest implements DBClient
+public class HitDbTest extends DBClient
 {
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(HitDbTest.class);
 
-    public static final String TABLE_NAME = "ClimateData";
-
-    private HitDBFacade myServerFacade;
+    public static final String TABLE_NAME = "airports";
 
     /**
      * CTOR
      */
     public HitDbTest()
     {
-        myServerFacade = new HitDBFacade();
     }
 
     /** Creates the climate data table */
@@ -69,18 +63,12 @@ public class HitDbTest implements DBClient
         Schema schema =
             new Schema(TABLE_NAME,
                        new ArrayList<Column>(),
-                       ClimateData.class,
-                       ClimateDataKey.class,
-                       new LinearKeyspace<ClimateDataKey>(
-                           new ComposedDomain<ClimateDataKey>(
-                               Lists.<DiscreteDomain<?>>newArrayList(
-                                  new IntegerDomain(2004, 2005),
-                                  new IntegerDomain(1, 365),
-                                  new IntegerDomain(1, 10)),
-                               ClimateDataKey.class)));
+                       Airport.class,
+                       Long.class,
+                       new LinearKeyspace<Long>(new LongDomain(1L, 7000L)));
 
         ListenableFuture<TableCreationResponse> futureResponse =
-            myServerFacade.createTable(schema);
+            getFacade().createTable(schema);
 
         try {
             TableCreationResponse result = futureResponse.get();
@@ -100,17 +88,9 @@ public class HitDbTest implements DBClient
      * {@inheritDoc}
      */
     @Override
-    public void shutdown()
+    public void start()
     {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void start(HitDBFacade facade)
-    {
-        myServerFacade = facade;
+        super.start();
         createTable();
         updateTable();
     }
@@ -118,16 +98,13 @@ public class HitDbTest implements DBClient
     /** Updates the table */
     public void updateTable()
     {
-        AddRowMutation mutation =
-            new AddRowMutation(
-               new ClimateData(new ClimateDataKey(2013, 1, 1),
-                               48,
-                               20,
-                               25,
-                               50,
-                               45));
+        AddRowMutation<Long,Airport> mutation =
+            new AddRowMutation<Long,Airport>(new Airport(
+               1, "Heathrow","London","United Kingdom","LHR",51.4775D,-0.461389D,83.0D,0),
+               TABLE_NAME);
+
         ListenableFuture<DBOperationResponse> futureResponse =
-            myServerFacade.apply(mutation, TABLE_NAME);
+            getFacade().apply(mutation, TABLE_NAME);
 
         try {
             DBOperationResponse response = futureResponse.get();

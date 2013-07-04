@@ -36,16 +36,11 @@ import org.hit.db.model.Schema;
 import org.hit.db.model.Table;
 import org.hit.db.transactions.DatabaseAdaptor;
 import org.hit.db.transactions.impl.TransactableHitDatabase;
-import org.hit.example.ClimateData;
-import org.hit.example.ClimateDataKey;
+import org.hit.example.Airport;
 import org.hit.example.HitDbTest;
 import org.hit.key.LinearKeyspace;
-import org.hit.key.domain.ComposedDomain;
-import org.hit.key.domain.DiscreteDomain;
-import org.hit.key.domain.IntegerDomain;
+import org.hit.key.domain.LongDomain;
 import org.junit.Test;
-
-import com.google.common.collect.Lists;
 
 /**
  * Defines the testcase for validating the functionality of
@@ -57,12 +52,12 @@ public class TransactionTest
 {
     private static class SimpleMutation implements Mutation
     {
-        private final ClimateData myAddedData;
+        private final Airport myAddedData;
 
         /**
          * CTOR
          */
-        public SimpleMutation(ClimateData addedData)
+        public SimpleMutation(Airport addedData)
         {
             myAddedData = addedData;
         }
@@ -82,10 +77,10 @@ public class TransactionTest
         @Override
         public void update(Database database)
         {
-            Table<ClimateDataKey, ClimateData> climateTable =
+            Table<Long, Airport> airportTable =
                 database.lookUpTable(HitDbTest.TABLE_NAME);
 
-            climateTable.update(null, myAddedData);
+            airportTable.update(null, myAddedData);
         }
 
         /**
@@ -100,12 +95,12 @@ public class TransactionTest
 
     private static class SimpleQuery implements Query
     {
-        private final ClimateDataKey myKey;
+        private final Long myKey;
 
         /**
          * CTOR
          */
-        public SimpleQuery(ClimateDataKey key)
+        public SimpleQuery(Long key)
         {
             myKey = key;
         }
@@ -116,9 +111,9 @@ public class TransactionTest
         @Override
         public Object query(Database database)
         {
-            Table<ClimateDataKey, ClimateData> climateTable =
+            Table<Long,Airport> airportTable =
                 database.lookUpTable(HitDbTest.TABLE_NAME);
-            return climateTable.getRow(myKey);
+            return airportTable.getRow(myKey);
         }
 
         /**
@@ -144,36 +139,31 @@ public class TransactionTest
     {
         DatabaseAdaptor database =
             new DatabaseAdaptor(new TransactableHitDatabase(), 1L);
-        
-        DiscreteDomain<ClimateDataKey> domain = 
-            new ComposedDomain<ClimateDataKey>(
-               Lists.<DiscreteDomain<?>>newArrayList(
-                    new IntegerDomain(2013, 2014),
-                    new IntegerDomain(1, 365),
-                    new IntegerDomain(1, 200)),
-               ClimateDataKey.class);
 
         Schema schema =
             new Schema(HitDbTest.TABLE_NAME,
                        new ArrayList<Column>(),
-                       ClimateData.class,
-                       ClimateDataKey.class,
-                       new LinearKeyspace<>(domain));
+                       Airport.class,
+                       Long.class,
+                       new LinearKeyspace<>(new LongDomain(1, 7000)));
 
         database.createTable(schema);
-        ClimateData newClimateDataRow =
-            new ClimateData(new ClimateDataKey(2013, 1, 1),
-                            48,
-                            20,
-                            25,
-                            50,
-                            45);
+        Airport airport  =
+            new Airport(1,
+                        "Heathrow",
+                        "London",
+                        "United Kingdom",
+                        "LHR",
+                        51.4775D,
+                        -0.461389D,
+                        83.0D,
+                        0);
 
-        Mutation m = new SimpleMutation(newClimateDataRow);
+        Mutation m = new SimpleMutation(airport);
         m.update(database);
-        Query q = new SimpleQuery(newClimateDataRow.getKey());
+        Query q = new SimpleQuery(airport.primaryKey());
         Object result = q.query(database);
         assertNotNull(result);
-        assertEquals(result, newClimateDataRow);
+        assertEquals(result, airport);
     }
 }

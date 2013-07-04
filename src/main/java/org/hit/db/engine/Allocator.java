@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,7 +18,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.node;
+package org.hit.db.engine;
+
+import java.util.Map;
 
 import org.hit.communicator.NodeID;
 import org.hit.db.model.Schema;
@@ -26,11 +28,12 @@ import org.hit.event.DBStatEvent;
 import org.hit.event.GossipUpdateEvent;
 import org.hit.messages.Allocation;
 import org.hit.messages.Heartbeat;
+import org.hit.partitioner.Partitioner;
 
 /**
- * Defines an interface that can be used for allocating the keyspace to 
+ * Defines an interface that can be used for allocating the keyspace to
  * various nodes.
- * 
+ *
  * @author Balraja Subbiah
  */
 public interface Allocator
@@ -39,26 +42,31 @@ public interface Allocator
      * The schema to be monitored.
      */
     public void addSchema(Schema tableSchema);
-    
+
     /**
-     * Listens to heartbeats from  the given <code>NodeID</code>.
+     * Returns the <code>Allocation</code> corresponding to the given node.
      */
-    public void listenTO(NodeID nodeID, Heartbeat heartbeat);
-    
+    public Allocation getAllocation(NodeID nodeID) throws IllegalAccessException;
+
+    /**
+     * Returns an <code>GossipUpdateEvent</code> to get updates about
+     * the latest keyspace partitions.
+     */
+    public GossipUpdateEvent getGossipUpdates();
+
+    /**
+     * Returns the {@link Partitioner}s for various tables.
+     */
+    public Map<String, Partitioner<?,?>>  getPartitions();
+
     /**
      * Updates the statistics published by the db server running on the
      * master node.
      */
     public void listenTO(DBStatEvent dbStats);
-    
+
     /**
-     * Returns the <code>Allocation</code> corresponding to the given node.
+     * Listens to heartbeats from  the given <code>NodeID</code>.
      */
-    public Allocation getAllocation(NodeID nodeID) throws IllegalAccessException;
-    
-    /**
-     * Returns an <code>GossipUpdateEvent</code> to get updates about 
-     * the latest keyspace partitions.
-     */
-    public GossipUpdateEvent getGossipUpdates();
+    public void listenTO(NodeID nodeID, Heartbeat heartbeat);
 }
