@@ -72,9 +72,7 @@ public class HitDbTest extends DBClient
 
         try {
             TableCreationResponse result = futureResponse.get();
-            LOG.info("Creation of table "
-                     + result.getTableSchema().getTableName()
-                     + " succedded on nodes " + result.getAffectedNodes());
+            LOG.info("Creation of table " + result.getTableName());
         }
         catch (InterruptedException e) {
             // ignore

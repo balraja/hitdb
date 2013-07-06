@@ -26,7 +26,12 @@ import org.hit.consensus.paxos.PaxosProvider;
 import org.hit.db.engine.Allocator;
 import org.hit.db.engine.EngineConfig;
 import org.hit.db.engine.EnginePropertyConfig;
+import org.hit.db.engine.EngineWarden;
+import org.hit.db.engine.MasterWarden;
 import org.hit.db.engine.StandardAllocator;
+import org.hit.db.engine.TransactionManager;
+import org.hit.db.transactions.TransactableDatabase;
+import org.hit.db.transactions.impl.TransactableHitDatabase;
 import org.hit.db.transactions.journal.FileSystemFacacde;
 import org.hit.db.transactions.journal.StandardFileSystem;
 import org.hit.db.transactions.journal.WALConfig;
@@ -67,6 +72,10 @@ public class HitServerModule extends HitModule
         bind(FileSystemFacacde.class).to(StandardFileSystem.class);
         bind(EngineConfig.class).to(EnginePropertyConfig.class);
         bind(Allocator.class).to(StandardAllocator.class);
+        bind(TransactableDatabase.class).to(TransactableHitDatabase.class);
+        bind(TransactionManager.class).toProvider(
+            TransactionManagerProvider.class);
+        bind(EngineWarden.class).toProvider(EngineWardenProvider.class);
     }
 
     /**

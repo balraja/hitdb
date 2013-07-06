@@ -20,30 +20,16 @@
 
 package org.hit.db.engine;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
-import org.hit.db.model.DBOperation;
-import org.hit.db.model.Schema;
-import org.hit.db.transactions.TransactableDatabase;
-import org.hit.db.transactions.impl.TransactableHitDatabase;
-import org.hit.db.transactions.journal.WAL;
 import org.hit.event.Event;
-import org.hit.event.ProposalNotificationEvent;
-import org.hit.messages.CreateTableMessage;
-import org.hit.messages.DBOperationMessage;
-import org.hit.messages.DistributedDBOperationMessage;
-import org.hit.time.Clock;
-import org.hit.util.LogFactory;
 
 import com.google.inject.Inject;
 
 /**
- * Implements the database engine that's reponsible for creating tables and
+ * Implements the database engine that's responsible for creating tables and
  * responding to queries.
  *
  * @author Balraja Subbiah
@@ -60,6 +46,16 @@ public class DBEngine extends Actor
     {
         super(eventBus, new ActorID(DBEngine.class.getName()));
         myEngineWarden = warden;
+    }
+    
+    /**
+     * Initializes the <code>DBEngine</code> with the master node.
+     */
+    public void init(NodeID masterNode)
+    {
+        if (myEngineWarden instanceof LocalWarden) {
+            ((LocalWarden) myEngineWarden).setMaster(masterNode);
+        }
     }
 
     /**
@@ -78,5 +74,25 @@ public class DBEngine extends Actor
     protected void registerEvents()
     {
         myEngineWarden.register(getActorID());       
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void start()
+    {
+        super.start();
+        myEngineWarden.start();
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void stop()
+    {
+        super.stop();
+        myEngineWarden.stop();
     }
   }

@@ -99,4 +99,13 @@ public class AddRowMutation<K extends Comparable<K>, P extends Persistable<K>>
         out.writeUTF(myTableName);
         out.writeObject(myData);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getTableName()
+    {
+        return myTableName;
+    }
 }

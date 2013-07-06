@@ -68,8 +68,6 @@ public class HitServer implements Application
 
     private final Disseminator       myDisseminator;
 
-    private final Actor              myNodeActor;
-
     private final NodeID             myServerNodeID;
 
     private final ZooKeeperClient    myZooKeeperClient;
@@ -87,8 +85,6 @@ public class HitServer implements Application
         myDBEngine      = injector.getInstance(DBEngine.class);
         myZooKeeperClient = injector.getInstance(ZooKeeperClient.class);
         myConfig = injector.getInstance(EngineConfig.class);
-        myNodeActor = myConfig.isMaster() ? injector.getInstance(MasterWarden.class)
-                                          : injector.getInstance(LocalWarden.class);
     }
 
     /**
@@ -102,14 +98,7 @@ public class HitServer implements Application
             //Wait till zookeeper client becomes ready.
         }
         LOG.info("Connected to zookeeper");
-        myCommunicatingActor.start();
-        LOG.info("Communicator started");
-        myConsensusManager.start();
-        LOG.info("Consensus manager started");
-        myDisseminator.start();
-        LOG.info("Gossiper started");
-        myDBEngine.start();
-        LOG.info("Database engine started");
+        ;
 
         myZooKeeperClient.checkAndCreateRootNode();
         myZooKeeperClient.addHostNode(myServerNodeID);
@@ -126,10 +115,17 @@ public class HitServer implements Application
                // Spin till the master is started
                masterNode = myZooKeeperClient.getMasterNode();
            }
-           ((LocalWarden) myNodeActor).setMaster(masterNode);
+           myDBEngine.init(masterNode);
         }
-        myNodeActor.start();
-        LOG.info(myNodeActor.getActorID() + " started");
+        
+        myCommunicatingActor.start();
+        LOG.info("Communicator started");
+        myConsensusManager.start();
+        LOG.info("Consensus manager started");
+        myDisseminator.start();
+        LOG.info("Gossiper started");
+        myDBEngine.start();
+        LOG.info("Database engine started");
     }
 
     /**
@@ -143,6 +139,5 @@ public class HitServer implements Application
         myDisseminator.stop();
         myDBEngine.stop();
         myDisseminator.stop();
-        myNodeActor.stop();
     }
 }
