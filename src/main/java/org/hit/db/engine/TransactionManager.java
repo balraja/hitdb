@@ -304,38 +304,17 @@ public class TransactionManager
     /**
      * Creates a table with the given <code>Schema</code>
      */
-    public void createTable(NodeID clientId, Schema schema)
+    public boolean createTable(Schema schema)
     {
-        LOG.info("Received request from " + clientId + " for creating new table"
-                 + " with schema " + schema); 
-        CreateTableResponseMessage response = null;
         try {
             myDatabase.createTable(schema);
-            myEventBus.publish(new SchemaNotificationEvent(schema));
-            response = 
-                new CreateTableResponseMessage(myServerID, 
-                                               schema.getTableName(), 
-                                               true, 
-                                               null);
-            LOG.info("Schema for " + schema.getTableName() + " was successfully"
-                     + " added to the database");
+            return true;
         }
         catch (Exception e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
-            response = 
-                new CreateTableResponseMessage(myServerID, 
-                                               schema.getTableName(), 
-                                               false, 
-                                               e.getMessage());
+            return false;
         }
-        try {
-            myEventBus.publish(new SendMessageEvent(
-                                   Collections.singleton(clientId),
-                                   response));
-        }
-        catch (EventBusException e) {
-            LOG.log(Level.SEVERE, e.getMessage(), e);
-        }
+       
     }
     
     /**

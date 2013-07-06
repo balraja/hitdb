@@ -27,7 +27,6 @@ import java.util.List;
 
 import org.hit.concurrent.HashTable;
 import org.hit.concurrent.RefinableHashTable;
-import org.hit.db.engine.AbstractTransactableTable;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
 import org.hit.db.model.Schema;

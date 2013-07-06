@@ -55,7 +55,7 @@ import com.google.inject.Inject;
  *
  * @author Balraja Subbiah
  */
-public class LocalWarden extends Actor
+public class LocalWarden extends AbstractWarden
 {
     private class ApplyDBStatsTask implements Runnable
     {
@@ -104,8 +104,6 @@ public class LocalWarden extends Actor
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(LocalWarden.class);
 
-    private final EngineConfig myConfig;
-
     private NodeID myMaster;
 
     private final Map<String, Partitioner<?, ?>> myPartitions;
@@ -118,12 +116,13 @@ public class LocalWarden extends Actor
      * CTOR
      */
     @Inject
-    public LocalWarden(EventBus eventBus, EngineConfig config)
+    public LocalWarden(TransactionManager transactionManager,
+                       EngineConfig       engineConfig,
+                       EventBus           eventBus)
     {
-        super(eventBus, new ActorID(LocalWarden.class.getSimpleName()));
+        super(transactionManager, engineConfig, eventBus);
         myPartitions = new HashMap<>();
         myTableRowCountMap = new TObjectLongHashMap<>();
-        myConfig = config;
         myScheduler =
             Executors.newScheduledThreadPool(
                 1,
@@ -134,8 +133,9 @@ public class LocalWarden extends Actor
      * {@inheritDoc}
      */
     @Override
-    protected void processEvent(Event event)
+    public void handleEvent(Event event)
     {
+        super.handleEvent(event);
         if (event instanceof GossipNotificationEvent) {
             GossipNotificationEvent gne = (GossipNotificationEvent) event;
             for (Gossip gossip : gne.getGossip()) {
@@ -155,13 +155,13 @@ public class LocalWarden extends Actor
      * {@inheritDoc}
      */
     @Override
-    protected void registerEvents()
+    public void register(ActorID actorID)
     {
+        super.register(actorID);
         getEventBus().registerForEvent(
-            GossipNotificationEvent.class, getActorID());
+            GossipNotificationEvent.class, actorID);
 
-        getEventBus().registerForEvent(DBStatEvent.class, getActorID());
-
+        getEventBus().registerForEvent(DBStatEvent.class, actorID);
     }
 
     /**
@@ -178,11 +178,10 @@ public class LocalWarden extends Actor
     @Override
     public void start()
     {
-        super.start();
         myScheduler.scheduleWithFixedDelay(
             new PublishHeartbeatTask(),
-            myConfig.getHeartBeatInterval(),
-            myConfig.getHeartBeatInterval(),
+            getEngineConfig().getHeartBeatIntervalSecs(),
+            getEngineConfig().getHeartBeatIntervalSecs(),
             TimeUnit.SECONDS);
     }
 
@@ -192,7 +191,6 @@ public class LocalWarden extends Actor
     @Override
     public void stop()
     {
-        super.stop();
         myScheduler.shutdownNow();
     }
 }

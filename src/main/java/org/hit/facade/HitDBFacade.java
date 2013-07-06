@@ -23,7 +23,6 @@ package org.hit.facade;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -124,15 +123,17 @@ public class HitDBFacade
                 myIsInitialized.set(true);
             }
             else if (myMessage instanceof CreateTableResponseMessage) {
+                
                 final CreateTableResponseMessage createTableResponse =
                     (CreateTableResponseMessage) myMessage;
-
-                final SettableFuture<NodeID> tableCreationFuture =
-                    myPhasedTableCreationFutureMap.get(
-                        createTableResponse.getTableName());
-
-                if (createTableResponse.isIsSuccessful()) {
-                    tableCreationFuture.set(createTableResponse.getNodeId());
+                
+                SettableFuture<CreateTableResponseMessage> 
+                    tableCreationFuture =
+                        myTableCreationFutureMap.get(
+                            createTableResponse.getTableName());
+                
+                if (createTableResponse.getErrorMessage() != null) {
+                    tableCreationFuture.set(createTableResponse);
                 }
                 else {
                     tableCreationFuture.setException(
@@ -375,45 +376,32 @@ public class HitDBFacade
             LOG.info("Processing request for creating  table with schema " +
                      mySchema);
 
-            final List<NodeID> serverNodes = myRegistryService.getServerNodes();
             final TableCreationResponseHandler tableCreationHandler =
-                new TableCreationResponseHandler(
-                    mySchema, myFuture, serverNodes);
-            final SettableFuture<NodeID> tableCreationFuture = 
-                SettableFuture.create();
+                new TableCreationResponseHandler(myFuture);
+            final SettableFuture<CreateTableResponseMessage> tableCreationFuture 
+                = SettableFuture.create();
             Futures.addCallback(tableCreationFuture, tableCreationHandler);
-            myPhasedTableCreationFutureMap.put(mySchema.getTableName(),
-                                               tableCreationFuture);
+            myTableCreationFutureMap.put(mySchema.getTableName(),
+                                         tableCreationFuture);
 
             final CreateTableMessage message =
                 new CreateTableMessage(myClientID, mySchema);
-            final NodeID serverNode = serverNodes.get(0);
-            myCommunicator.sendTo(serverNode, message);
+            myCommunicator.sendTo(myRegistryService.getMasterNode(), message);
         }
     }
 
-    private class TableCreationResponseHandler implements FutureCallback<NodeID>
+    private class TableCreationResponseHandler 
+        implements FutureCallback<CreateTableResponseMessage>
     {
         private final SettableFuture<TableCreationResponse> myClientFuture;
-
-        private final Set<NodeID> myCompletedNodes;
-
-        private final List<NodeID> myServerNodes;
-
-        private final Schema myTableSchema;
 
         /**
          * CTOR
          */
         public TableCreationResponseHandler(
-            Schema                                tableSchema,
-            SettableFuture<TableCreationResponse> clientFuture,
-            List<NodeID>                          serverNodes)
+            SettableFuture<TableCreationResponse> clientFuture)
         {
-            myTableSchema = tableSchema;
             myClientFuture = clientFuture;
-            myServerNodes = serverNodes;
-            myCompletedNodes = new HashSet<>();
         }
 
         /**
@@ -429,26 +417,21 @@ public class HitDBFacade
          * {@inheritDoc}
          */
         @Override
-        public void onSuccess(NodeID result)
+        public void onSuccess(CreateTableResponseMessage response)
         {
-            myCompletedNodes.add(result);
-            myServerNodes.remove(result);
-
-            if (myServerNodes.isEmpty()) {
-                myClientFuture.set(
-                    new TableCreationResponse(myCompletedNodes, myTableSchema));
+            if (response.getErrorMessage() != null) {
+                myClientFuture.setException(
+                    new RuntimeException(response.getErrorMessage()));
             }
             else {
-                final SettableFuture<NodeID> tableCreationFuture
-                    = SettableFuture.create();
-                Futures.addCallback(tableCreationFuture, this);
-                final CreateTableMessage message =
-                    new CreateTableMessage(myClientID, myTableSchema);
-                final NodeID serverNode = myServerNodes.get(0);
-                myCommunicator.sendTo(serverNode, message);
-                myPhasedTableCreationFutureMap.put(
-                    myTableSchema.getTableName(), tableCreationFuture);
+                myTable2Partitions.put(
+                    response.getTableName(), 
+                    response.getPartitioner());
+                
+                myClientFuture.set(
+                    new TableCreationResponse(response.getTableName()));
             }
+            
         }
     }
     
@@ -466,8 +449,8 @@ public class HitDBFacade
 
     private final AtomicLong myOperationsCount;
 
-    private final Map<String, SettableFuture<NodeID>>
-        myPhasedTableCreationFutureMap;
+    private final Map<String, SettableFuture<CreateTableResponseMessage>>
+        myTableCreationFutureMap;
 
     private final RegistryService myRegistryService;
 
@@ -487,7 +470,7 @@ public class HitDBFacade
         myTable2Partitions = new HashMap<>();
         myMutationIDToFutureMap = new HashMap<>();
         myOperationsCount = new AtomicLong(0L);
-        myPhasedTableCreationFutureMap = new HashMap<>();
+        myTableCreationFutureMap = new HashMap<>();
         myQueryToMergableFutureMap = new HashMap<>();
 
         myExecutorService =

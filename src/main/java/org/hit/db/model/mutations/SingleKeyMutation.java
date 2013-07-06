@@ -33,4 +33,10 @@ public interface SingleKeyMutation<K extends Comparable<K>> extends Mutation
 {
     /** Returns the key of the row that will be affected */
     public K getKey();
+    
+    /** 
+     * Returns the name of table against which this mutation is to be 
+     * executed.
+     */
+    public String getTableName();
 }

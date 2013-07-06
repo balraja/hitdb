@@ -26,6 +26,7 @@ import java.io.ObjectOutput;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.partitioner.Partitioner;
 
 /**
  * Defines the response from the batabase server to the client for later's 
@@ -37,7 +38,7 @@ public class CreateTableResponseMessage extends Message
 {
     private String myTableName;
     
-    private boolean myIsSuccessful;
+    private Partitioner<?,?> myPartitioner;
     
     private String myErrorMessage;
 
@@ -46,7 +47,7 @@ public class CreateTableResponseMessage extends Message
      */
     public CreateTableResponseMessage()
     {
-        this(null, null, false, null);
+        this(null, null, null, null);
     }
 
     /**
@@ -54,12 +55,12 @@ public class CreateTableResponseMessage extends Message
      */
     public CreateTableResponseMessage(NodeID  nodeId,
                                       String  tableName,
-                                      boolean isSuccessful,
+                                      Partitioner<?,?> partitioner,
                                       String  errorMessage)
     {
         super(nodeId);
         myTableName = tableName;
-        myIsSuccessful = isSuccessful;
+        myPartitioner = partitioner;
         myErrorMessage = errorMessage;
     }
 
@@ -82,17 +83,17 @@ public class CreateTableResponseMessage extends Message
     /**
      * Returns the value of isSuccessful
      */
-    public boolean isIsSuccessful()
+    public Partitioner<?,?> getPartitioner()
     {
-        return myIsSuccessful;
+        return myPartitioner;
     }
 
     /**
      * Setter for the isSuccessful
      */
-    public void setIsSuccessful(boolean isSuccessful)
+    public void setPartitioner(Partitioner<?,?> partitioner)
     {
-        myIsSuccessful = isSuccessful;
+        myPartitioner = partitioner;
     }
 
     /**
@@ -119,7 +120,7 @@ public class CreateTableResponseMessage extends Message
     {
         super.writeExternal(out);
         out.writeUTF(myTableName);
-        out.writeBoolean(myIsSuccessful);
+        out.writeObject(myPartitioner);
         if (myErrorMessage != null) {
             out.writeBoolean(true);
             out.writeUTF(myErrorMessage);
@@ -138,7 +139,7 @@ public class CreateTableResponseMessage extends Message
     {
         super.readExternal(in);
         myTableName = in.readUTF();
-        myIsSuccessful = in.readBoolean();
+        myPartitioner = (Partitioner<?, ?>) in.readObject();
         boolean hasError = in.readBoolean();
         if (hasError) {
             myErrorMessage = in.readUTF();

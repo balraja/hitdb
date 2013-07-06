@@ -20,8 +20,7 @@
 
 package org.hit.db.engine;
 
-import java.util.Collection;
-
+import org.hit.actors.ActorID;
 import org.hit.event.Event;
 
 /**
@@ -36,7 +35,7 @@ public interface EngineWarden
     public void handleEvent(Event event);
 
     /** A helper method to get the interested events */
-    public Collection<Class<? extends Event>> interestedEvents();
+    public void register(ActorID actorID);
 
     /** A helper method to start the warden */
     public void start();

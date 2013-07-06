@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.db.engine;
+package org.hit.db.transactions.impl;
 
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Schema;

@@ -21,6 +21,9 @@
 package org.hit.db.engine;
 
 import java.util.Collections;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -28,17 +31,20 @@ import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.actors.EventBusException;
 import org.hit.communicator.NodeID;
+import org.hit.db.model.Schema;
 import org.hit.event.DBStatEvent;
 import org.hit.event.Event;
 import org.hit.event.SchemaNotificationEvent;
 import org.hit.event.SendMessageEvent;
-import org.hit.facade.HitDBFacade;
 import org.hit.messages.Allocation;
+import org.hit.messages.CreateTableMessage;
+import org.hit.messages.CreateTableResponseMessage;
 import org.hit.messages.FacadeInitRequest;
 import org.hit.messages.FacadeInitResponse;
 import org.hit.messages.NodeAdvertisement;
 import org.hit.messages.NodeAdvertisementResponse;
 import org.hit.util.LogFactory;
+import org.hit.util.NamedThreadFactory;
 
 import com.google.inject.Inject;
 
@@ -47,40 +53,85 @@ import com.google.inject.Inject;
  *
  * @author Balraja Subbiah
  */
-public class MasterWarden
+public class MasterWarden extends AbstractWarden
 {
     private static final Logger LOG =
-       LogFactory.getInstance().getLogger(HitDBFacade.class);
+       LogFactory.getInstance().getLogger(MasterWarden.class);
+    
+    private static final String TABLE_CREATION_LOG =
+        "Received request from %s for creating table %s";
+    
+    private static final String TABLE_CREATION_FAILURE_MSG =
+        "Creation of table %s has failed";
 
     private final Allocator myAllocator;
 
     private final NodeID myNodeID;
-
+    
+    private final ScheduledExecutorService myScheduler;
+    
     /**
      * CTOR
      */
     @Inject
-    public MasterWarden(EventBus eventBus,
-                       EngineConfig config,
-                       NodeID nodeID,
-                       Allocator allocator)
+    public MasterWarden(TransactionManager transactionManager,
+                        EngineConfig engineConfig,
+                        EventBus eventBus,
+                        NodeID nodeID,
+                        Allocator allocator)
     {
-        super(eventBus, new ActorID(MasterWarden.class.getSimpleName()));
+        super(transactionManager, engineConfig, eventBus);
         myNodeID = nodeID;
         myAllocator = allocator;
+        myScheduler = 
+            Executors.newScheduledThreadPool(
+                1,
+                new NamedThreadFactory(MasterWarden.class));
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    protected void processEvent(Event event)
+    public void handleEvent(Event event)
     {
+        super.handleEvent(event);
         try {
-            if (event instanceof SchemaNotificationEvent) {
-                SchemaNotificationEvent sne =
-                    (SchemaNotificationEvent) event;
-                myAllocator.addSchema(sne.getSchema());
+            if (event instanceof CreateTableMessage) {
+                CreateTableMessage ctm = (CreateTableMessage) event;
+                LOG.info(String.format(TABLE_CREATION_LOG,
+                                       ctm.getNodeId(),
+                                       ctm.getTableSchema()));
+                Schema schema = ctm.getTableSchema();
+                myAllocator.addSchema(schema);
+                boolean isSuccess = 
+                    getTransactionManager().createTable(schema);
+                CreateTableResponseMessage response = null;
+                if (isSuccess) {
+                    response = 
+                        new CreateTableResponseMessage(
+                            myNodeID,
+                            schema.getTableName(), 
+                            myAllocator.getPartitions().get(
+                                schema.getTableName()), 
+                            null);
+                    
+                    LOG.info("Schema for " + schema.getTableName() 
+                             + " was successfully"
+                             + " added to the database");
+                }
+                else {
+                    response = 
+                        new CreateTableResponseMessage(
+                            myNodeID, 
+                            schema.getTableName(),
+                            null, 
+                            String.format(TABLE_CREATION_FAILURE_MSG, 
+                                          schema.getTableName()));
+                }
+                getEventBus().publish(new SendMessageEvent(
+                    Collections.singleton(myNodeID),
+                    response));
             }
             else if (event instanceof DBStatEvent) {
                 DBStatEvent stat = (DBStatEvent) event;
@@ -88,7 +139,8 @@ public class MasterWarden
             }
             else if (event instanceof NodeAdvertisement) {
                 NodeAdvertisement na = (NodeAdvertisement) event;
-                Allocation allocation = myAllocator.getAllocation(na.getNodeId());
+                Allocation allocation = 
+                    myAllocator.getAllocation(na.getNodeId());
                 if (allocation != null) {
                     getEventBus().publish(
                         new SendMessageEvent(
@@ -96,11 +148,9 @@ public class MasterWarden
                             new NodeAdvertisementResponse(myNodeID, allocation)));
                     getEventBus().publish(myAllocator.getGossipUpdates());
                 }
-
             }
             else if (event instanceof FacadeInitRequest) {
                 FacadeInitRequest fir = (FacadeInitRequest) event;
-                myFacadeAddresses.add(fir.getNodeId());
                 getEventBus().publish(
                       new SendMessageEvent(
                           Collections.singletonList(fir.getNodeId()),
@@ -117,14 +167,52 @@ public class MasterWarden
      * {@inheritDoc}
      */
     @Override
-    protected void registerEvents()
+    public void register(ActorID actorID)
     {
+        super.register(actorID);
         getEventBus().registerForEvent(
-            NodeAdvertisement.class, getActorID());
-        getEventBus().registerForEvent(DBStatEvent.class, getActorID());
-        getEventBus().registerForEvent(SchemaNotificationEvent.class,
-                                       getActorID());
+            NodeAdvertisement.class, actorID);
+        getEventBus().registerForEvent(DBStatEvent.class, actorID);
+        
         getEventBus().registerForEvent(FacadeInitRequest.class,
-                                       getActorID());
+                                       actorID);
+        getEventBus().registerForEvent(CreateTableMessage.class, actorID);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void start()
+    {
+        myScheduler.schedule(
+            new Runnable()
+            {
+                /**
+                 * {@inheritDoc}
+                 */
+                @Override
+                public void run()
+                {
+                    try {
+                        getEventBus().publish(
+                            myAllocator.getGossipUpdates());
+                    }
+                    catch (EventBusException e) {
+                        LOG.log(Level.SEVERE, e.getMessage(), e);
+                    }
+                }
+            },
+            getEngineConfig().getGossipUpdateSecs(),
+            TimeUnit.SECONDS);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void stop()
+    {
+        myScheduler.shutdownNow();
     }
 }

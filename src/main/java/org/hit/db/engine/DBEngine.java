@@ -50,37 +50,16 @@ import com.google.inject.Inject;
  */
 public class DBEngine extends Actor
 {
-    private static final String DB_OPERATION_LOG =
-        "Received request from %s for performing %s";
-
-    private static final Logger LOG =
-        LogFactory.getInstance().getLogger(DBEngine.class);
-
-    private static final String TABLE_CREATION_LOG =
-        "Received request from %s for creating table %s";
-
-    private final TransactionManager myTransactionManager;
-
+    private final EngineWarden myEngineWarden;
+    
     /**
      * CTOR
      */
     @Inject
-    public DBEngine(EventBus             eventBus,
-                    NodeID               nodeID,
-                    Clock                clock,
-                    WAL                  wal)
+    public DBEngine(EventBus eventBus, EngineWarden warden)
     {
         super(eventBus, new ActorID(DBEngine.class.getName()));
-
-        TransactableDatabase dataStore = new TransactableHitDatabase();
-
-        myTransactionManager =
-            new TransactionManager(
-                dataStore,
-                clock,
-                eventBus,
-                nodeID,
-                wal);
+        myEngineWarden = warden;
     }
 
     /**
@@ -89,49 +68,7 @@ public class DBEngine extends Actor
     @Override
     protected void processEvent(Event event)
     {
-        if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine("Received " + event);
-        }
-        if (event instanceof CreateTableMessage) {
-            CreateTableMessage ctm = (CreateTableMessage) event;
-            LOG.info(String.format(TABLE_CREATION_LOG,
-                                   ctm.getNodeId(),
-                                   ctm.getTableSchema()));
-            Schema schema = ctm.getTableSchema();
-            myTransactionManager.createTable(ctm.getNodeId(), schema);
-        }
-        else if (event instanceof DBOperationMessage) {
-
-            DBOperationMessage message =
-                (DBOperationMessage) event;
-
-            LOG.info(String.format(DB_OPERATION_LOG,
-                                   message.getNodeId(),
-                                   message.getOperation()));
-            DBOperation operation =
-                ((DBOperationMessage) event).getOperation();
-            myTransactionManager.processOperation(
-                message.getNodeId(), operation);
-        }
-        else if (event instanceof DistributedDBOperationMessage) {
-
-            DistributedDBOperationMessage ddbMessage =
-                (DistributedDBOperationMessage) event;
-
-            LOG.info(String.format(DB_OPERATION_LOG,
-                                   ddbMessage.getNodeId(),
-                                   ddbMessage.getNodeToOperationMap().keySet()));
-
-            myTransactionManager.processOperation(
-                ddbMessage.getNodeId(),
-                ddbMessage.getNodeToOperationMap());
-        }
-        else if (event instanceof ProposalNotificationEvent) {
-            ProposalNotificationEvent pne = (ProposalNotificationEvent) event;
-            if (pne.getProposal() instanceof DistributedTrnProposal) {
-
-            }
-        }
+        myEngineWarden.handleEvent(event);
     }
 
     /**
@@ -140,10 +77,6 @@ public class DBEngine extends Actor
     @Override
     protected void registerEvents()
     {
-        getEventBus().registerForEvent(CreateTableMessage.class,
-                                       getActorID());
-        getEventBus().registerForEvent(DBOperationMessage.class,
-                                       getActorID());
+        myEngineWarden.register(getActorID());       
     }
-
   }

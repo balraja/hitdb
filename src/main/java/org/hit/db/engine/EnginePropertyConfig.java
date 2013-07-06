@@ -36,7 +36,12 @@ public class EnginePropertyConfig implements EngineConfig
     public static final String HEARTBEAT_PROPERTY =
         "org.hit.node.heartbeatInterval";
     
+    public static final String GOSSIP_PROPERTY =
+        "org.hit.node.gossipUpdateInterval";
+    
     private static final int DEFAULT_HB_INTERVAL = 5;
+    
+    private static final int DEFAULT_GOSSIP_INTERVAL = 5;
     
     /**
      * {@inheritDoc}
@@ -52,9 +57,20 @@ public class EnginePropertyConfig implements EngineConfig
      * {@inheritDoc}
      */
     @Override
-    public int getHeartBeatInterval()
+    public int getHeartBeatIntervalSecs()
     {
         String value = ApplicationProperties.getProperty(HEARTBEAT_PROPERTY);
         return value != null ? Integer.parseInt(value) : DEFAULT_HB_INTERVAL;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getGossipUpdateSecs()
+    {
+        String value = ApplicationProperties.getProperty(GOSSIP_PROPERTY);
+        return value != null ? Integer.parseInt(value)
+                             : DEFAULT_GOSSIP_INTERVAL;
     }
 }

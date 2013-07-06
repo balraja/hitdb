@@ -29,10 +29,16 @@ package org.hit.db.engine;
 public interface EngineConfig
 {
     /**
-     * Returns the interval in seconds in which the heart beat is to be
+     * Returns the interval in seconds during which the heartbeats are to be
      * published.
      */
-    public int getHeartBeatInterval();
+    public int getHeartBeatIntervalSecs();
+    
+    /**
+     * Returns the interval in seconds during which gossip updates are to
+     * be published.
+     */
+    public int getGossipUpdateSecs();
 
     /**
      * Returns true if the server is marked as mater during startup
