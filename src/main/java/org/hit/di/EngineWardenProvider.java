@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -29,20 +29,22 @@ import org.hit.db.engine.LocalWarden;
 import org.hit.db.engine.MasterWarden;
 import org.hit.db.engine.TransactionManager;
 
+import com.google.inject.Inject;
 import com.google.inject.Provider;
 
 /**
  * Implements <code>Provider</code> to generate <code>EngineWarden</code>
- * 
+ *
  * @author Balraja Subbiah
  */
 public class EngineWardenProvider implements Provider<EngineWarden>
 {
     private final EngineWarden myWarden;
-    
+
     /**
      * CTOR
      */
+    @Inject
     public EngineWardenProvider(TransactionManager transactionManager,
                                 EngineConfig engineConfig,
                                 EventBus eventBus,
@@ -50,13 +52,13 @@ public class EngineWardenProvider implements Provider<EngineWarden>
                                 Allocator allocator)
     {
         myWarden = engineConfig.isMaster() ?
-                       new MasterWarden(transactionManager, 
-                                        engineConfig, 
-                                        eventBus, 
-                                        nodeID, 
+                       new MasterWarden(transactionManager,
+                                        engineConfig,
+                                        eventBus,
+                                        nodeID,
                                         allocator)
-                        : new LocalWarden(transactionManager, 
-                                          engineConfig, 
+                        : new LocalWarden(transactionManager,
+                                          engineConfig,
                                           eventBus);
     }
 

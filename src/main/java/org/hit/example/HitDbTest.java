@@ -20,7 +20,11 @@
 
 package org.hit.example;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,7 +32,7 @@ import java.util.logging.Logger;
 import org.hit.client.DBClient;
 import org.hit.db.model.Column;
 import org.hit.db.model.Schema;
-import org.hit.db.model.mutations.AddRowMutation;
+import org.hit.db.model.mutations.BatchMutation;
 import org.hit.facade.DBOperationResponse;
 import org.hit.facade.TableCreationResponse;
 import org.hit.key.LinearKeyspace;
@@ -45,6 +49,10 @@ import com.google.common.util.concurrent.ListenableFuture;
  */
 public class HitDbTest extends DBClient
 {
+    private static final String AIRPORT_FILE = "airports.txt";
+
+    private static final String COMMENT = "/**";
+
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(HitDbTest.class);
 
@@ -83,6 +91,44 @@ public class HitDbTest extends DBClient
     }
 
     /**
+     * A helper method to read the data from test file
+     */
+    public List<Airport> readTestData()
+    {
+        String line = null;
+        List<Airport> airportData = new ArrayList<>();
+        try (BufferedReader reader =
+                 new BufferedReader(new InputStreamReader(
+                     HitDbTest.class.getClassLoader()
+                                    .getResourceAsStream(AIRPORT_FILE))))
+        {
+            while ((line = reader.readLine()) != null) {
+
+                if (line.startsWith(COMMENT)) {
+                    continue;
+                }
+
+                String[] parts = line.split(",");
+                airportData.add(new Airport(
+                    Long.parseLong(parts[0]),
+                    parts[1],
+                    parts[2],
+                    parts[3],
+                    parts[4],
+                    Double.parseDouble(parts[6]),
+                    Double.parseDouble(parts[7]),
+                    Double.parseDouble(parts[8]),
+                    Float.parseFloat(parts[9])));
+
+            }
+        }
+        catch (IOException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+        }
+        return airportData;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -96,20 +142,18 @@ public class HitDbTest extends DBClient
     /** Updates the table */
     public void updateTable()
     {
-        AddRowMutation<Long,Airport> mutation =
-            new AddRowMutation<Long,Airport>(new Airport(
-               1, "Heathrow","London","United Kingdom","LHR",51.4775D,-0.461389D,83.0D,0),
-               TABLE_NAME);
+        BatchMutation<Long, Airport> mutation = new BatchMutation<>(
+                TABLE_NAME, readTestData());
 
         ListenableFuture<DBOperationResponse> futureResponse =
-            getFacade().apply(mutation, TABLE_NAME);
+            getFacade().apply(mutation);
 
         try {
-            DBOperationResponse response = futureResponse.get();
+            futureResponse.get();
             LOG.info("Updation of "
                      + TABLE_NAME
                      + " with mutation "
-                     + response.getDbOperation().getClass().getSimpleName()
+                     + mutation.getClass().getSimpleName()
                      + " succedded");
         }
         catch (InterruptedException e) {

@@ -34,7 +34,6 @@ import org.hit.communicator.NodeID;
 import org.hit.db.model.Schema;
 import org.hit.event.DBStatEvent;
 import org.hit.event.Event;
-import org.hit.event.SchemaNotificationEvent;
 import org.hit.event.SendMessageEvent;
 import org.hit.messages.Allocation;
 import org.hit.messages.CreateTableMessage;
@@ -57,19 +56,19 @@ public class MasterWarden extends AbstractWarden
 {
     private static final Logger LOG =
        LogFactory.getInstance().getLogger(MasterWarden.class);
-    
-    private static final String TABLE_CREATION_LOG =
-        "Received request from %s for creating table %s";
-    
+
     private static final String TABLE_CREATION_FAILURE_MSG =
         "Creation of table %s has failed";
+
+    private static final String TABLE_CREATION_LOG =
+        "Received request from %s for creating table %s";
 
     private final Allocator myAllocator;
 
     private final NodeID myNodeID;
-    
+
     private final ScheduledExecutorService myScheduler;
-    
+
     /**
      * CTOR
      */
@@ -83,7 +82,7 @@ public class MasterWarden extends AbstractWarden
         super(transactionManager, engineConfig, eventBus);
         myNodeID = nodeID;
         myAllocator = allocator;
-        myScheduler = 
+        myScheduler =
             Executors.newScheduledThreadPool(
                 1,
                 new NamedThreadFactory(MasterWarden.class));
@@ -104,33 +103,36 @@ public class MasterWarden extends AbstractWarden
                                        ctm.getTableSchema()));
                 Schema schema = ctm.getTableSchema();
                 myAllocator.addSchema(schema);
-                boolean isSuccess = 
+                boolean isSuccess =
                     getTransactionManager().createTable(schema);
                 CreateTableResponseMessage response = null;
                 if (isSuccess) {
-                    response = 
+                    response =
                         new CreateTableResponseMessage(
                             myNodeID,
-                            schema.getTableName(), 
+                            schema.getTableName(),
                             myAllocator.getPartitions().get(
-                                schema.getTableName()), 
+                                schema.getTableName()),
                             null);
-                    
-                    LOG.info("Schema for " + schema.getTableName() 
+
+                    LOG.info("Schema for " + schema.getTableName()
                              + " was successfully"
                              + " added to the database");
                 }
                 else {
-                    response = 
+                    response =
                         new CreateTableResponseMessage(
-                            myNodeID, 
+                            myNodeID,
                             schema.getTableName(),
-                            null, 
-                            String.format(TABLE_CREATION_FAILURE_MSG, 
+                            null,
+                            String.format(TABLE_CREATION_FAILURE_MSG,
                                           schema.getTableName()));
+
+                    LOG.info("Schema addition for " + schema.getTableName()
+                             + " failed");
                 }
                 getEventBus().publish(new SendMessageEvent(
-                    Collections.singleton(myNodeID),
+                    Collections.singleton(ctm.getNodeId()),
                     response));
             }
             else if (event instanceof DBStatEvent) {
@@ -139,7 +141,7 @@ public class MasterWarden extends AbstractWarden
             }
             else if (event instanceof NodeAdvertisement) {
                 NodeAdvertisement na = (NodeAdvertisement) event;
-                Allocation allocation = 
+                Allocation allocation =
                     myAllocator.getAllocation(na.getNodeId());
                 if (allocation != null) {
                     getEventBus().publish(
@@ -173,7 +175,7 @@ public class MasterWarden extends AbstractWarden
         getEventBus().registerForEvent(
             NodeAdvertisement.class, actorID);
         getEventBus().registerForEvent(DBStatEvent.class, actorID);
-        
+
         getEventBus().registerForEvent(FacadeInitRequest.class,
                                        actorID);
         getEventBus().registerForEvent(CreateTableMessage.class, actorID);

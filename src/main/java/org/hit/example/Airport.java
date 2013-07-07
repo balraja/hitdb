@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -20,51 +20,56 @@
 
 package org.hit.example;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 import org.hit.db.model.Persistable;
 
 /**
  * Defines a class that encapsulates the information about airports.
- * 
+ *
  * @author Balraja Subbiah
  */
-public class Airport implements Persistable<Long>
+public class Airport implements Persistable<Long>, Externalizable
 {
-    private long myID;
-    
-    private String myName;
-    
-    private String myCity;
-    
-    private String myCountry;
-    
-    private String myIATACode;
-    
-    private double myLatitude;
-    
-    private double myLongitude;
-    
     private double myAltitude;
-    
+
+    private String myCity;
+
+    private String myCountry;
+
     private float myDST;
-    
+
+    private String myIATACode;
+
+    private long myID;
+
+    private double myLatitude;
+
+    private double myLongitude;
+
+    private String myName;
+
     /**
      * CTOR
      */
     public Airport()
     {
     }
-    
+
     /**
      * CTOR
      */
-    public Airport(long iD, 
-                   String name, 
-                   String city, 
+    public Airport(long iD,
+                   String name,
+                   String city,
                    String country,
-                   String iATACode, 
-                   double latitude, 
+                   String iATACode,
+                   double latitude,
                    double longitude,
-                   double altitude, 
+                   double altitude,
                    float dST)
     {
         super();
@@ -78,21 +83,13 @@ public class Airport implements Persistable<Long>
         myAltitude = altitude;
         myDST = dST;
     }
-    
-    /**
-     * Returns the value of iD
-     */
-    public long getID()
-    {
-        return myID;
-    }
 
     /**
-     * Returns the value of name
+     * Returns the value of altitude
      */
-    public String getName()
+    public double getAltitude()
     {
-        return myName;
+        return myAltitude;
     }
 
     /**
@@ -109,38 +106,6 @@ public class Airport implements Persistable<Long>
     public String getCountry()
     {
         return myCountry;
-    }
-
-    /**
-     * Returns the value of iATACode
-     */
-    public String getIATACode()
-    {
-        return myIATACode;
-    }
-
-    /**
-     * Returns the value of latitude
-     */
-    public double getLatitude()
-    {
-        return myLatitude;
-    }
-
-    /**
-     * Returns the value of longitude
-     */
-    public double getLongitude()
-    {
-        return myLongitude;
-    }
-
-    /**
-     * Returns the value of altitude
-     */
-    public double getAltitude()
-    {
-        return myAltitude;
     }
 
     /**
@@ -164,9 +129,50 @@ public class Airport implements Persistable<Long>
         case "iata_code" : return myIATACode;
         case "latitude" : return myLatitude;
         case "longitude" : return myLongitude;
+        case "altitude" : return myAltitude;
         case "dst" : return myDST;
         default : return this;
         }
+    }
+
+    /**
+     * Returns the value of iATACode
+     */
+    public String getIATACode()
+    {
+        return myIATACode;
+    }
+
+    /**
+     * Returns the value of iD
+     */
+    public long getID()
+    {
+        return myID;
+    }
+
+    /**
+     * Returns the value of latitude
+     */
+    public double getLatitude()
+    {
+        return myLatitude;
+    }
+
+    /**
+     * Returns the value of longitude
+     */
+    public double getLongitude()
+    {
+        return myLongitude;
+    }
+
+    /**
+     * Returns the value of name
+     */
+    public String getName()
+    {
+        return myName;
     }
 
     /**
@@ -176,5 +182,41 @@ public class Airport implements Persistable<Long>
     public Long primaryKey()
     {
         return Long.valueOf(myID);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readExternal(ObjectInput in)
+        throws IOException,
+            ClassNotFoundException
+    {
+        myID = in.readLong();
+        myName = in.readUTF();
+        myCity = in.readUTF();
+        myCountry = in.readUTF();
+        myIATACode = in.readUTF();
+        myLatitude = in.readDouble();
+        myLongitude = in.readDouble();
+        myAltitude = in.readDouble();
+        myDST = in.readFloat();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeLong(myID);
+        out.writeUTF(myName);
+        out.writeUTF(myCity);
+        out.writeUTF(myCountry);
+        out.writeUTF(myIATACode);
+        out.writeDouble(myLatitude);
+        out.writeDouble(myLongitude);
+        out.writeDouble(myAltitude);
+        out.writeFloat(myDST);
     }
 }

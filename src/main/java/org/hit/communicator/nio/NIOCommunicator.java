@@ -109,11 +109,19 @@ public class NIOCommunicator implements Communicator
     /** Reads data from the <code>SocketChannel</code> */
     private void readData(SocketChannel socketChannel) throws IOException
     {
-        ByteBuffer buffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
+        ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
         ByteBuffer messageBuffer = ByteBuffer.allocate(10 * BUFFER_SIZE);
         while (socketChannel.read(buffer) > 0) {
             buffer.flip();
-            if (messageBuffer.remaining() == 0 && buffer.remaining() > 0) {
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Message Buffer " + messageBuffer.position()
+                         + " cap " + messageBuffer.capacity()
+                         + " limit " + messageBuffer.limit()
+                         + " rem " + messageBuffer.remaining());
+
+                LOG.fine("Data buffer " + buffer.remaining());
+            }
+            if (messageBuffer.remaining() < buffer.capacity()) {
                 messageBuffer = resize(messageBuffer);
             }
             messageBuffer.put(buffer);
@@ -142,6 +150,9 @@ public class NIOCommunicator implements Communicator
 
     private ByteBuffer resize(ByteBuffer buffer)
     {
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Resizing message buffer");
+        }
         buffer.flip();
         ByteBuffer newBuffer = ByteBuffer.allocate(buffer.capacity() * 2);
         newBuffer.put(buffer);

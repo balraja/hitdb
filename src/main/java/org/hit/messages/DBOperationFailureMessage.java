@@ -26,38 +26,26 @@ import java.io.ObjectOutput;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
-import org.hit.db.model.DBOperation;
 
 /**
  * Message for denoting that <code>DBOperationFailed</code> on the database.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class DBOperationFailureMessage extends Message
 {
-    private DBOperation myDBOperation;
-    
-    private String myMessage;
-    
     private Throwable myException;
-    
+
+    private String myMessage;
+
+    private long mySequenceNumber;
+
     /**
      * CTOR
      */
     public DBOperationFailureMessage()
     {
-        this(null, null, null, null);
-    }
-    
-    /**
-     * CTOR
-     */
-    public DBOperationFailureMessage(
-        NodeID      nodeID,
-        DBOperation dBOperation,
-        String message)
-    {
-        this(nodeID, dBOperation, message, null);
+        this(null, -1L, null);
     }
 
     /**
@@ -65,22 +53,25 @@ public class DBOperationFailureMessage extends Message
      */
     public DBOperationFailureMessage(
         NodeID      nodeID,
-        DBOperation dBOperation,
-        String message,
-        Throwable exception)
+        long        sequenceNumber,
+        String      message)
+    {
+        this(nodeID, sequenceNumber, message, null);
+    }
+
+    /**
+     * CTOR
+     */
+    public DBOperationFailureMessage(
+        NodeID      nodeID,
+        long        sequenceNumber,
+        String       message,
+        Throwable    exception)
     {
         super(nodeID);
-        myDBOperation = dBOperation;
         myMessage = message;
+        mySequenceNumber = sequenceNumber;
         myException = exception;
-    }
-
-    /**
-     * Returns the value of dBOperation
-     */
-    public DBOperation getDBOperation()
-    {
-        return myDBOperation;
     }
 
     /**
@@ -98,7 +89,15 @@ public class DBOperationFailureMessage extends Message
     {
         return myMessage;
     }
-    
+
+    /**
+     * Returns the value of dBOperation
+     */
+    public long getSequenceNumber()
+    {
+        return mySequenceNumber;
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -107,11 +106,11 @@ public class DBOperationFailureMessage extends Message
         throws IOException,ClassNotFoundException
     {
         super.readExternal(in);
-        myDBOperation = (DBOperation) in.readObject();
+        mySequenceNumber = in.readLong();
         myMessage     = in.readUTF();
         myException   = (Throwable) in.readObject();
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -119,7 +118,7 @@ public class DBOperationFailureMessage extends Message
     public void writeExternal(ObjectOutput out) throws IOException
     {
         super.writeExternal(out);
-        out.writeObject(myDBOperation);
+        out.writeLong(mySequenceNumber);
         out.writeUTF(myMessage);
         out.writeObject(myException);
     }

@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import org.hit.communicator.NodeID;
 import org.hit.db.model.Schema;
@@ -40,6 +41,7 @@ import org.hit.gossip.Gossip;
 import org.hit.messages.Allocation;
 import org.hit.messages.Heartbeat;
 import org.hit.partitioner.Partitioner;
+import org.hit.util.LogFactory;
 import org.hit.util.Pair;
 import org.hit.util.Range;
 
@@ -53,6 +55,9 @@ import com.google.inject.Inject;
  */
 public class StandardAllocator implements Allocator
 {
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(StandardAllocator.class);
+
     private final EngineConfig myNodeConfig;
 
     private final Set<NodeID> myNodes;
@@ -91,10 +96,15 @@ public class StandardAllocator implements Allocator
     {
         myTableToSchemaMap.put(tableSchema.getTableName(), tableSchema);
         Partitioner<?,?> partitioner =
-                        tableSchema.getKeyspace().makePartitioner(tableSchema.getTableName());
+            tableSchema.getKeyspace().makePartitioner(
+                tableSchema.getTableName());
         partitioner.update(new Pair<Comparable<?>, NodeID>(
             tableSchema.getKeyspace().getDomain().getMaximum(),
             myServerID));
+
+        LOG.info("Adding " + myServerID + " to handle data upto " +
+                 tableSchema.getKeyspace().getDomain().getMaximum());
+
         myTableToPartitionMap.put(tableSchema.getTableName(), partitioner);
     }
 

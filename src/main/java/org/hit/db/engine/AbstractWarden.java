@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -26,20 +26,15 @@ import java.util.logging.Logger;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.db.model.DBOperation;
-import org.hit.db.model.Schema;
-import org.hit.db.model.mutations.SingleKeyMutation;
 import org.hit.event.Event;
-import org.hit.event.ProposalNotificationEvent;
-import org.hit.messages.CreateTableMessage;
 import org.hit.messages.DBOperationMessage;
 import org.hit.messages.DistributedDBOperationMessage;
-import org.hit.partitioner.Partitioner;
 import org.hit.util.LogFactory;
 
 /**
  * An abstract implementation of <code>EngineWarden</code> that supports
  * database operations.
- * 
+ *
  * @author Balraja Subbiah
  */
 public abstract class AbstractWarden implements EngineWarden
@@ -50,12 +45,12 @@ public abstract class AbstractWarden implements EngineWarden
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(DBEngine.class);
 
-    private final TransactionManager myTransactionManager;
-    
     private final EngineConfig myEngineConfig;
-    
+
     private final EventBus myEventBus;
-    
+
+    private final TransactionManager myTransactionManager;
+
     /**
      * CTOR
      */
@@ -66,62 +61,6 @@ public abstract class AbstractWarden implements EngineWarden
         myTransactionManager = transactionManager;
         myEngineConfig = engineConfig;
         myEventBus = eventBus;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void handleEvent(Event event)
-    {
-        if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine("Received " + event);
-        }
-        
-        if (event instanceof DBOperationMessage) {
-
-            DBOperationMessage message =
-                (DBOperationMessage) event;
-
-            LOG.info(String.format(DB_OPERATION_LOG,
-                                   message.getNodeId(),
-                                   message.getOperation()));
-            DBOperation operation =
-                ((DBOperationMessage) event).getOperation();
-            myTransactionManager.processOperation(
-                message.getNodeId(), operation);
-        }
-        else if (event instanceof DistributedDBOperationMessage) {
-
-            DistributedDBOperationMessage ddbMessage =
-                (DistributedDBOperationMessage) event;
-
-            LOG.info(String.format(DB_OPERATION_LOG,
-                                   ddbMessage.getNodeId(),
-                                   ddbMessage.getNodeToOperationMap().keySet()));
-
-            myTransactionManager.processOperation(
-                ddbMessage.getNodeId(),
-                ddbMessage.getNodeToOperationMap());
-        }
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void register(ActorID actorID)
-    {
-        myEventBus.registerForEvent(DBOperationMessage.class,
-                                    actorID);
-    }
-
-    /**
-     * Returns the value of transactionManager
-     */
-    protected TransactionManager getTransactionManager()
-    {
-        return myTransactionManager;
     }
 
     /**
@@ -138,5 +77,61 @@ public abstract class AbstractWarden implements EngineWarden
     protected EventBus getEventBus()
     {
         return myEventBus;
-    }    
+    }
+
+    /**
+     * Returns the value of transactionManager
+     */
+    protected TransactionManager getTransactionManager()
+    {
+        return myTransactionManager;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void handleEvent(Event event)
+    {
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Received " + event);
+        }
+
+        if (event instanceof DBOperationMessage) {
+
+            DBOperationMessage message =
+                (DBOperationMessage) event;
+
+            LOG.info(String.format(DB_OPERATION_LOG,
+                                   message.getNodeId(),
+                                   message.getOperation()));
+            DBOperation operation =
+                ((DBOperationMessage) event).getOperation();
+            myTransactionManager.processOperation(
+                message.getNodeId(), operation, message.getSequenceNumber());
+        }
+        else if (event instanceof DistributedDBOperationMessage) {
+
+            DistributedDBOperationMessage ddbMessage =
+                (DistributedDBOperationMessage) event;
+
+            LOG.info(String.format(DB_OPERATION_LOG,
+                                   ddbMessage.getNodeId(),
+                                   ddbMessage.getNodeToOperationMap().keySet()));
+
+            myTransactionManager.processOperation(
+                ddbMessage.getNodeId(),
+                ddbMessage.getNodeToOperationMap());
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void register(ActorID actorID)
+    {
+        myEventBus.registerForEvent(DBOperationMessage.class,
+                                    actorID);
+    }
 }

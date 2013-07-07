@@ -37,20 +37,23 @@ public class DBOperationMessage extends Message
 {
     private DBOperation myOperation;
 
+    private long mySequenceNumber;
+
     /**
      * CTOR
      */
     public DBOperationMessage()
     {
-        this(null, null);
+        this(null, -1, null);
     }
 
     /**
      * CTOR
      */
-    public DBOperationMessage(NodeID clientID, DBOperation operation)
+    public DBOperationMessage(NodeID clientID, long seqNum, DBOperation operation)
     {
         super(clientID);
+        mySequenceNumber = seqNum;
         myOperation = operation;
     }
 
@@ -63,6 +66,14 @@ public class DBOperationMessage extends Message
     }
 
     /**
+     * Returns the value of sequenceNumber
+     */
+    public long getSequenceNumber()
+    {
+        return mySequenceNumber;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -70,6 +81,7 @@ public class DBOperationMessage extends Message
         throws IOException, ClassNotFoundException
     {
         super.readExternal(in);
+        mySequenceNumber = in.readLong();
         myOperation = (DBOperation) in.readObject();
     }
 
@@ -80,6 +92,7 @@ public class DBOperationMessage extends Message
     public void writeExternal(ObjectOutput out) throws IOException
     {
         super.writeExternal(out);
+        out.writeLong(mySequenceNumber);
         out.writeObject(myOperation);
     }
 }

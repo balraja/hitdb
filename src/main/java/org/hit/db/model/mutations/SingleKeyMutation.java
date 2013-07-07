@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -20,23 +20,20 @@
 
 package org.hit.db.model.mutations;
 
-import org.hit.db.model.Mutation;
 
 /**
- * Defines the contract for a single key mutation, that affects a single 
+ * Defines the contract for a single key mutation, that affects a single
  * row. Based on the row key, mutations will be redirected to the appropriate
  * server.
- * 
+ *
  * @author Balraja Subbiah
  */
-public interface SingleKeyMutation<K extends Comparable<K>> extends Mutation
+public interface SingleKeyMutation<K extends Comparable<K>> extends TableMutation
 {
     /** Returns the key of the row that will be affected */
     public K getKey();
-    
-    /** 
-     * Returns the name of table against which this mutation is to be 
-     * executed.
-     */
+
+
+    @Override
     public String getTableName();
 }

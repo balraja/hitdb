@@ -51,15 +51,12 @@ import org.hit.db.transactions.journal.WAL;
 import org.hit.event.CreateConsensusLeaderEvent;
 import org.hit.event.ProposalNotificationEvent;
 import org.hit.event.ProposalNotificationResponse;
-import org.hit.event.SchemaNotificationEvent;
 import org.hit.event.SendMessageEvent;
-import org.hit.messages.CreateTableResponseMessage;
 import org.hit.messages.DBOperationFailureMessage;
 import org.hit.messages.DBOperationSuccessMessage;
 import org.hit.time.Clock;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
-import org.hit.zookeeper.ZooKeeperClient;
 
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.FutureCallback;
@@ -71,34 +68,23 @@ import com.google.inject.Inject;
 
 /**
  * Class for managing the execution of transactions.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class TransactionManager
 {
-    /** LOGGER */
-    private static final Logger LOG =
-        LogFactory.getInstance().getLogger(TransactionManager.class);
-    
-    /**
-     * The task that's executed on completion of a <code>Transaction</code>
-     */
-    private class NotifyResultTask
-        implements FutureCallback<TransactionResult>
+    private class CommitPhaseCallBack
+        implements FutureCallback<Memento<TransactionResult>>
     {
-        private final NodeID myClientID;
-        
-        private final DBOperation myOperation;
-        
+        private final ProposalNotificationEvent myNotification;
+
         /**
          * CTOR
          */
-        public NotifyResultTask(NodeID        clientID,
-                                DBOperation   operation)
+        public CommitPhaseCallBack(ProposalNotificationEvent notification)
         {
             super();
-            myClientID = clientID;
-            myOperation = operation;
+            myNotification = notification;
         }
 
         /**
@@ -108,14 +94,17 @@ public class TransactionManager
         public void onFailure(Throwable exception)
         {
             try {
-                myEventBus.publish(
-                    new SendMessageEvent(
-                        Collections.singleton(myClientID),
-                        new DBOperationFailureMessage(
-                            myServerID,
-                            myOperation,
-                            exception.getMessage(),
-                            exception)));
+                myEventBus.publish(new ProposalNotificationResponse(myNotification,
+                                                                    false));
+                DistributedTrnProposal dtp =
+                    (DistributedTrnProposal) myNotification.getProposal();
+
+                NotifyResultTask nrt =
+                    new NotifyResultTask(dtp.getClientID(),
+                                         dtp.getNodeToDBOperationMap()
+                                            .get(myServerID),
+                                         -1L);// XXX FIX this
+                nrt.onFailure(exception);
             }
             catch (EventBusException e) {
                 LOG.log(Level.SEVERE, e.getMessage(), e);
@@ -126,37 +115,26 @@ public class TransactionManager
          * {@inheritDoc}
          */
         @Override
-        public void onSuccess(TransactionResult result)
+        public void onSuccess(Memento<TransactionResult> memento)
         {
-            try {
-                myEventBus.publish(myDatabase.getStatistics());
-                Message message =
-                    result.isCommitted() ?
-                        new DBOperationSuccessMessage(
-                            myServerID, myOperation, result.getResult())
-                        : new DBOperationFailureMessage(
-                              myServerID,
-                              myOperation,
-                              "Failed to apply the transaction on db");
-                            
-                myEventBus.publish(
-                   new SendMessageEvent(
-                       Collections.singleton(myClientID),
-                       message));
-            }
-            catch (EventBusException e) {
-                LOG.log(Level.SEVERE, e.getMessage(), e);
-            }
+            DistributedTrnProposal dtp =
+                (DistributedTrnProposal) myNotification.getProposal();
+            NotifyResultTask nrt =
+                new NotifyResultTask(dtp.getClientID(),
+                                     dtp.getNodeToDBOperationMap()
+                                        .get(myServerID),
+                                     -1L); // XXX Fixthis
+            nrt.onSuccess(memento.getPhase().getResult());
         }
     }
-    
-    private class ExecutionPhaseCallBack 
+
+    private class ExecutionPhaseCallBack
         implements FutureCallback<Memento<Boolean>>
     {
-        private final UnitID myUnitID;
-        
         private final ProposalNotificationEvent myNotification;
-        
+
+        private final UnitID myUnitID;
+
         /**
          * CTOR
          */
@@ -177,7 +155,7 @@ public class TransactionManager
             try {
                 if (myNotification != null) {
                     myEventBus.publish(
-                        new ProposalNotificationResponse(myNotification, 
+                        new ProposalNotificationResponse(myNotification,
                                                          false));
                 }
             }
@@ -193,12 +171,12 @@ public class TransactionManager
         public void onSuccess(Memento<Boolean> memento)
         {
             myAwaitingConsensusCommitMap.put(myUnitID, memento);
-            
+
             if (myNotification != null) {
                 try {
                     myEventBus.publish(
                         new ProposalNotificationResponse(
-                            myNotification, 
+                            myNotification,
                             memento.getPhase().getResult()));
                 }
                 catch (EventBusException e) {
@@ -207,21 +185,29 @@ public class TransactionManager
             }
         }
     }
-    
-    private class CommitPhaseCallBack 
-        implements FutureCallback<Memento<TransactionResult>>
+
+    /**
+     * The task that's executed on completion of a <code>Transaction</code>
+     */
+    private class NotifyResultTask
+        implements FutureCallback<TransactionResult>
     {
-        private final ProposalNotificationEvent myNotification;
-        
+        private final NodeID myClientID;
+
+        private final long mySequenceNumber;
+
         /**
          * CTOR
          */
-        public CommitPhaseCallBack(ProposalNotificationEvent notification)
+        public NotifyResultTask(NodeID        clientID,
+                                DBOperation   operation,
+                                long          seqNumber)
         {
             super();
-            myNotification = notification;
+            myClientID = clientID;
+            mySequenceNumber = seqNumber;
         }
-    
+
         /**
          * {@inheritDoc}
          */
@@ -229,54 +215,69 @@ public class TransactionManager
         public void onFailure(Throwable exception)
         {
             try {
-                myEventBus.publish(new ProposalNotificationResponse(myNotification, 
-                                                                    false));
-                DistributedTrnProposal dtp = 
-                    (DistributedTrnProposal) myNotification.getProposal();
-                
-                NotifyResultTask nrt = 
-                    new NotifyResultTask(dtp.getClientID(), 
-                                         dtp.getNodeToDBOperationMap()
-                                            .get(myServerID));
-                nrt.onFailure(exception);
+                myEventBus.publish(
+                    new SendMessageEvent(
+                        Collections.singleton(myClientID),
+                        new DBOperationFailureMessage(
+                            myServerID,
+                            mySequenceNumber,
+                            exception.getMessage(),
+                            exception)));
             }
             catch (EventBusException e) {
                 LOG.log(Level.SEVERE, e.getMessage(), e);
             }
         }
-    
+
+
         /**
          * {@inheritDoc}
          */
         @Override
-        public void onSuccess(Memento<TransactionResult> memento)
+        public void onSuccess(TransactionResult result)
         {
-            DistributedTrnProposal dtp = 
-                (DistributedTrnProposal) myNotification.getProposal();
-            NotifyResultTask nrt = 
-                new NotifyResultTask(dtp.getClientID(), 
-                                     dtp.getNodeToDBOperationMap()
-                                        .get(myServerID));
-            nrt.onSuccess(memento.getPhase().getResult());
+            try {
+                myEventBus.publish(myDatabase.getStatistics());
+                Message message =
+                    result.isCommitted() ?
+                        new DBOperationSuccessMessage(
+                            myServerID, mySequenceNumber, result.getResult())
+                        : new DBOperationFailureMessage(
+                              myServerID,
+                              mySequenceNumber,
+                              "Failed to apply the transaction on db");
+
+                myEventBus.publish(
+                   new SendMessageEvent(
+                       Collections.singleton(myClientID),
+                       message));
+            }
+            catch (EventBusException e) {
+                LOG.log(Level.SEVERE, e.getMessage(), e);
+            }
         }
     }
-   
-    private final ListeningExecutorService myExecutor;
-    
-    private final IDAssigner myIdAssigner;
-    
-    private final TransactableDatabase myDatabase;
-    
-    private final Clock myClock;
-    
-    private final EventBus myEventBus;
-    
-    private final NodeID myServerID;
-    
-    private final WAL    myWriteAheadLog;
-    
+
+    /** LOGGER */
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(TransactionManager.class);
+
     private final Map<UnitID, Memento<?>> myAwaitingConsensusCommitMap;
-    
+
+    private final Clock myClock;
+
+    private final TransactableDatabase myDatabase;
+
+    private final EventBus myEventBus;
+
+    private final ListeningExecutorService myExecutor;
+
+    private final IDAssigner myIdAssigner;
+
+    private final NodeID myServerID;
+
+    private final WAL    myWriteAheadLog;
+
     /**
      * CTOR
      */
@@ -300,7 +301,7 @@ public class TransactionManager
                     20,
                     new NamedThreadFactory(TransactionManager.class)));
     }
-    
+
     /**
      * Creates a table with the given <code>Schema</code>
      */
@@ -308,46 +309,52 @@ public class TransactionManager
     {
         try {
             myDatabase.createTable(schema);
+            LOG.info("Schema for " + schema.getTableName() +
+                     " has been successfully added to the database");
             return true;
         }
         catch (Exception e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
             return false;
         }
-       
+
     }
-    
+
     /**
      * Creates appropriate <code>Transaction<code> to process the mutations/
      * queries on the database.
      */
-    public void processOperation(NodeID clientID, DBOperation operation)
+    public void processOperation(NodeID clientID,
+                                 DBOperation operation,
+                                 long sequenceNumber)
     {
         TransactionID id = new TransactionID(myIdAssigner.getTransactionID());
-        
+
         AbstractTransaction transaction =
             operation instanceof Mutation ?
                 new WriteTransaction(
                     id, myDatabase, myClock, (Mutation) operation)
                 : new ReadTransaction(
                     id, myDatabase, myClock, (Query) operation);
-                    
+
         ListenableFuture<TransactionResult> future =
             myExecutor.submit(new TransactionExecutor(transaction,
                                                       myWriteAheadLog));
         Futures.addCallback(future,
-                            new NotifyResultTask(clientID, operation));
+                            new NotifyResultTask(clientID,
+                                                 operation,
+                                                 sequenceNumber));
     }
-    
+
     /**
      * Creates appropriate <code>Transaction<code>s to process the mutations/
      * queries to be performed on multitude of nodes of the database.
      */
-    public void processOperation(NodeID                   clientID, 
+    public void processOperation(NodeID                   clientID,
                                  Map<NodeID, DBOperation> operations)
     {
-        Set<NodeID> acceptors = 
-            Sets.difference(operations.keySet(), 
+        Set<NodeID> acceptors =
+            Sets.difference(operations.keySet(),
                             Collections.singleton(myServerID));
         UnitID unitID = new DistributedTrnConsensusID(clientID);
         try {
@@ -356,72 +363,72 @@ public class TransactionManager
         catch (EventBusException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
         }
-        
+
         TransactionID id = new TransactionID(myIdAssigner.getTransactionID());
         DBOperation operation = operations.get(myServerID);
-        
+
         AbstractTransaction transaction =
             operation instanceof Mutation ?
                 new WriteTransaction(
                     id, myDatabase, myClock, (Mutation) operation)
                 : new ReadTransaction(
                     id, myDatabase, myClock, (Query) operation);
-                    
+
         ListenableFuture<Memento<Boolean>> future =
             myExecutor.submit(
                new PhasedTransactionExecutor<Boolean>(
                    transaction,
-                   myWriteAheadLog, 
+                   myWriteAheadLog,
                    new PhasedTransactionExecutor.ExecutionPhase(transaction)));
-        
+
         Futures.addCallback(future,
                             new ExecutionPhaseCallBack(unitID, null));
     }
-    
+
     /**
      * Creates appropriate <code>Transaction<code>s to process the mutations/
      * queries to be performed on multitude of nodes of the database.
      */
     public void processOperation(ProposalNotificationEvent pne)
     {
-        DistributedTrnProposal distributedTrnProposal = 
+        DistributedTrnProposal distributedTrnProposal =
             (DistributedTrnProposal) pne.getProposal();
-        
+
         TransactionID id = new TransactionID(myIdAssigner.getTransactionID());
-        DBOperation operation = 
+        DBOperation operation =
             distributedTrnProposal.getNodeToDBOperationMap()
                                   .get(myServerID);
-        
+
         if (operation != null) {
-        
+
             AbstractTransaction transaction =
                 operation instanceof Mutation ?
                     new WriteTransaction(
                         id, myDatabase, myClock, (Mutation) operation)
                     : new ReadTransaction(
                         id, myDatabase, myClock, (Query) operation);
-           
+
            if (pne.isCommitNotification()) {
-               Memento<?> memento = 
+               Memento<?> memento =
                    myAwaitingConsensusCommitMap.get(
                        pne.getProposal().getUnitID());
-               
+
                if (memento != null) {
                    ListenableFuture<Memento<TransactionResult>> future =
                        myExecutor.submit(
                           new PhasedTransactionExecutor<TransactionResult>(
                               memento));
-                   
-                   Futures.addCallback(future, 
+
+                   Futures.addCallback(future,
                                        new CommitPhaseCallBack(pne));
                }
            }
-           else {         
+           else {
                 ListenableFuture<Memento<Boolean>> future =
                     myExecutor.submit(
                        new PhasedTransactionExecutor<Boolean>(
                            transaction,
-                           myWriteAheadLog, 
+                           myWriteAheadLog,
                            new PhasedTransactionExecutor.ExecutionPhase(
                                transaction)));
 

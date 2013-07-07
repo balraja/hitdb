@@ -33,13 +33,13 @@ import org.hit.util.LogFactory;
 /**
  * An implementation of <code>MessageSerializer</code> that uses the
  * Serializable/Externalizable interface for serializing the objects.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class ObjectStreamSerializer implements MessageSerializer
 {
     private static final Logger LOG =
-                    LogFactory.getInstance().getLogger(ObjectStreamSerializer.class);
+        LogFactory.getInstance().getLogger(ObjectStreamSerializer.class);
 
     /**
      * {@inheritDoc}
@@ -49,7 +49,7 @@ public class ObjectStreamSerializer implements MessageSerializer
     {
         try {
             ByteArrayInputStream byteStream =
-                            new ByteArrayInputStream(binaryMessage.array());
+                new ByteArrayInputStream(binaryMessage.array());
             ObjectInputStream oStream = new ObjectInputStream(byteStream);
             return (Message) oStream.readObject();
         }

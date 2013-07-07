@@ -40,6 +40,7 @@ import org.hit.communicator.Message;
 import org.hit.communicator.MessageHandler;
 import org.hit.communicator.NodeID;
 import org.hit.db.model.DBOperation;
+import org.hit.db.model.Persistable;
 import org.hit.db.model.Query;
 import org.hit.db.model.Queryable;
 import org.hit.db.model.Schema;
@@ -85,12 +86,6 @@ import com.google.inject.Injector;
  */
 public class HitDBFacade
 {
-    private static final Logger LOG =
-        LogFactory.getInstance().getLogger(HitDBFacade.class);
-
-    private static final String TABLE_CREATION_FAILURE =
-        "Creation of table %s on host %s failed";
-
     /**
      * A simple class that wraps the functionality of handling the
      * response from the server.
@@ -123,186 +118,94 @@ public class HitDBFacade
                 myIsInitialized.set(true);
             }
             else if (myMessage instanceof CreateTableResponseMessage) {
-                
+
                 final CreateTableResponseMessage createTableResponse =
                     (CreateTableResponseMessage) myMessage;
-                
-                SettableFuture<CreateTableResponseMessage> 
+
+                SettableFuture<CreateTableResponseMessage>
                     tableCreationFuture =
                         myTableCreationFutureMap.get(
                             createTableResponse.getTableName());
-                
-                if (createTableResponse.getErrorMessage() != null) {
-                    tableCreationFuture.set(createTableResponse);
-                }
-                else {
-                    tableCreationFuture.setException(
-                        new RuntimeException(
-                            String.format(TABLE_CREATION_FAILURE,
-                                          createTableResponse.getTableName(),
-                                          createTableResponse.getNodeId())));
 
-                }
+                tableCreationFuture.set(createTableResponse);
             }
             else if (myMessage instanceof DBOperationSuccessMessage) {
                 final DBOperationSuccessMessage dbOperationSuccessMessage =
                    (DBOperationSuccessMessage) myMessage;
-                final DBOperation appliedOperation =
-                   dbOperationSuccessMessage.getAppliedDBOperation();
 
-                if (appliedOperation instanceof WrappedMutation) {
+                final Long id =
+                    Long.valueOf(
+                        dbOperationSuccessMessage.getSequenceNumber());
 
-                    final long id = 
-                        ((WrappedMutation) appliedOperation).getID();
-                    final SettableFuture<DBOperationResponse> future  =
-                        myMutationIDToFutureMap.get(Long.valueOf(id));
+                final SettableFuture<DBOperationResponse> future  =
+                    myMutationIDToFutureMap.get(id);
 
+                if (future != null) {
                     future.set(new DBOperationResponse(
-                        appliedOperation,
                         dbOperationSuccessMessage.getResult()));
                 }
-                else if (appliedOperation instanceof WrappedQuery) {
-                    
-                    final long id = 
-                        ((WrappedQuery) appliedOperation).getOperationId();
+                else {
                     final SettableFuture<Pair<NodeID, Collection<Queryable>>>
-                        future = myQueryToMergableFutureMap.get(id);
-                    future.set(new Pair<>(
-                        dbOperationSuccessMessage.getNodeId(),
-                        (Collection<Queryable>) 
-                            dbOperationSuccessMessage.getResult()));
+                        queryFuture = myQueryToMergableFutureMap.get(id);
+
+                    if (queryFuture != null) {
+                        queryFuture.set(new Pair<>(
+                            dbOperationSuccessMessage.getNodeId(),
+                            (Collection<Queryable>)
+                                dbOperationSuccessMessage.getResult()));
+                    }
+                    else {
+                        LOG.severe("Received "
+                                   + dbOperationSuccessMessage.getResult()
+                                   + " for an operation with seq number "
+                                   + id
+                                   + " But corresponding future is not found");
+                    }
                 }
             }
             else if (myMessage instanceof DBOperationFailureMessage) {
                 final DBOperationFailureMessage dbOperationFailure =
                     (DBOperationFailureMessage) myMessage;
 
-                final DBOperation appliedOperation =
-                     dbOperationFailure.getDBOperation();
+                final Long id =
+                    Long.valueOf(dbOperationFailure.getSequenceNumber());
 
-                if (appliedOperation instanceof WrappedMutation) {
+                final SettableFuture<DBOperationResponse> future  =
+                    myMutationIDToFutureMap.get(id);
 
-                    final long id = ((WrappedMutation) appliedOperation).getID();
-                    final SettableFuture<DBOperationResponse> future  =
-                        myMutationIDToFutureMap.get(Long.valueOf(id));
+                if (future != null) {
                     future.setException(
                         dbOperationFailure.getException());
                 }
-                else if (appliedOperation instanceof WrappedQuery) {
-                    
-                    final long id = 
-                        ((WrappedQuery) appliedOperation).getOperationId();
+                else {
                     final SettableFuture<Pair<NodeID, Collection<Queryable>>>
-                        future = myQueryToMergableFutureMap.get(id);
-                    future.setException(
-                        dbOperationFailure.getException());
+                        queryFuture = myQueryToMergableFutureMap.get(id);
+
+                    if (queryFuture != null) {
+                        queryFuture.setException(
+                            dbOperationFailure.getException());
+                    }
+                    else {
+                        LOG.severe("Received " + dbOperationFailure.getMessage()
+                                   + " for an operation with seq number "
+                                   + dbOperationFailure.getSequenceNumber()
+                                   + " But corresponding future is not found");
+                    }
                 }
             }
         }
     }
 
-    /**
-     * A helper class that wraps the task of sending mutation to the
-     * server.
-     */
-    private class SubmitDBOperationTask implements Runnable
-    {
-        private final NodeID myNodeID;
-
-        private final DBOperation myOperation;
-
-        private final long myOperationID;
-
-        private final SettableFuture<DBOperationResponse> mySettableFuture;
-
-        /**
-         * CTOR
-         */
-        public SubmitDBOperationTask(NodeID                              nodeId,
-                                     DBOperation                         operation,
-                                     SettableFuture<DBOperationResponse> future,
-                                     long operationID)
-        {
-            myNodeID = nodeId;
-            myOperation = operation;
-            mySettableFuture = future;
-            myOperationID = operationID;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void run()
-        {
-            LOG.info("Processing request for performing the db operation " +
-                            myOperation);
-
-            myMutationIDToFutureMap.put(myOperationID, mySettableFuture);
-
-            myCommunicator.sendTo(myNodeID,
-                                  new DBOperationMessage(
-                                                         myClientID,
-                                                         myOperation));
-        }
-    }
-    
-    private class SubmitQueryTask implements Runnable
-    {
-        private final SettableFuture<QueryResponse> myCLientFuture;
-        
-        private final Query myQuery;
-        
-        /**
-         * CTOR
-         */
-        public SubmitQueryTask(SettableFuture<QueryResponse> cLientFuture,
-                               Query query)
-        {
-            super();
-            myCLientFuture = cLientFuture;
-            myQuery = query;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void run()
-        {
-            SettableFuture<Pair<NodeID, Collection<Queryable>>>
-                resultFuture = SettableFuture.create();
-            Long operationId = 
-                Long.valueOf(myOperationsCount.incrementAndGet());
-            Set<NodeID> serverNodes = 
-                new HashSet<>(myRegistryService.getServerNodes());
-            Futures.addCallback(
-                resultFuture,
-                new QueryResponserHandler(
-                    operationId, 
-                    serverNodes, 
-                    new SimpleQueryMerger(),
-                    myCLientFuture));
-            
-            myQueryToMergableFutureMap.put(operationId, resultFuture);
-            
-            for (NodeID server : serverNodes) {
-                myCommunicator.sendTo(server,
-                                      new DBOperationMessage(myClientID, myQuery));
-            }
-        }
-    }
-    
-    private class QueryResponserHandler 
+    private class QueryResponserHandler
         implements FutureCallback<Pair<NodeID, Collection<Queryable>>>
     {
-        private final Set<NodeID> myServerNodes;
-        
-        private final QueryMerger myQueryMerger;
-        
         private final SettableFuture<QueryResponse> myClientFuture;
-        
+
         private final Long myOperationId;
+
+        private final QueryMerger myQueryMerger;
+
+        private final Set<NodeID> myServerNodes;
 
         /**
          * CTOR
@@ -349,6 +252,101 @@ public class HitDBFacade
      * A helper class that wraps the task of sending mutation to the
      * server.
      */
+    private class SubmitDBOperationTask implements Runnable
+    {
+        private final NodeID myNodeID;
+
+        private final DBOperation myOperation;
+
+        private final long mySequenceNumber;
+
+        private final SettableFuture<DBOperationResponse> mySettableFuture;
+
+        /**
+         * CTOR
+         */
+        public SubmitDBOperationTask(NodeID                              nodeId,
+                                     DBOperation                         operation,
+                                     SettableFuture<DBOperationResponse> future,
+                                     long seqNumber)
+        {
+            myNodeID = nodeId;
+            myOperation = operation;
+            mySettableFuture = future;
+            mySequenceNumber = seqNumber;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void run()
+        {
+            LOG.info("Processing request for performing the db operation " +
+                            myOperation);
+
+            myMutationIDToFutureMap.put(mySequenceNumber, mySettableFuture);
+
+            myCommunicator.sendTo(myNodeID,
+                                  new DBOperationMessage(myClientID,
+                                                         mySequenceNumber,
+                                                         myOperation));
+        }
+    }
+
+    private class SubmitQueryTask implements Runnable
+    {
+        private final SettableFuture<QueryResponse> myCLientFuture;
+
+        private final Query myQuery;
+
+        private final long mySequenceNumber;
+
+        /**
+         * CTOR
+         */
+        public SubmitQueryTask(SettableFuture<QueryResponse> cLientFuture,
+                               Query query,
+                               long sequenceNumber)
+        {
+            super();
+            myCLientFuture = cLientFuture;
+            myQuery = query;
+            mySequenceNumber = sequenceNumber;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void run()
+        {
+            SettableFuture<Pair<NodeID, Collection<Queryable>>>
+                resultFuture = SettableFuture.create();
+            Set<NodeID> serverNodes =
+                new HashSet<>(myRegistryService.getServerNodes());
+            Futures.addCallback(
+                resultFuture,
+                new QueryResponserHandler(
+                    mySequenceNumber,
+                    serverNodes,
+                    new SimpleQueryMerger(),
+                    myCLientFuture));
+
+            myQueryToMergableFutureMap.put(mySequenceNumber, resultFuture);
+
+            for (NodeID server : serverNodes) {
+                myCommunicator.sendTo(
+                    server,
+                    new DBOperationMessage(myClientID, mySequenceNumber, myQuery));
+            }
+        }
+    }
+
+    /**
+     * A helper class that wraps the task of sending mutation to the
+     * server.
+     */
     private class SubmitTableCreationTask implements Runnable
     {
         private final SettableFuture<TableCreationResponse> myFuture;
@@ -378,7 +376,7 @@ public class HitDBFacade
 
             final TableCreationResponseHandler tableCreationHandler =
                 new TableCreationResponseHandler(myFuture);
-            final SettableFuture<CreateTableResponseMessage> tableCreationFuture 
+            final SettableFuture<CreateTableResponseMessage> tableCreationFuture
                 = SettableFuture.create();
             Futures.addCallback(tableCreationFuture, tableCreationHandler);
             myTableCreationFutureMap.put(mySchema.getTableName(),
@@ -390,7 +388,7 @@ public class HitDBFacade
         }
     }
 
-    private class TableCreationResponseHandler 
+    private class TableCreationResponseHandler
         implements FutureCallback<CreateTableResponseMessage>
     {
         private final SettableFuture<TableCreationResponse> myClientFuture;
@@ -420,44 +418,47 @@ public class HitDBFacade
         public void onSuccess(CreateTableResponseMessage response)
         {
             if (response.getErrorMessage() != null) {
+                LOG.info("Received the error " + response.getErrorMessage());
                 myClientFuture.setException(
                     new RuntimeException(response.getErrorMessage()));
             }
             else {
                 myTable2Partitions.put(
-                    response.getTableName(), 
-                    response.getPartitioner());
-                
+                    response.getTableName(), response.getPartitioner());
+
                 myClientFuture.set(
                     new TableCreationResponse(response.getTableName()));
             }
-            
+
         }
     }
-    
+
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(HitDBFacade.class);
+
     private final NodeID myClientID;
 
     private final Communicator myCommunicator;
 
     private final ListeningExecutorService myExecutorService;
 
+    private final AtomicBoolean myIsInitialized;
+
     private final Map<Long, SettableFuture<DBOperationResponse>>
         myMutationIDToFutureMap;
-    
-    private final Map<Long, SettableFuture<Pair<NodeID, Collection<Queryable>>>>
-        myQueryToMergableFutureMap;
 
     private final AtomicLong myOperationsCount;
 
-    private final Map<String, SettableFuture<CreateTableResponseMessage>>
-        myTableCreationFutureMap;
+    private final Map<Long, SettableFuture<Pair<NodeID, Collection<Queryable>>>>
+        myQueryToMergableFutureMap;
 
     private final RegistryService myRegistryService;
 
     private final Map<String, Partitioner<?,?>> myTable2Partitions;
-    
-    private final AtomicBoolean myIsInitialized;
-    
+
+    private final Map<String, SettableFuture<CreateTableResponseMessage>>
+        myTableCreationFutureMap;
+
     /**
      * CTOR
      */
@@ -477,54 +478,43 @@ public class HitDBFacade
             MoreExecutors.listeningDecorator(
                 Executors.newSingleThreadExecutor(
                     new NamedThreadFactory(HitDBFacade.class)));
-        
+
         myIsInitialized = new AtomicBoolean(false);
 
     }
-    
-    /** Returns true if the facade is initalized */
-    public boolean isInitialized()
-    {
-        return myIsInitialized.get();
-    }
-    
-    /** Returns list of tables known to this database server */
-    public Set<String> listTables()
-    {
-        return myTable2Partitions.keySet();
-    }
-    
+
     /**
-     * A helper method to query the database.
+     * Applies the {@link RangeMutation} to the database. However it expects
+     * that the mutation should be applicable to a single node.
      */
-    public ListenableFuture<QueryResponse> queryDB(String query)
-        throws QueryBuildingException, RecognitionException
+    public <K extends Comparable<K>, P extends Persistable<K>>
+        ListenableFuture<DBOperationResponse> apply(RangeMutation<K,P> mutation)
     {
-        ANTLRStringStream fs = new ANTLRStringStream(query);
-        HitSQLLexer lex = new HitSQLLexer(fs);
-        TokenRewriteStream tokens = new TokenRewriteStream(lex);
-        HitSQLParser parser = new HitSQLParser(tokens);
-        
-        HitSQLParser.select_statement_return result = 
-            parser.select_statement();
-        
-        CommonTree t = (CommonTree) result.getTree();
-        CommonTreeNodeStream nodeStream = new CommonTreeNodeStream(t);
-        HitSQLTree tree = new HitSQLTree(nodeStream);
-        tree.select_statement();
-        
-        QueryBuilder builder = new QueryBuilder(tree.getQueryAttributes());
-        return queryDB(builder.buildQuery());
-    }
-    
-    /**
-     * A helper method to query the database.
-     */
-    public ListenableFuture<QueryResponse> queryDB(Query query)
-    {
-        SettableFuture<QueryResponse> queryResponse = SettableFuture.create();
-        myExecutorService.submit(new SubmitQueryTask(queryResponse, query));
-        return queryResponse;
+        @SuppressWarnings("unchecked")
+        Partitioner<K,K> partitions =
+            (Partitioner<K,K>) myTable2Partitions.get(mutation.getTableName());
+
+        if (partitions == null) {
+            return null;
+        }
+
+        final Map<NodeID, Range<K>> split =
+            partitions.lookupNodes(mutation.getKeyRange());
+
+        if (split.size() > 1) {
+            return null;
+        }
+        final SettableFuture<DBOperationResponse> futureResponse =
+            SettableFuture.create();
+        final long id = myOperationsCount.getAndIncrement();
+
+        myExecutorService.submit(new SubmitDBOperationTask(
+            split.keySet().iterator().next(),
+            mutation,
+            futureResponse,
+            id));
+
+        return futureResponse;
     }
 
     /**
@@ -532,11 +522,11 @@ public class HitDBFacade
      */
     public <K extends Comparable<K>>
         ListenableFuture<DBOperationResponse> apply(
-            SingleKeyMutation<K> mutation, String tableName)
+            SingleKeyMutation<K> mutation)
     {
         @SuppressWarnings("unchecked")
         Partitioner<K,?> partitions =
-            (Partitioner<K, ?>) myTable2Partitions.get(tableName);
+            (Partitioner<K, ?>) myTable2Partitions.get(mutation.getTableName());
 
         if (partitions == null) {
             return null;
@@ -546,47 +536,8 @@ public class HitDBFacade
         final SettableFuture<DBOperationResponse> futureResponse =
             SettableFuture.create();
         final long id = myOperationsCount.getAndIncrement();
-        final WrappedMutation wrappedMutation = 
-            new WrappedMutation(id, mutation);
         myExecutorService.submit(new SubmitDBOperationTask(
-            serverNode, wrappedMutation, futureResponse, id));
-        return futureResponse;
-    }
-    
-    /**
-     * Applies the {@link RangeMutation} to the database. However it expects
-     * that the mutation should be applicable to a single node.
-     */
-    public <K extends Comparable<K>>
-        ListenableFuture<DBOperationResponse> apply(
-            RangeMutation<K> mutation, String tableName)
-    {
-        @SuppressWarnings("unchecked")
-        Partitioner<K,K> partitions =
-            (Partitioner<K,K>) myTable2Partitions.get(tableName);
-
-        if (partitions == null) {
-            return null;
-        }
-
-        final Map<NodeID, Range<K>> split = 
-            partitions.lookupNodes(mutation.getKeyRange());
-        
-        if (split.size() > 1) {
-            return null;
-        }
-        final SettableFuture<DBOperationResponse> futureResponse =
-            SettableFuture.create();
-        final long id = myOperationsCount.getAndIncrement();
-        final WrappedMutation wrappedMutation = 
-            new WrappedMutation(id, mutation);
-        
-        myExecutorService.submit(new SubmitDBOperationTask(
-            split.keySet().iterator().next(), 
-            wrappedMutation, 
-            futureResponse, 
-            id));
-        
+            serverNode, mutation, futureResponse, id));
         return futureResponse;
     }
 
@@ -602,6 +553,52 @@ public class HitDBFacade
             clientFuture, schema));
 
         return clientFuture;
+    }
+
+    /** Returns true if the facade is initalized */
+    public boolean isInitialized()
+    {
+        return myIsInitialized.get();
+    }
+
+    /** Returns list of tables known to this database server */
+    public Set<String> listTables()
+    {
+        return myTable2Partitions.keySet();
+    }
+
+    /**
+     * A helper method to query the database.
+     */
+    public ListenableFuture<QueryResponse> queryDB(Query query)
+    {
+        SettableFuture<QueryResponse> queryResponse = SettableFuture.create();
+        final long id = myOperationsCount.getAndIncrement();
+        myExecutorService.submit(new SubmitQueryTask(queryResponse, query, id));
+        return queryResponse;
+    }
+
+    /**
+     * A helper method to query the database.
+     */
+    public ListenableFuture<QueryResponse> queryDB(String query)
+        throws QueryBuildingException, RecognitionException
+    {
+        ANTLRStringStream fs = new ANTLRStringStream(query);
+        HitSQLLexer lex = new HitSQLLexer(fs);
+        TokenRewriteStream tokens = new TokenRewriteStream(lex);
+        HitSQLParser parser = new HitSQLParser(tokens);
+
+        HitSQLParser.select_statement_return result =
+            parser.select_statement();
+
+        CommonTree t = (CommonTree) result.getTree();
+        CommonTreeNodeStream nodeStream = new CommonTreeNodeStream(t);
+        HitSQLTree tree = new HitSQLTree(nodeStream);
+        tree.select_statement();
+
+        QueryBuilder builder = new QueryBuilder(tree.getQueryAttributes());
+        return queryDB(builder.buildQuery());
     }
 
     /**
@@ -633,7 +630,7 @@ public class HitDBFacade
         LOG.info("Facade successfully started");
         NodeID master = myRegistryService.getMasterNode();
         myCommunicator.sendTo(master, new FacadeInitRequest(myClientID));
-        
+
         while (!myIsInitialized.get()) {
             // Loop till the facade is initialized.
         }

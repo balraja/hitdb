@@ -106,6 +106,7 @@
                   <commandLineArguments>
                        <commandLineArgument>-log_file C:\hitdbtest\server.log</commandLineArgument>
                        <commandLineArgument>-transaction_log_dir C:\hitdbtest</commandLineArgument>
+                       <commandLineArgument>-is_master</commandLineArgument>
                   </commandLineArguments>
                   <name>start_server</name>
                   <jvmSettings>
@@ -149,6 +150,20 @@
                        <commandLineArgument>-jar_path ${project.build.directory}/hitdatabase/repo/org/hit/hitdb/0.001/hitdb-0.001.jar</commandLineArgument>
                   </commandLineArguments>
                   <name>run_client</name>
+                  <jvmSettings>
+                    <systemProperties>
+                      <systemProperty>org.hit.app.home=${project.build.directory}/hitdatabase</systemProperty>
+                    </systemProperties>
+                  </jvmSettings>
+                </program>
+                <program>
+                  <mainClass>org.hit.client.ClientLauncher</mainClass>
+                   <commandLineArguments>
+                       <commandLineArgument>-log_file C:\hitdbtest\db_shell.log</commandLineArgument>
+                       <commandLineArgument>-client_class_name org.hit.client.shell.HitDBShell</commandLineArgument>
+                       <commandLineArgument>-jar_path ${project.build.directory}/hitdatabase/repo/org/hit/hitdb/0.001/hitdb-0.001.jar</commandLineArgument>
+                  </commandLineArguments>
+                  <name>run_shell</name>
                   <jvmSettings>
                     <systemProperties>
                       <systemProperty>org.hit.app.home=${project.build.directory}/hitdatabase</systemProperty>

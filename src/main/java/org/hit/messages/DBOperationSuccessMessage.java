@@ -26,7 +26,6 @@ import java.io.ObjectOutput;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
-import org.hit.db.model.DBOperation;
 
 /**
  * The reply message for a successful <code>DBOperation</code>
@@ -35,36 +34,28 @@ import org.hit.db.model.DBOperation;
  */
 public class DBOperationSuccessMessage extends Message
 {
-    private DBOperation myAppliedDBOperation;
-
     private Object myResult;
+
+    private long mySequenceNumber;
 
     /**
      * CTOR
      */
     public DBOperationSuccessMessage()
     {
-        this(null, null, null);
+        this(null, -1, null);
     }
 
     /**
      * CTOR
      */
     public DBOperationSuccessMessage(NodeID      serverID,
-                                     DBOperation appliedDBOperation,
+                                     long        seqNum,
                                      Object      result)
     {
         super(serverID);
-        myAppliedDBOperation = appliedDBOperation;
+        mySequenceNumber = seqNum;
         myResult = result;
-    }
-
-    /**
-     * Returns the value of appliedDBOperation
-     */
-    public DBOperation getAppliedDBOperation()
-    {
-        return myAppliedDBOperation;
     }
 
     /**
@@ -76,6 +67,14 @@ public class DBOperationSuccessMessage extends Message
     }
 
     /**
+     * Returns the value of sequenceNumber
+     */
+    public long getSequenceNumber()
+    {
+        return mySequenceNumber;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -83,7 +82,7 @@ public class DBOperationSuccessMessage extends Message
         throws IOException, ClassNotFoundException
     {
         super.readExternal(in);
-        myAppliedDBOperation = (DBOperation) in.readObject();
+        mySequenceNumber = in.readLong();
         boolean hasResult = in.readBoolean();
         if (hasResult) {
             myResult = in.readObject();
@@ -100,7 +99,7 @@ public class DBOperationSuccessMessage extends Message
     public void writeExternal(ObjectOutput out) throws IOException
     {
         super.writeExternal(out);
-        out.writeObject(myAppliedDBOperation);
+        out.writeLong(mySequenceNumber);
         if (myResult != null) {
             out.writeBoolean(true);
             out.writeObject(myResult);

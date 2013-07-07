@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -21,18 +21,20 @@
 package org.hit.db.model.mutations;
 
 import org.hit.db.model.Mutation;
+import org.hit.db.model.Persistable;
 import org.hit.util.Range;
 
 /**
  * Defines the contract for a class that can be used for applying
  * {@link Mutation} for a range of keys.
- * 
+ *
  * @author Balraja Subbiah
  */
-public interface RangeMutation<K extends Comparable<K>> 
-    extends Mutation, Cloneable
+public interface RangeMutation<K extends Comparable<K>,
+                               P extends Persistable<K>>
+    extends TableMutation
 {
-    /** 
+    /**
      * Defines the contract for the range of keys for which this mutation
      * is to be applied.
      */

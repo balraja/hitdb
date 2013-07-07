@@ -22,14 +22,11 @@ package org.hit.server;
 
 import java.util.logging.Logger;
 
-import org.hit.actors.Actor;
 import org.hit.communicator.CommunicatingActor;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.ConsensusManager;
 import org.hit.db.engine.DBEngine;
 import org.hit.db.engine.EngineConfig;
-import org.hit.db.engine.LocalWarden;
-import org.hit.db.engine.MasterWarden;
 import org.hit.di.HitServerModule;
 import org.hit.gossip.Disseminator;
 import org.hit.util.Application;
@@ -98,7 +95,6 @@ public class HitServer implements Application
             //Wait till zookeeper client becomes ready.
         }
         LOG.info("Connected to zookeeper");
-        ;
 
         myZooKeeperClient.checkAndCreateRootNode();
         myZooKeeperClient.addHostNode(myServerNodeID);
@@ -117,7 +113,7 @@ public class HitServer implements Application
            }
            myDBEngine.init(masterNode);
         }
-        
+
         myCommunicatingActor.start();
         LOG.info("Communicator started");
         myConsensusManager.start();

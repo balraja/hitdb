@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -29,18 +29,18 @@ import org.hit.communicator.NodeID;
 import org.hit.partitioner.Partitioner;
 
 /**
- * Defines the response from the batabase server to the client for later's 
+ * Defines the response from the batabase server to the client for later's
  * request to create a new table.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class CreateTableResponseMessage extends Message
 {
-    private String myTableName;
-    
-    private Partitioner<?,?> myPartitioner;
-    
     private String myErrorMessage;
+
+    private Partitioner<?,?> myPartitioner;
+
+    private String myTableName;
 
     /**
      * CTOR
@@ -65,19 +65,11 @@ public class CreateTableResponseMessage extends Message
     }
 
     /**
-     * Returns the value of tableName
+     * Returns the value of errorMessage
      */
-    public String getTableName()
+    public String getErrorMessage()
     {
-        return myTableName;
-    }
-
-    /**
-     * Setter for the tableName
-     */
-    public void setTableName(String tableName)
-    {
-        myTableName = tableName;
+        return myErrorMessage;
     }
 
     /**
@@ -89,19 +81,30 @@ public class CreateTableResponseMessage extends Message
     }
 
     /**
-     * Setter for the isSuccessful
+     * Returns the value of tableName
      */
-    public void setPartitioner(Partitioner<?,?> partitioner)
+    public String getTableName()
     {
-        myPartitioner = partitioner;
+        return myTableName;
     }
 
     /**
-     * Returns the value of errorMessage
+     * {@inheritDoc}
      */
-    public String getErrorMessage()
+    @Override
+    public void readExternal(ObjectInput in)
+        throws IOException, ClassNotFoundException
     {
-        return myErrorMessage;
+        super.readExternal(in);
+        myTableName = in.readUTF();
+        myPartitioner = (Partitioner<?, ?>) in.readObject();
+        boolean hasError = in.readBoolean();
+        if (hasError) {
+            myErrorMessage = in.readUTF();
+        }
+        else {
+            myErrorMessage = null;
+        }
     }
 
     /**
@@ -111,7 +114,23 @@ public class CreateTableResponseMessage extends Message
     {
         myErrorMessage = errorMessage;
     }
-    
+
+    /**
+     * Setter for the isSuccessful
+     */
+    public void setPartitioner(Partitioner<?,?> partitioner)
+    {
+        myPartitioner = partitioner;
+    }
+
+    /**
+     * Setter for the tableName
+     */
+    public void setTableName(String tableName)
+    {
+        myTableName = tableName;
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -127,22 +146,6 @@ public class CreateTableResponseMessage extends Message
         }
         else {
             out.writeBoolean(false);
-        }
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void readExternal(ObjectInput in)
-        throws IOException, ClassNotFoundException
-    {
-        super.readExternal(in);
-        myTableName = in.readUTF();
-        myPartitioner = (Partitioner<?, ?>) in.readObject();
-        boolean hasError = in.readBoolean();
-        if (hasError) {
-            myErrorMessage = in.readUTF();
         }
     }
 }
