@@ -22,6 +22,7 @@ package org.hit.communicator.test;
 
 import static org.junit.Assert.*;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.hit.communicator.Communicator;
@@ -31,6 +32,10 @@ import org.hit.communicator.NodeID;
 import org.hit.communicator.ObjectStreamSerializer;
 import org.hit.communicator.nio.IPNodeID;
 import org.hit.communicator.nio.NIOCommunicator;
+import org.hit.db.model.mutations.BatchMutation;
+import org.hit.example.Airport;
+import org.hit.example.AirportDataLoader;
+import org.hit.messages.DBOperationMessage;
 import org.junit.Test;
 
 /**
@@ -152,7 +157,11 @@ public class NIOCommunicatorTest
     {
         NodeID senderID = new IPNodeID(25000);
         NodeID receiverID = new IPNodeID(25001);
-        TestMessage message = new TestMessage(senderID, 1001);
+        List<Airport> airportList = AirportDataLoader.loadTestData();
+        BatchMutation<Long, Airport> batchMutation = 
+            new BatchMutation<>("Airport", airportList);
+        DBOperationMessage message = 
+            new DBOperationMessage(senderID, 1L, batchMutation);
         Thread senderThread = 
             new Thread(new Sender(senderID, receiverID, message));
         

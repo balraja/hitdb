@@ -55,6 +55,7 @@ public class ObjectStreamSerializer implements MessageSerializer
         }
         catch (Exception e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
+            e.printStackTrace();
             return null;
         }
     }

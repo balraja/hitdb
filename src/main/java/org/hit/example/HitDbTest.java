@@ -49,10 +49,6 @@ import com.google.common.util.concurrent.ListenableFuture;
  */
 public class HitDbTest extends DBClient
 {
-    private static final String AIRPORT_FILE = "airports.txt";
-
-    private static final String COMMENT = "/**";
-
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(HitDbTest.class);
 
@@ -89,45 +85,7 @@ public class HitDbTest extends DBClient
             LOG.log(Level.SEVERE, e.getMessage(), e);
         }
     }
-
-    /**
-     * A helper method to read the data from test file
-     */
-    public List<Airport> readTestData()
-    {
-        String line = null;
-        List<Airport> airportData = new ArrayList<>();
-        try (BufferedReader reader =
-                 new BufferedReader(new InputStreamReader(
-                     HitDbTest.class.getClassLoader()
-                                    .getResourceAsStream(AIRPORT_FILE))))
-        {
-            while ((line = reader.readLine()) != null) {
-
-                if (line.startsWith(COMMENT)) {
-                    continue;
-                }
-
-                String[] parts = line.split(",");
-                airportData.add(new Airport(
-                    Long.parseLong(parts[0]),
-                    parts[1],
-                    parts[2],
-                    parts[3],
-                    parts[4],
-                    Double.parseDouble(parts[6]),
-                    Double.parseDouble(parts[7]),
-                    Double.parseDouble(parts[8]),
-                    Float.parseFloat(parts[9])));
-
-            }
-        }
-        catch (IOException e) {
-            LOG.log(Level.SEVERE, e.getMessage(), e);
-        }
-        return airportData;
-    }
-
+    
     /**
      * {@inheritDoc}
      */
@@ -143,7 +101,7 @@ public class HitDbTest extends DBClient
     public void updateTable()
     {
         BatchMutation<Long, Airport> mutation = new BatchMutation<>(
-                TABLE_NAME, readTestData());
+                TABLE_NAME, AirportDataLoader.loadTestData());
 
         ListenableFuture<DBOperationResponse> futureResponse =
             getFacade().apply(mutation);

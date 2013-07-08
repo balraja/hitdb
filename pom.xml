@@ -79,7 +79,9 @@
 			            </property>
                     </systemProperties>
                      <excludes>
-                         <exclude>**/NIOCommunicatorTest.java</exclude>
+                         <!-- <exclude>**/NIOCommunicatorTest.java</exclude> -->
+                         <exclude>**/LocklessSortedListTest.java</exclude>
+                         
                      </excludes>
 		        </configuration>
          </plugin>

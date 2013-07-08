@@ -111,7 +111,8 @@ public class NIOCommunicator implements Communicator
     {
         ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
         ByteBuffer messageBuffer = ByteBuffer.allocate(10 * BUFFER_SIZE);
-        while (socketChannel.read(buffer) > 0) {
+        int readBytes = -1;
+        while ((readBytes = socketChannel.read(buffer)) != -1) {
             buffer.flip();
             if (LOG.isLoggable(Level.FINE)) {
                 LOG.fine("Message Buffer " + messageBuffer.position()
@@ -121,10 +122,11 @@ public class NIOCommunicator implements Communicator
 
                 LOG.fine("Data buffer " + buffer.remaining());
             }
-            if (messageBuffer.remaining() < buffer.capacity()) {
+            
+            if (messageBuffer.remaining() < readBytes) {
                 messageBuffer = resize(messageBuffer);
             }
-            messageBuffer.put(buffer);
+            messageBuffer.put(buffer.array(), 0, readBytes);
             buffer.clear();
         }
         Message message = mySerializer.parse(messageBuffer);
