@@ -20,10 +20,8 @@
 
 package org.hit.example;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
@@ -53,12 +51,15 @@ public class HitDbTest extends DBClient
         LogFactory.getInstance().getLogger(HitDbTest.class);
 
     public static final String TABLE_NAME = "airports";
+    
+    private final List<Airport> myTestData;
 
     /**
      * CTOR
      */
     public HitDbTest()
     {
+        myTestData = new LinkedList<>();
     }
 
     /** Creates the climate data table */
@@ -77,6 +78,8 @@ public class HitDbTest extends DBClient
         try {
             TableCreationResponse result = futureResponse.get();
             LOG.info("Creation of table " + result.getTableName());
+            myTestData.addAll(AirportDataLoader.loadTestData());
+            updateTable();
         }
         catch (InterruptedException e) {
             // ignore
@@ -94,30 +97,45 @@ public class HitDbTest extends DBClient
     {
         super.start();
         createTable();
-        updateTable();
     }
 
     /** Updates the table */
     public void updateTable()
     {
+        if (myTestData.isEmpty()) {
+            return;
+        }
+        List<Airport> batchedData = new ArrayList<>();
+        if (myTestData.size() > 10) {
+            for (int i = 0; i < 10; i++) {
+                batchedData.add(myTestData.remove(0));
+            }
+        }
+        else {
+            batchedData.addAll(myTestData);
+            myTestData.clear();
+        }
         BatchMutation<Long, Airport> mutation = new BatchMutation<>(
-                TABLE_NAME, AirportDataLoader.loadTestData());
+                TABLE_NAME, batchedData);
 
         ListenableFuture<DBOperationResponse> futureResponse =
             getFacade().apply(mutation);
 
         try {
-            futureResponse.get();
-            LOG.info("Updation of "
-                     + TABLE_NAME
-                     + " with mutation "
-                     + mutation.getClass().getSimpleName()
-                     + " succedded");
+            DBOperationResponse response = futureResponse.get();
+            if (response != null) {
+                LOG.info("Updation of "
+                         + TABLE_NAME
+                         + " with mutation "
+                         + mutation.getClass().getSimpleName()
+                         + " succedded");
+            }
         }
         catch (InterruptedException e) {
         }
         catch (ExecutionException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
         }
+        updateTable();
     }
 }
