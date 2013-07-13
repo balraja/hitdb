@@ -78,4 +78,12 @@ public class LogFactory
         logger.addHandler(myHandler);
         return logger;
     }
+    
+    /** Returns <cdoe>Logger</code> for this namespace */
+    public Logger getLogger(String nameSpace)
+    {
+        Logger logger = Logger.getLogger(nameSpace);
+        logger.addHandler(myHandler);
+        return logger;
+    }
 }

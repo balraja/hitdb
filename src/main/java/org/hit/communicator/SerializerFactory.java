@@ -1,8 +1,8 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,21 +21,11 @@
 package org.hit.communicator;
 
 /**
- * Defines the abstract interface for communicating with the external world.
+ * A contract for the factory to spew in the {@link MessageSerializer}.
  * 
  * @author Balraja Subbiah
  */
-public interface Communicator
+public interface SerializerFactory
 {
-    /** Adds the <code>MessageHandler</code> for handling the messages */
-    public void addMessageHandler(MessageHandler handler);
-    
-    /** Sends the given message to the target node */
-    public void sendTo(NodeID targetNode, Message m) throws CommunicatorException;
-    
-    /** Starts the communicator */
-    public void start();
-    
-    /** Stops the communicator */
-    public void stop();
+    public MessageSerializer makeSerializer();
 }

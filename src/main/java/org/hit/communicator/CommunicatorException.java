@@ -1,8 +1,8 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,21 +21,45 @@
 package org.hit.communicator;
 
 /**
- * Defines the abstract interface for communicating with the external world.
- * 
  * @author Balraja Subbiah
  */
-public interface Communicator
+public class CommunicatorException extends Exception
 {
-    /** Adds the <code>MessageHandler</code> for handling the messages */
-    public void addMessageHandler(MessageHandler handler);
+
+    /**
+     * CTOR
+     */
+    public CommunicatorException()
+    {
+        super();
+        // TODO Auto-generated constructor stub
+    }
+
+    /**
+     * CTOR
+     */
+    public CommunicatorException(String message, Throwable cause)
+    {
+        super(message, cause);
+        // TODO Auto-generated constructor stub
+    }
+
+    /**
+     * CTOR
+     */
+    public CommunicatorException(String message)
+    {
+        super(message);
+        // TODO Auto-generated constructor stub
+    }
+
+    /**
+     * CTOR
+     */
+    public CommunicatorException(Throwable cause)
+    {
+        super(cause);
+        // TODO Auto-generated constructor stub
+    }
     
-    /** Sends the given message to the target node */
-    public void sendTo(NodeID targetNode, Message m) throws CommunicatorException;
-    
-    /** Starts the communicator */
-    public void start();
-    
-    /** Stops the communicator */
-    public void stop();
 }
