@@ -81,7 +81,16 @@ public class CommunicatingActor extends Actor
         if (event instanceof SendMessageEvent) {
             SendMessageEvent sme = (SendMessageEvent) event;
             for (NodeID nodeID : sme.getTargets()) {
-                myCommunicator.sendTo(nodeID, sme.getMessage());
+                try {
+                    myCommunicator.sendTo(nodeID, sme.getMessage());
+                }
+                catch (CommunicatorException e) {
+                    LOG.log(Level.SEVERE,
+                            "Sending message "
+                             + sme.getMessage().getClass().getSimpleName()
+                             + " to " + nodeID + " failed",
+                             e);
+                }
             }
         }
     }

@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -20,16 +20,17 @@
 
 package org.hit.communicator.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.hit.communicator.Communicator;
+import org.hit.communicator.CommunicatorException;
 import org.hit.communicator.Message;
 import org.hit.communicator.MessageHandler;
 import org.hit.communicator.NodeID;
-import org.hit.communicator.ObjectStreamSerializer;
+import org.hit.communicator.ObjectStreamSerializerFactory;
 import org.hit.communicator.nio.IPNodeID;
 import org.hit.communicator.nio.NIOCommunicator;
 import org.hit.db.model.mutations.BatchMutation;
@@ -40,77 +41,56 @@ import org.junit.Test;
 
 /**
  * Defines the testcases for {@link NIOCommunicator}.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class NIOCommunicatorTest
 {
-    /** 
-     * Extends <code>Runnable</code> to support performing sender abstraction 
-     */
-    private static class Sender implements Runnable
-    {
-        private final NodeID mySenderID;
-        
-        private final Message myMessage;
-        
-        private final NodeID myReceiverID;
-
-        /**
-         * CTOR
-         */
-        public Sender(NodeID senderId, NodeID receiverID, Message message)
-        {
-            super();
-            mySenderID = senderId;
-            myReceiverID = receiverID;
-            myMessage = message;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void run()
-        {
-            Communicator communicator = 
-                new NIOCommunicator(new ObjectStreamSerializer(), 
-                                    mySenderID);
-            communicator.start();
-            System.out.println("Started the sending agent's communicator");
-            
-            communicator.sendTo(myReceiverID, myMessage);
-            System.out.println("Sent message to the " + myReceiverID);
-            try {
-                Thread.sleep(100,000);
-            }
-            catch (InterruptedException e) {
-            }
-            communicator.stop();
-        }
-    }
-    
-    /** 
-     * Extends <code>Runnable</code> to support performing receiver abstraction 
+    /**
+     * Extends <code>Runnable</code> to support performing receiver abstraction
      */
     private static class Receiver implements Runnable, MessageHandler
     {
-        private final AtomicBoolean myResultAvailable;
-        
         private final Communicator myCommunicator;
-        
+
         private Message myReceivedMessage;
+
+        private final AtomicBoolean myResultAvailable;
+
+        private long myStartTime;
 
         /**
          * CTOR
          */
         public Receiver(NodeID receiverID)
         {
-            myCommunicator = new NIOCommunicator(new ObjectStreamSerializer(), 
-                                                 receiverID);
-            
+            myCommunicator =
+                new NIOCommunicator(new ObjectStreamSerializerFactory(),
+                                    receiverID);
+
             myResultAvailable = new AtomicBoolean(false);
             myReceivedMessage = null;
+        }
+
+        /**
+         * Returns the value of receivedMessage
+         */
+        public Message getReceivedMessage()
+        {
+            return myReceivedMessage;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void handle(Message message)
+        {
+            myReceivedMessage = message;
+            System.out.println("Received message from "
+                               + myReceivedMessage.getNodeId());
+            myResultAvailable.set(true);
+            myCommunicator.stop();
         }
 
         /**
@@ -121,69 +101,120 @@ public class NIOCommunicatorTest
         {
             myCommunicator.addMessageHandler(this);
             myCommunicator.start();
+            myStartTime = System.currentTimeMillis();
             System.out.println("Started the receiving agent's communicator");
-            
-            try {
-                Thread.sleep(100,000);
+            while ((System.currentTimeMillis() - myStartTime) < (5 * 60 * 1000))
+            {
+                try {
+                    Thread.sleep(100);
+                }
+                catch (InterruptedException e) {
+                }
             }
-            catch (InterruptedException e) {
-            }
+        }
+    }
+
+    /**
+     * Extends <code>Runnable</code> to support performing sender abstraction
+     */
+    private static class Sender implements Runnable
+    {
+        private final Communicator myCommunicator;
+
+        private final Message myMessage;
+
+        private final NodeID myReceiverID;
+
+        private final NodeID mySenderID;
+
+        private final AtomicBoolean myStop;
+
+        /**
+         * CTOR
+         */
+        public Sender(NodeID senderId, NodeID receiverID, Message message)
+        {
+            super();
+            mySenderID = senderId;
+            myReceiverID = receiverID;
+            myMessage = message;
+            myCommunicator =
+                new NIOCommunicator(new ObjectStreamSerializerFactory(),
+                                    mySenderID);
+            myStop = new AtomicBoolean(false);
         }
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public void handle(Message message)
+        public void run()
         {
-            myReceivedMessage = message;
-            System.out.println("Received message from " 
-                               + myReceivedMessage.getNodeId());
-            myResultAvailable.set(true);
+
+            myCommunicator.start();
+            System.out.println("Started the sending agent's communicator");
+            try {
+                myCommunicator.sendTo(myReceiverID, myMessage);
+            }
+            catch (CommunicatorException e1) {
+                e1.printStackTrace();
+            }
+            System.out.println("Sent message to the " + myReceiverID);
+            while (!myStop.get()) {
+                try {
+                    Thread.sleep(100);
+                }
+                catch (InterruptedException e) {
+                }
+            }
             myCommunicator.stop();
         }
 
-        /**
-         * Returns the value of receivedMessage
-         */
-        public Message getReceivedMessage()
+        public void stop()
         {
-            return myReceivedMessage;
+            myStop.set(true);
         }
     }
-    
+
     @Test
     public void test()
     {
         NodeID senderID = new IPNodeID(25000);
         NodeID receiverID = new IPNodeID(25001);
         List<Airport> airportList = AirportDataLoader.loadTestData();
-        BatchMutation<Long, Airport> batchMutation = 
+        BatchMutation<Long, Airport> batchMutation =
             new BatchMutation<>("Airport", airportList);
-        DBOperationMessage message = 
+        DBOperationMessage message =
             new DBOperationMessage(senderID, 1L, batchMutation);
-        Thread senderThread = 
-            new Thread(new Sender(senderID, receiverID, message));
-        
+
+        Sender sender = new Sender(senderID, receiverID, message);
+        Thread senderThread = new Thread(sender);
+
         Receiver receiver = new Receiver(receiverID);
         Thread receiverThread = new Thread(receiver);
-        
+
         receiverThread.start();
         try {
             Thread.sleep(2000);
         }
         catch (InterruptedException e1) {
         }
-        
+
         senderThread.start();
+
         try {
-            senderThread.join();
             receiverThread.join();
-            
-            assertNotNull(receiver.getReceivedMessage());
         }
         catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+        sender.stop();
+
+        try {
+            senderThread.join();
+        }
+        catch (InterruptedException e) {
+        }
+        assertNotNull(receiver.getReceivedMessage());
     }
 }

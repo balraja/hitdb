@@ -27,7 +27,6 @@ import org.hit.db.engine.Allocator;
 import org.hit.db.engine.EngineConfig;
 import org.hit.db.engine.EnginePropertyConfig;
 import org.hit.db.engine.EngineWarden;
-import org.hit.db.engine.MasterWarden;
 import org.hit.db.engine.StandardAllocator;
 import org.hit.db.engine.TransactionManager;
 import org.hit.db.transactions.TransactableDatabase;
@@ -44,13 +43,13 @@ import com.google.inject.Provides;
 /**
  * Extends <code>HitModule</code> to support adding bindings for the server
  * side.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class HitServerModule extends HitModule
 {
     private final EventBus myEventBus;
-    
+
     /**
      * CTOR
      */
@@ -58,7 +57,7 @@ public class HitServerModule extends HitModule
     {
         myEventBus = new EventBus();
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -86,7 +85,7 @@ public class HitServerModule extends HitModule
     {
         return Integer.valueOf(10000);
     }
-    
+
     @Provides
     protected EventBus getEventBus()
     {

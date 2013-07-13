@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -31,19 +31,19 @@ import org.hit.util.LogFactory;
 
 /**
  * An abstraction to capture the active connection between two machines.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class Connection
 {
     private static final int BUFFER_SIZE = 1024 * 1024;
-    
+
     private static final String CONNECTION = "Connection_";
-    
+
     private final SocketChannel myChannel;
-    
+
     private final Logger myLogger;
-    
+
     /**
      * CTOR
      */
@@ -52,25 +52,30 @@ public class Connection
         myChannel = channel;
         myLogger = LogFactory.getInstance().getLogger(CONNECTION + nodeID);
     }
-    
+
     /**
-     * Sends the message on the channel.
+     * Closes the connection.
      */
-    public void send(ByteBuffer message) throws IOException
+    public void close() throws IOException
     {
-        myChannel.write(message);
+        myChannel.close();
     }
-    
+
+    public SocketChannel getChannel()
+    {
+        return myChannel;
+    }
+
     /**
      * Reads the value from tcp connection.
      */
     public ByteBuffer read() throws IOException
     {
-        ByteBuffer messageBuffer = 
+        ByteBuffer messageBuffer =
             ByteBuffer.allocate(10 * BUFFER_SIZE);
         int readBytes = -1;
         ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
-        
+
         while ((readBytes = myChannel.read(buffer)) != -1) {
             buffer.flip();
             if (myLogger.isLoggable(Level.FINE)) {
@@ -81,7 +86,7 @@ public class Connection
 
                 myLogger.fine("Data buffer " + buffer.remaining());
             }
-            
+
             if (messageBuffer.remaining() < readBytes) {
                 messageBuffer = resize(messageBuffer);
             }
@@ -90,7 +95,7 @@ public class Connection
         }
         return messageBuffer;
     }
-    
+
     private ByteBuffer resize(ByteBuffer buffer)
     {
         if (myLogger.isLoggable(Level.FINE)) {
@@ -101,12 +106,15 @@ public class Connection
         newBuffer.put(buffer);
         return newBuffer;
     }
-    
+
     /**
-     * Closes the connection.
+     * Sends the message on the channel.
      */
-    public void close() throws IOException
+    public void send(ByteBuffer message) throws IOException
     {
-        myChannel.close();
+        myChannel.write(message);
+        if (myLogger.isLoggable(Level.FINE)) {
+            myLogger.fine("Sent message to the remote host ");
+        }
     }
 }

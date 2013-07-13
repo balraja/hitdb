@@ -23,8 +23,6 @@ package org.hit.communicator.nio;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.nio.ByteBuffer;
-import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -45,7 +43,6 @@ import org.hit.communicator.Communicator;
 import org.hit.communicator.CommunicatorException;
 import org.hit.communicator.Message;
 import org.hit.communicator.MessageHandler;
-import org.hit.communicator.MessageSerializer;
 import org.hit.communicator.NodeID;
 import org.hit.communicator.SerializerFactory;
 import org.hit.util.LogFactory;
@@ -62,27 +59,8 @@ import com.google.inject.Inject;
  */
 public class NIOCommunicator implements Communicator
 {
-    private static final Logger LOG = LogFactory.getInstance().getLogger(
-            NIOCommunicator.class);
-
-    private final Collection<MessageHandler> myHandlers;
-
-    private final IPNodeID myId;
-
-    private final ExecutorService mySelectableExecutor;
-    
-    private final Selector mySelector;
-
-    private final SerializerFactory mySerializerFactory;
-
-    private final ServerSocketChannel myServerSocketChannel;
-
-    private final AtomicBoolean myShouldStop;
-    
-    private final Map<NodeID, Session> myIdSessionMap;
-    
     /**
-     * A simple task to take care of selecting keys from the selector and 
+     * A simple task to take care of selecting keys from the selector and
      * scheduling tasks for further work.
      */
     private class SelectTask implements Runnable
@@ -103,7 +81,7 @@ public class NIOCommunicator implements Communicator
                          + myId.getIPAddress());
 
                 while (!myShouldStop.get()) {
-                    
+
                     synchronized (myIdSessionMap) {
                         for (Session session : myIdSessionMap.values()) {
                             session.expressInterest();
@@ -142,43 +120,50 @@ public class NIOCommunicator implements Communicator
                                     LOG.fine("Acceping connection from "
                                              + channel.getRemoteAddress());
                                 }
-                                
-                                NodeID otherNode = 
+
+                                NodeID otherNode =
                                     makeNodeID(
                                         (InetSocketAddress)
                                             channel.getRemoteAddress());
-                                
-                                SelectionKey key = 
-                                    channel.register(mySelector, 
+
+                                channel.configureBlocking(false);
+                                SelectionKey key =
+                                    channel.register(mySelector,
                                                      SelectionKey.OP_READ);
-                                
-                                Session session = 
-                                    new Session(otherNode, 
+
+                                Session session =
+                                    new Session(otherNode,
                                                 key,
                                                 channel,
                                                 mySerializerFactory.makeSerializer(),
                                                 Session.State.CONNECTED);
-                                myIdSessionMap.put(otherNode, session);
                                 sKey.attach(session);
+                                myIdSessionMap.put(otherNode, session);
                             }
                             else if (sKey.isConnectable()) {
-                                Session session = 
+                                Session session =
                                     (Session) sKey.attachment();
-                                session.connected();
+                                if (session != null) {
+                                    session.connected();
+                                }
                             }
                             else if (sKey.isReadable()) {
-                                Session session = 
+                                Session session =
                                     (Session) sKey.attachment();
-                                Message message = session.readMessage();
-                                for (MessageHandler handler : myHandlers)
-                                {
-                                    handler.handle(message);
+                                if (session != null) {
+                                    Message message = session.readMessage();
+                                    for (MessageHandler handler : myHandlers)
+                                    {
+                                        handler.handle(message);
+                                    }
                                 }
                             }
                             else if (sKey.isWritable()) {
-                                Session session = 
+                                Session session =
                                     (Session) sKey.attachment();
-                                session.write();
+                                if (session != null) {
+                                    session.write();
+                                }
                             }
                             // It's very important to remove the keys
                             // after processing. Otherwise channel
@@ -194,8 +179,25 @@ public class NIOCommunicator implements Communicator
             }
         }
     }
-        
-        
+
+    private static final Logger LOG = LogFactory.getInstance().getLogger(
+            NIOCommunicator.class);
+
+    private final Collection<MessageHandler> myHandlers;
+
+    private final IPNodeID myId;
+
+    private final Map<NodeID, Session> myIdSessionMap;
+
+    private final ExecutorService mySelectableExecutor;
+
+    private final Selector mySelector;
+
+    private final SerializerFactory mySerializerFactory;
+
+    private final ServerSocketChannel myServerSocketChannel;
+
+    private final AtomicBoolean myShouldStop;
 
     /** CTOR */
     @Inject
@@ -230,6 +232,17 @@ public class NIOCommunicator implements Communicator
     }
 
     /**
+     * A helper method to generate the InetSocketAddress of the remote server.
+     * This is based on the assumption, all servers will listen to the same
+     * port.
+     */
+    private NodeID makeNodeID(InetSocketAddress address)
+    {
+        return new IPNodeID(new InetSocketAddress(address.getAddress(),
+                                                  myId.getIPAddress().getPort()));
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -242,18 +255,21 @@ public class NIOCommunicator implements Communicator
             synchronized (myIdSessionMap) {
                 Session session = myIdSessionMap.get(node);
                 if (session == null) {
-                    SocketChannel socketChannel = 
-                        SocketChannel.open(((IPNodeID) node).getIPAddress());
-                    SelectionKey key = 
-                        socketChannel.register(mySelector, 
+                    SocketChannel socketChannel = SocketChannel.open();
+                    socketChannel.configureBlocking(false);
+                    SelectionKey key =
+                        socketChannel.register(mySelector,
                                                SelectionKey.OP_CONNECT);
-                    session = 
-                        new Session(node, 
-                                    key, 
-                                    socketChannel, 
+                    session =
+                        new Session(node,
+                                    key,
+                                    socketChannel,
                                     mySerializerFactory.makeSerializer(),
                                     Session.State.CONNECTING);
+
+                    key.attach(session);
                     myIdSessionMap.put(node, session);
+                    socketChannel.connect(((IPNodeID) node).getIPAddress());
                 }
                 session.cacheForWrite(m);
             }
@@ -291,16 +307,5 @@ public class NIOCommunicator implements Communicator
         catch (IOException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
         }
-    }
-    
-    /**
-     * A helper method to generate the InetSocketAddress of the remote server.
-     * This is based on the assumption, all servers will listen to the same 
-     * port.
-     */
-    private NodeID makeNodeID(InetSocketAddress address)
-    {
-        return new IPNodeID(new InetSocketAddress(address.getAddress(),
-                                                  myId.getIPAddress().getPort()));
     }
 }

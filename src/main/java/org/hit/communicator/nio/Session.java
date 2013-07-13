@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -37,7 +37,7 @@ import org.hit.util.LogFactory;
 
 /**
  * Defines the contract for a communication session open with other node.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class Session
@@ -47,28 +47,28 @@ public class Session
      */
     public static enum State
     {
-        CONNECTING,
-        CONNECTED
+        CONNECTED,
+        CONNECTING
     }
-   
-    private final NodeID myOtherNode;
-    
-    private final Connection myConnection;
-    
-    private final SelectionKey mySelectionKey;
-    
-    private AtomicReference<State> myState;
-    
-    private final MessageSerializer mySerializer;
-    
+
     private final Queue<Message> myBufferredMessages;
-    
+
+    private final Connection myConnection;
+
     private final Logger myLogger;
-    
+
+    private final NodeID myOtherNode;
+
+    private final SelectionKey mySelectionKey;
+
+    private final MessageSerializer mySerializer;
+
+    private final AtomicReference<State> myState;
+
     /**
      * CTOR
      */
-    public Session(NodeID            otherNode, 
+    public Session(NodeID            otherNode,
                    SelectionKey      selectionKey,
                    SocketChannel     socketChannel,
                    MessageSerializer serializer,
@@ -80,15 +80,63 @@ public class Session
         mySerializer = serializer;
         myBufferredMessages = new ConcurrentLinkedQueue<>();
         mySelectionKey = selectionKey;
-        myLogger = 
+        myLogger =
             LogFactory.getInstance().getLogger(
                 Session.class.getSimpleName()
-                + " " 
+                + " "
                 + otherNode);
     }
-    
+
     /**
-     * Reads the <code>Message</code> published by the target node from the 
+     * Adds to the write cache.
+     */
+    public void cacheForWrite(Message message)
+    {
+        myBufferredMessages.offer(message);
+    }
+
+    /** Closes the session with remote node */
+    public void close()
+    {
+        try {
+            myConnection.close();
+        }
+        catch (IOException e) {
+            myLogger.log(Level.SEVERE, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Marks the state as connected for this session.
+     */
+    public void connected() throws CommunicatorException
+    {
+        try {
+            myConnection.getChannel().finishConnect();
+            myState.compareAndSet(State.CONNECTING, State.CONNECTED);
+            myLogger.info("Connection extablished successfully with" +
+                          " the remote host");
+        }
+        catch (IOException e) {
+            throw new CommunicatorException(e);
+        }
+    }
+
+    /**
+     * Expresses interest to the <code>Selector</code> that they wish to
+     * write.
+     */
+    public void expressInterest()
+    {
+        if (!myBufferredMessages.isEmpty()
+            && myState.get() == State.CONNECTED)
+        {
+            mySelectionKey.interestOps(SelectionKey.OP_WRITE);
+        }
+    }
+
+    /**
+     * Reads the <code>Message</code> published by the target node from the
      * underlying session.
      */
     public Message readMessage() throws CommunicatorException
@@ -100,67 +148,27 @@ public class Session
             throw new CommunicatorException(e);
         }
     }
-    
+
     /**
-     * Expresses interest to the <code>Selector</code> that they wish to 
-     * write.
-     */
-    public void expressInterest()
-    {
-        if (!myBufferredMessages.isEmpty() 
-            && myState.get() == State.CONNECTED) 
-        {
-            mySelectionKey.interestOps(SelectionKey.OP_WRITE);
-        }
-    }
-    
-    /**
-     * Marks the state as connected for this session.
-     */
-    public void connected()
-    {
-        myState.compareAndSet(State.CONNECTING, State.CONNECTED);
-    }
-    
-    /**
-     * Adds to the write cache.
-     */
-    public void cacheForWrite(Message message)
-    {
-        myBufferredMessages.offer(message);
-    }
-    
-    /**
-     * Writes message to the target node when the channel is selected by 
+     * Writes message to the target node when the channel is selected by
      * the <code>Selector</code>.
      */
     public void write() throws CommunicatorException
     {
         try {
             Message message = myBufferredMessages.poll();
-            
+
             if (message != null) {
                 myConnection.send(mySerializer.serialize(message));
             }
-            
+
             if (myLogger.isLoggable(Level.FINE)) {
-                myLogger.fine("Queing " + message);
+                myLogger.fine("Successfully sent the  " + message);
             }
             mySelectionKey.interestOps(SelectionKey.OP_READ);
         }
         catch (IOException e) {
             throw new CommunicatorException(e);
-        }
-    }
-    
-    /** Closes the session with remote node */
-    public void close()
-    {
-        try {
-            myConnection.close();
-        }
-        catch (IOException e) {
-            myLogger.log(Level.SEVERE, e.getMessage(), e);
         }
     }
 }

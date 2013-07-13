@@ -36,6 +36,7 @@ import org.antlr.runtime.TokenRewriteStream;
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.CommonTreeNodeStream;
 import org.hit.communicator.Communicator;
+import org.hit.communicator.CommunicatorException;
 import org.hit.communicator.Message;
 import org.hit.communicator.MessageHandler;
 import org.hit.communicator.NodeID;
@@ -287,16 +288,21 @@ public class HitDBFacade
 
             myMutationIDToFutureMap.put(mySequenceNumber, mySettableFuture);
 
-            myCommunicator.sendTo(myNodeID,
-                                  new DBOperationMessage(myClientID,
-                                                         mySequenceNumber,
-                                                         myOperation));
+            try {
+                myCommunicator.sendTo(myNodeID,
+                                      new DBOperationMessage(myClientID,
+                                                             mySequenceNumber,
+                                                             myOperation));
+            }
+            catch (CommunicatorException e) {
+                mySettableFuture.setException(e);
+            }
         }
     }
 
     private class SubmitQueryTask implements Runnable
     {
-        private final SettableFuture<QueryResponse> myCLientFuture;
+        private final SettableFuture<QueryResponse> myClientFuture;
 
         private final Query myQuery;
 
@@ -310,7 +316,7 @@ public class HitDBFacade
                                long sequenceNumber)
         {
             super();
-            myCLientFuture = cLientFuture;
+            myClientFuture = cLientFuture;
             myQuery = query;
             mySequenceNumber = sequenceNumber;
         }
@@ -331,14 +337,21 @@ public class HitDBFacade
                     mySequenceNumber,
                     serverNodes,
                     new SimpleQueryMerger(),
-                    myCLientFuture));
+                    myClientFuture));
 
             myQueryToMergableFutureMap.put(mySequenceNumber, resultFuture);
 
             for (NodeID server : serverNodes) {
-                myCommunicator.sendTo(
-                    server,
-                    new DBOperationMessage(myClientID, mySequenceNumber, myQuery));
+                try {
+                    myCommunicator.sendTo(
+                        server,
+                        new DBOperationMessage(myClientID,
+                                               mySequenceNumber,
+                                               myQuery));
+                }
+                catch (CommunicatorException e) {
+                    myClientFuture.setException(e);
+                }
             }
         }
     }
@@ -384,7 +397,13 @@ public class HitDBFacade
 
             final CreateTableMessage message =
                 new CreateTableMessage(myClientID, mySchema);
-            myCommunicator.sendTo(myRegistryService.getMasterNode(), message);
+            try {
+                myCommunicator.sendTo(myRegistryService.getMasterNode(),
+                                      message);
+            }
+            catch (CommunicatorException e) {
+                tableCreationFuture.setException(e);
+            }
         }
     }
 
@@ -629,7 +648,12 @@ public class HitDBFacade
 
         LOG.info("Facade successfully started");
         NodeID master = myRegistryService.getMasterNode();
-        myCommunicator.sendTo(master, new FacadeInitRequest(myClientID));
+        try {
+            myCommunicator.sendTo(master, new FacadeInitRequest(myClientID));
+        }
+        catch (CommunicatorException e) {
+            throw new RuntimeException(e);
+        }
 
         while (!myIsInitialized.get()) {
             // Loop till the facade is initialized.

@@ -20,11 +20,12 @@
 
 package org.hit.di;
 
-import org.hit.actors.EventBus;
 import org.hit.communicator.Communicator;
 import org.hit.communicator.MessageSerializer;
 import org.hit.communicator.NodeID;
 import org.hit.communicator.ObjectStreamSerializer;
+import org.hit.communicator.ObjectStreamSerializerFactory;
+import org.hit.communicator.SerializerFactory;
 import org.hit.communicator.nio.IPNodeID;
 import org.hit.communicator.nio.NIOCommunicator;
 import org.hit.zookeeper.ZooKeeperClient;
@@ -32,7 +33,6 @@ import org.hit.zookeeper.ZooKeeperClientConfig;
 import org.hit.zookeeper.ZooKeeperClientPropertyConfig;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.google.inject.name.Named;
 import com.google.inject.name.Names;
@@ -40,7 +40,7 @@ import com.google.inject.name.Names;
 /**
  * Extends {@link AbstractModule} to support injecting the necessary dependency
  * injection parameters.
- * 
+ *
  * @author Balraja Subbiah
  */
 public abstract class HitModule extends AbstractModule
@@ -55,14 +55,15 @@ public abstract class HitModule extends AbstractModule
                       .to(getBoundPort());
 
         bind(MessageSerializer.class).to(ObjectStreamSerializer.class);
+        bind(SerializerFactory.class).to(ObjectStreamSerializerFactory.class);
         bind(Communicator.class).to(NIOCommunicator.class);
         bind(ZooKeeperClientConfig.class)
             .to(ZooKeeperClientPropertyConfig.class);
         bind(ZooKeeperClient.class).toProvider(ZookeeperClientProvider.class);
     }
-    
+
     protected abstract Integer getBoundPort();
-    
+
     @Provides
     protected NodeID provideNodeID(@Named("PreferredPort") Integer port)
     {
