@@ -71,6 +71,9 @@ public class Connection
      */
     public ByteBuffer read() throws IOException
     {
+        if (myLogger.isLoggable(Level.FINE)) {
+            myLogger.fine("Reading bytes ");
+        }
         ByteBuffer messageBuffer =
             ByteBuffer.allocate(10 * BUFFER_SIZE);
         int readBytes = -1;
@@ -112,9 +115,12 @@ public class Connection
      */
     public void send(ByteBuffer message) throws IOException
     {
-        myChannel.write(message);
         if (myLogger.isLoggable(Level.FINE)) {
-            myLogger.fine("Sent message to the remote host ");
+            myLogger.fine("Received message with " + message.limit() + " bytes");
+        }
+        int bytesWritten = myChannel.write(message);
+        if (myLogger.isLoggable(Level.FINE)) {
+            myLogger.fine("Sent " + bytesWritten + " to the remote host ");
         }
     }
 }

@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -137,19 +138,19 @@ public class NIOCommunicator implements Communicator
                                                 channel,
                                                 mySerializerFactory.makeSerializer(),
                                                 Session.State.CONNECTED);
-                                sKey.attach(session);
+                                
+                                myKeySessionMap.put(key, session);
                                 myIdSessionMap.put(otherNode, session);
                             }
                             else if (sKey.isConnectable()) {
-                                Session session =
-                                    (Session) sKey.attachment();
+                                Session session = myKeySessionMap.get(sKey);
                                 if (session != null) {
                                     session.connected();
                                 }
                             }
                             else if (sKey.isReadable()) {
-                                Session session =
-                                    (Session) sKey.attachment();
+                                Session session = myKeySessionMap.get(sKey);
+                                LOG.info(" " + sKey.channel() + " is readable");
                                 if (session != null) {
                                     Message message = session.readMessage();
                                     for (MessageHandler handler : myHandlers)
@@ -159,8 +160,7 @@ public class NIOCommunicator implements Communicator
                                 }
                             }
                             else if (sKey.isWritable()) {
-                                Session session =
-                                    (Session) sKey.attachment();
+                                Session session = myKeySessionMap.get(sKey);
                                 if (session != null) {
                                     session.write();
                                 }
@@ -188,6 +188,8 @@ public class NIOCommunicator implements Communicator
     private final IPNodeID myId;
 
     private final Map<NodeID, Session> myIdSessionMap;
+    
+    private final Map<SelectionKey, Session> myKeySessionMap;
 
     private final ExecutorService mySelectableExecutor;
 
@@ -214,6 +216,7 @@ public class NIOCommunicator implements Communicator
             mySelectableExecutor =
                 Executors.newSingleThreadExecutor(
                     new NamedThreadFactory(NIOCommunicator.class, true));
+            myKeySessionMap = new ConcurrentHashMap<>();
             myShouldStop = new AtomicBoolean(false);
         }
         catch (IOException e) {
@@ -267,7 +270,7 @@ public class NIOCommunicator implements Communicator
                                     mySerializerFactory.makeSerializer(),
                                     Session.State.CONNECTING);
 
-                    key.attach(session);
+                    myKeySessionMap.put(key, session);
                     myIdSessionMap.put(node, session);
                     socketChannel.connect(((IPNodeID) node).getIPAddress());
                 }

@@ -22,6 +22,7 @@ package org.hit.communicator.test;
 
 import static org.junit.Assert.assertNotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -103,7 +104,8 @@ public class NIOCommunicatorTest
             myCommunicator.start();
             myStartTime = System.currentTimeMillis();
             System.out.println("Started the receiving agent's communicator");
-            while ((System.currentTimeMillis() - myStartTime) < (5 * 60 * 1000))
+            while ((System.currentTimeMillis() - myStartTime) < (30 * 1000)
+                   && !myResultAvailable.get())
             {
                 try {
                     Thread.sleep(100);
@@ -183,7 +185,7 @@ public class NIOCommunicatorTest
         NodeID receiverID = new IPNodeID(25001);
         List<Airport> airportList = AirportDataLoader.loadTestData();
         BatchMutation<Long, Airport> batchMutation =
-            new BatchMutation<>("Airport", airportList);
+            new BatchMutation<>("Airport", new ArrayList<>(airportList.subList(0, 5)));
         DBOperationMessage message =
             new DBOperationMessage(senderID, 1L, batchMutation);
 
