@@ -21,18 +21,15 @@
 package org.hit.communicator.nio;
 
 import java.io.IOException;
-import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.communicator.CommunicatorException;
 import org.hit.communicator.Message;
 import org.hit.communicator.MessageSerializer;
-import org.hit.communicator.NodeID;
 import org.hit.util.LogFactory;
 
 /**
@@ -42,49 +39,24 @@ import org.hit.util.LogFactory;
  */
 public class Session
 {
-    /**
-     * An enum to capture the state of connection.
-     */
-    public static enum State
-    {
-        CONNECTED,
-        CONNECTING
-    }
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(Session.class);
 
     private final Queue<Message> myBufferredMessages;
 
     private final Connection myConnection;
 
-    private final Logger myLogger;
-
-    private final NodeID myOtherNode;
-
-    private final SelectionKey mySelectionKey;
-
     private final MessageSerializer mySerializer;
-
-    private final AtomicReference<State> myState;
 
     /**
      * CTOR
      */
-    public Session(NodeID            otherNode,
-                   SelectionKey      selectionKey,
-                   SocketChannel     socketChannel,
-                   MessageSerializer serializer,
-                   State             state)
+    public Session(SocketChannel     socketChannel,
+                   MessageSerializer serializer)
     {
-        myOtherNode = otherNode;
-        myConnection = new Connection(socketChannel, myOtherNode);
-        myState = new AtomicReference<Session.State>(state);
+        myConnection = new Connection(socketChannel);
         mySerializer = serializer;
         myBufferredMessages = new ConcurrentLinkedQueue<>();
-        mySelectionKey = selectionKey;
-        myLogger =
-            LogFactory.getInstance().getLogger(
-                Session.class.getSimpleName()
-                + " "
-                + otherNode);
     }
 
     /**
@@ -102,7 +74,7 @@ public class Session
             myConnection.close();
         }
         catch (IOException e) {
-            myLogger.log(Level.SEVERE, e.getMessage(), e);
+            LOG.log(Level.SEVERE, e.getMessage(), e);
         }
     }
 
@@ -113,25 +85,11 @@ public class Session
     {
         try {
             myConnection.getChannel().finishConnect();
-            myState.compareAndSet(State.CONNECTING, State.CONNECTED);
-            myLogger.info("Connection extablished successfully with" +
-                          " the remote host");
+            LOG.info("Connection extablished successfully with" +
+                     " the remote host");
         }
         catch (IOException e) {
             throw new CommunicatorException(e);
-        }
-    }
-
-    /**
-     * Expresses interest to the <code>Selector</code> that they wish to
-     * write.
-     */
-    public void expressInterest()
-    {
-        if (!myBufferredMessages.isEmpty()
-            && myState.get() == State.CONNECTED)
-        {
-            mySelectionKey.interestOps(SelectionKey.OP_WRITE);
         }
     }
 
@@ -156,16 +114,18 @@ public class Session
     public void write() throws CommunicatorException
     {
         try {
-            Message message = myBufferredMessages.poll();
+            if (myBufferredMessages.isEmpty()) {
+                return;
+            }
 
+            Message message = myBufferredMessages.poll();
             if (message != null) {
                 myConnection.send(mySerializer.serialize(message));
             }
 
-            if (myLogger.isLoggable(Level.FINE)) {
-                myLogger.fine("Successfully sent the  " + message);
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Successfully sent the  " + message);
             }
-            mySelectionKey.interestOps(SelectionKey.OP_READ);
         }
         catch (IOException e) {
             throw new CommunicatorException(e);

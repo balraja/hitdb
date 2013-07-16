@@ -2,7 +2,7 @@
     Hit is a high speed transactional database for handling millions
     of updates with comfort and ease.
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,25 +18,45 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.communicator;
+package org.hit.concurrent;
+
+import java.io.Closeable;
+import java.util.concurrent.locks.Lock;
 
 /**
- * Defines the abstract interface for communicating with the external world.
+ * Implements the lock with closeable interface so that it can be closed
+ * after it's use automatically.
  *
  * @author Balraja Subbiah
  */
-public interface Communicator
+public class CloseableLock implements Closeable
 {
-    /** Adds the <code>MessageHandler</code> for handling the messages */
-    public void addMessageHandler(MessageHandler handler);
+    private final Lock myLock;
 
-    /** Sends the given message to the target node */
-    public void sendTo(NodeID targetNode, Message m) throws CommunicatorException;
+    /**
+     * CTOR
+     */
+    public CloseableLock(Lock lock)
+    {
+        myLock = lock;
+    }
 
-    /** Starts the communicator
-     * @throws CommunicatorException */
-    public void start() throws CommunicatorException;
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void close()
+    {
+        myLock.unlock();
+    }
 
-    /** Stops the communicator */
-    public void stop();
+    /**
+     * This lock will be used for protecting the critical segments
+     * encapsulated within the new style try blocks.
+     */
+    public CloseableLock open()
+    {
+        myLock.lock();
+        return this;
+    }
 }

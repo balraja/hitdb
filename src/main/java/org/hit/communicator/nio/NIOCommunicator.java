@@ -21,7 +21,6 @@
 package org.hit.communicator.nio;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -37,6 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,6 +46,7 @@ import org.hit.communicator.Message;
 import org.hit.communicator.MessageHandler;
 import org.hit.communicator.NodeID;
 import org.hit.communicator.SerializerFactory;
+import org.hit.concurrent.CloseableLock;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
 
@@ -73,107 +74,101 @@ public class NIOCommunicator implements Communicator
         public void run()
         {
             try {
-                ServerSocket serverSocket = myServerSocketChannel.socket();
-                serverSocket.bind(myId.getIPAddress());
-                myServerSocketChannel.configureBlocking(false);
-                myServerSocketChannel.register(mySelector,
-                                               SelectionKey.OP_ACCEPT);
-                LOG.info("Bound server to the address "
-                         + myId.getIPAddress());
-
+                LOG.info("Selector started");
                 while (!myShouldStop.get()) {
-
-                    synchronized (myIdSessionMap) {
+                    try (CloseableLock lock =
+                                    mySessionMapLock.open())
+                    {
                         for (Session session : myIdSessionMap.values()) {
-                            session.expressInterest();
+                            session.write();
                         }
                     }
-                    int n = mySelector.select();
+                    int n = mySelector.select(1000);
                     if (n == 0) {
                         continue;
                     }
-                    else {
-                        Set<SelectionKey> selectedKeys =
-                            mySelector.selectedKeys();
-                        Iterator<SelectionKey>
-                            keyIterator = selectedKeys.iterator();
 
-                        while(keyIterator.hasNext()) {
+                    Set<SelectionKey> selectedKeys =
+                        mySelector.selectedKeys();
+                    Iterator<SelectionKey>
+                        keyIterator = selectedKeys.iterator();
 
-                            SelectionKey sKey = keyIterator.next();
+                    while(keyIterator.hasNext()) {
 
-                            if (!sKey.isValid()) {
+                        SelectionKey sKey = keyIterator.next();
+
+                        if (!sKey.isValid()) {
+                            continue;
+                        }
+
+                        if (sKey.isAcceptable()) {
+
+                            ServerSocketChannel serverSocketChannel =
+                                (ServerSocketChannel) sKey.channel();
+
+                            SocketChannel channel =
+                                serverSocketChannel.accept();
+
+                            if (channel == null) {
                                 continue;
                             }
-                            if (sKey.isAcceptable()) {
 
-                                ServerSocketChannel serverSocketChannel =
-                                    (ServerSocketChannel) sKey.channel();
+                            if (LOG.isLoggable(Level.FINE)) {
+                                LOG.fine("Acceping connection from "
+                                         + channel.getRemoteAddress());
+                            }
 
-                                SocketChannel channel =
-                                    serverSocketChannel.accept();
+                            channel.configureBlocking(false);
+                            SelectionKey key =
+                                channel.register(mySelector,
+                                                 SelectionKey.OP_READ);
 
-                                if (channel == null) {
-                                    continue;
-                                }
+                            Session session =
+                                new Session(channel,
+                                            mySerializerFactory.makeSerializer());
 
-                                if (LOG.isLoggable(Level.FINE)) {
-                                    LOG.fine("Acceping connection from "
-                                             + channel.getRemoteAddress());
-                                }
-
-                                NodeID otherNode =
-                                    makeNodeID(
-                                        (InetSocketAddress)
-                                            channel.getRemoteAddress());
-
-                                channel.configureBlocking(false);
-                                SelectionKey key =
-                                    channel.register(mySelector,
-                                                     SelectionKey.OP_READ);
-
-                                Session session =
-                                    new Session(otherNode,
-                                                key,
-                                                channel,
-                                                mySerializerFactory.makeSerializer(),
-                                                Session.State.CONNECTED);
-                                
+                            try (CloseableLock lock =
+                                     mySessionMapLock.open())
+                            {
                                 myKeySessionMap.put(key, session);
-                                myIdSessionMap.put(otherNode, session);
                             }
-                            else if (sKey.isConnectable()) {
-                                Session session = myKeySessionMap.get(sKey);
-                                if (session != null) {
-                                    session.connected();
-                                }
-                            }
-                            else if (sKey.isReadable()) {
-                                Session session = myKeySessionMap.get(sKey);
-                                LOG.info(" " + sKey.channel() + " is readable");
-                                if (session != null) {
-                                    Message message = session.readMessage();
-                                    for (MessageHandler handler : myHandlers)
-                                    {
-                                        handler.handle(message);
-                                    }
-                                }
-                            }
-                            else if (sKey.isWritable()) {
-                                Session session = myKeySessionMap.get(sKey);
-                                if (session != null) {
-                                    session.write();
-                                }
-                            }
-                            // It's very important to remove the keys
-                            // after processing. Otherwise channel
-                            // will not be selected next time.
-                            keyIterator.remove();
                         }
+                        else if (sKey.isConnectable()) {
+
+                            Session session = myKeySessionMap.get(sKey);
+                            if (session != null) {
+                                session.connected();
+                            }
+                        }
+                        else if (sKey.isReadable()) {
+                            if (LOG.isLoggable(Level.FINE)) {
+                                LOG.fine("The channel "
+                                         + sKey.channel() + " is readable");
+                            }
+                            Session session = myKeySessionMap.get(sKey);
+                            LOG.info(" " + sKey.channel() + " is readable");
+                            if (session != null) {
+                                Message message = session.readMessage();
+                                try (CloseableLock lock =
+                                                mySessionMapLock.open())
+                                {
+                                    myIdSessionMap.put(message.getNodeId(),
+                                                       session);
+                                }
+                                for (MessageHandler handler : myHandlers)
+                                {
+                                    handler.handle(message);
+                                }
+                            }
+                        }
+                        // It's very important to remove the keys
+                        // after processing. Otherwise channel
+                        // will not be selected next time.
+                        keyIterator.remove();
                     }
                 }
             }
-            catch (Exception e)
+            catch (Throwable e)
             {
                 LOG.log(Level.SEVERE, e.getMessage(), e);
             }
@@ -188,7 +183,7 @@ public class NIOCommunicator implements Communicator
     private final IPNodeID myId;
 
     private final Map<NodeID, Session> myIdSessionMap;
-    
+
     private final Map<SelectionKey, Session> myKeySessionMap;
 
     private final ExecutorService mySelectableExecutor;
@@ -198,6 +193,8 @@ public class NIOCommunicator implements Communicator
     private final SerializerFactory mySerializerFactory;
 
     private final ServerSocketChannel myServerSocketChannel;
+
+    private final CloseableLock mySessionMapLock;
 
     private final AtomicBoolean myShouldStop;
 
@@ -218,6 +215,7 @@ public class NIOCommunicator implements Communicator
                     new NamedThreadFactory(NIOCommunicator.class, true));
             myKeySessionMap = new ConcurrentHashMap<>();
             myShouldStop = new AtomicBoolean(false);
+            mySessionMapLock = new CloseableLock(new ReentrantLock());
         }
         catch (IOException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
@@ -235,46 +233,39 @@ public class NIOCommunicator implements Communicator
     }
 
     /**
-     * A helper method to generate the InetSocketAddress of the remote server.
-     * This is based on the assumption, all servers will listen to the same
-     * port.
-     */
-    private NodeID makeNodeID(InetSocketAddress address)
-    {
-        return new IPNodeID(new InetSocketAddress(address.getAddress(),
-                                                  myId.getIPAddress().getPort()));
-    }
-
-    /**
      * {@inheritDoc}
      */
     @Override
     public void sendTo(NodeID node, Message m) throws CommunicatorException
     {
-        try {
-            if (LOG.isLoggable(Level.FINE)) {
-                LOG.fine("Sending message " + m + " to node"  + node);
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Sending message " + m + " to node"  + node);
+        }
+        try (CloseableLock lock = mySessionMapLock.open()) {
+            Session session = myIdSessionMap.get(node);
+            if (session == null) {
+                SocketChannel socketChannel =
+                    SocketChannel.open(((IPNodeID) node).getIPAddress());
+                socketChannel.configureBlocking(false);
+                SelectionKey key =
+                    socketChannel.register(mySelector,
+                                           SelectionKey.OP_READ
+                                           | SelectionKey.OP_CONNECT);
+                session =
+                    new Session(socketChannel,
+                                mySerializerFactory.makeSerializer());
+                myKeySessionMap.put(key, session);
+                myIdSessionMap.put(node, session);
+                session.cacheForWrite(m);
             }
-            synchronized (myIdSessionMap) {
-                Session session = myIdSessionMap.get(node);
-                if (session == null) {
-                    SocketChannel socketChannel = SocketChannel.open();
-                    socketChannel.configureBlocking(false);
-                    SelectionKey key =
-                        socketChannel.register(mySelector,
-                                               SelectionKey.OP_CONNECT);
-                    session =
-                        new Session(node,
-                                    key,
-                                    socketChannel,
-                                    mySerializerFactory.makeSerializer(),
-                                    Session.State.CONNECTING);
-
-                    myKeySessionMap.put(key, session);
-                    myIdSessionMap.put(node, session);
-                    socketChannel.connect(((IPNodeID) node).getIPAddress());
+            else {
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("Adding message to the cache");
                 }
                 session.cacheForWrite(m);
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("Successfully added message to the cache");
+                }
             }
         }
         catch(IOException e) {
@@ -282,12 +273,25 @@ public class NIOCommunicator implements Communicator
         }
     }
 
-    /** Starts the communicator */
+    /** Starts the communicator  */
     @Override
-    public void start()
+    public void start() throws CommunicatorException
     {
         LOG.info("Starting NIO communicator");
-        mySelectableExecutor.execute(new SelectTask());
+        try {
+            ServerSocket serverSocket = myServerSocketChannel.socket();
+            serverSocket.bind(myId.getIPAddress());
+            myServerSocketChannel.configureBlocking(false);
+            myServerSocketChannel.register(mySelector,
+                                           SelectionKey.OP_ACCEPT);
+            LOG.info("Bound server to the address "
+                     + myId.getIPAddress());
+            mySelectableExecutor.execute(new SelectTask());
+        }
+        catch (IOException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+            throw new CommunicatorException(e);
+        }
     }
 
     /**

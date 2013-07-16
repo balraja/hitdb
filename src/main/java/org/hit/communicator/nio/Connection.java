@@ -26,7 +26,6 @@ import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.hit.communicator.NodeID;
 import org.hit.util.LogFactory;
 
 /**
@@ -38,19 +37,17 @@ public class Connection
 {
     private static final int BUFFER_SIZE = 1024 * 1024;
 
-    private static final String CONNECTION = "Connection_";
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(Connection.class);
 
     private final SocketChannel myChannel;
-
-    private final Logger myLogger;
 
     /**
      * CTOR
      */
-    public Connection(SocketChannel channel, NodeID nodeID)
+    public Connection(SocketChannel channel)
     {
         myChannel = channel;
-        myLogger = LogFactory.getInstance().getLogger(CONNECTION + nodeID);
     }
 
     /**
@@ -71,23 +68,23 @@ public class Connection
      */
     public ByteBuffer read() throws IOException
     {
-        if (myLogger.isLoggable(Level.FINE)) {
-            myLogger.fine("Reading bytes ");
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Reading bytes ");
         }
         ByteBuffer messageBuffer =
             ByteBuffer.allocate(10 * BUFFER_SIZE);
         int readBytes = -1;
         ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
 
-        while ((readBytes = myChannel.read(buffer)) != -1) {
+        while ((readBytes = myChannel.read(buffer)) > 0) {
             buffer.flip();
-            if (myLogger.isLoggable(Level.FINE)) {
-                myLogger.fine("Message Buffer " + messageBuffer.position()
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Message Buffer " + messageBuffer.position()
                          + " cap " + messageBuffer.capacity()
                          + " limit " + messageBuffer.limit()
                          + " rem " + messageBuffer.remaining());
 
-                myLogger.fine("Data buffer " + buffer.remaining());
+                LOG.fine("Data buffer " + buffer.remaining());
             }
 
             if (messageBuffer.remaining() < readBytes) {
@@ -101,8 +98,8 @@ public class Connection
 
     private ByteBuffer resize(ByteBuffer buffer)
     {
-        if (myLogger.isLoggable(Level.FINE)) {
-            myLogger.fine("Resizing message buffer");
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Resizing message buffer");
         }
         buffer.flip();
         ByteBuffer newBuffer = ByteBuffer.allocate(buffer.capacity() * 2);
@@ -115,12 +112,21 @@ public class Connection
      */
     public void send(ByteBuffer message) throws IOException
     {
-        if (myLogger.isLoggable(Level.FINE)) {
-            myLogger.fine("Received message with " + message.limit() + " bytes");
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Received message with " + message.remaining() + " bytes");
         }
         int bytesWritten = myChannel.write(message);
-        if (myLogger.isLoggable(Level.FINE)) {
-            myLogger.fine("Sent " + bytesWritten + " to the remote host ");
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Sent " + bytesWritten + " to the remote host ");
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString()
+    {
+        return "Connection [myChannel=" + myChannel + "]";
     }
 }

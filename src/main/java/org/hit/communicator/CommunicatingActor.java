@@ -46,6 +46,7 @@ public class CommunicatingActor extends Actor
 
     private final Communicator myCommunicator;
 
+
     /**
      * CTOR
      */
@@ -64,6 +65,9 @@ public class CommunicatingActor extends Actor
                                  + message.getNodeId());
                     }
                     getEventBus().publish(message);
+                    if (LOG.isLoggable(Level.FINE)) {
+                        LOG.fine("Returned from publishing the message");
+                    }
                 }
                 catch (EventBusException e) {
                     throw new RuntimeException(e);
@@ -111,7 +115,12 @@ public class CommunicatingActor extends Actor
     public void start()
     {
         super.start();
-        myCommunicator.start();
+        try {
+            myCommunicator.start();
+        }
+        catch (CommunicatorException e) {
+           throw new RuntimeException(e);
+        }
     }
 
     /**

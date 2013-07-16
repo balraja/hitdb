@@ -101,7 +101,12 @@ public class NIOCommunicatorTest
         public void run()
         {
             myCommunicator.addMessageHandler(this);
-            myCommunicator.start();
+            try {
+                myCommunicator.start();
+            }
+            catch (CommunicatorException e1) {
+                e1.printStackTrace();
+            }
             myStartTime = System.currentTimeMillis();
             System.out.println("Started the receiving agent's communicator");
             while ((System.currentTimeMillis() - myStartTime) < (30 * 1000)
@@ -152,10 +157,9 @@ public class NIOCommunicatorTest
         @Override
         public void run()
         {
-
-            myCommunicator.start();
-            System.out.println("Started the sending agent's communicator");
             try {
+                myCommunicator.start();
+                System.out.println("Started the sending agent's communicator");
                 myCommunicator.sendTo(myReceiverID, myMessage);
             }
             catch (CommunicatorException e1) {

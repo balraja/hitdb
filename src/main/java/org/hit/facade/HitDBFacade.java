@@ -632,7 +632,13 @@ public class HitDBFacade
         LOG.info("Connection to the registry " +
                  "service successfully established");
 
-        myCommunicator.start();
+        try {
+            myCommunicator.start();
+        }
+        catch (CommunicatorException e1) {
+            throw new RuntimeException(e1);
+        }
+
         LOG.info("Messaging service got started successfully");
 
         myCommunicator.addMessageHandler(
