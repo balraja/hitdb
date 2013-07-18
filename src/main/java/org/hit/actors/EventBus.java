@@ -21,12 +21,8 @@
 package org.hit.actors;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -48,16 +44,16 @@ import com.google.common.collect.Multimaps;
  * can directly publish events to the actors. Each actor owns an
  * {@linkplain EventPassingQueue} and all the events delivered to that
  * actor will be published to the actor's queue.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class EventBus
 {
-    private static final Logger LOG = 
+    private static final Logger LOG =
         LogFactory.getInstance().getLogger(NIOCommunicator.class);
-    
+
     private final Map<ActorID, EventPassingQueue> myActorToEPQ;
-    
+
     private final Multimap<Class<? extends Event>, ActorID> myEvent2Actors;
 
     /**
@@ -66,11 +62,11 @@ public class EventBus
     public EventBus()
     {
         myActorToEPQ = new ConcurrentHashMap<>();
-        myEvent2Actors = 
+        myEvent2Actors =
             Multimaps.<Class<? extends Event>, ActorID>synchronizedSetMultimap(
                 HashMultimap.<Class<? extends Event>, ActorID>create());
     }
-    
+
     /**
      * Consumes <code>Event</code>s delivered to this component.
      */
@@ -80,9 +76,9 @@ public class EventBus
         if (epq == null) {
             throw new EventBusException(actorID + " not registered");
         }
-        return epq.consume();
+        return epq.consume(actorID);
     }
-    
+
     /**
      * Publishes the given <code>Event</code> to the actor.
      */
@@ -93,9 +89,9 @@ public class EventBus
         if (epq == null) {
             throw new EventBusException(actorID + " not registered");
         }
-        epq.publish(event);
+        epq.publish(actorID, event);
     }
-    
+
     /**
      * Publishes the <code>Event</code> to interested actors.
      */
@@ -105,7 +101,7 @@ public class EventBus
         if (actors != null) {
             for (ActorID actor : actors) {
                 if (LOG.isLoggable(Level.FINE)) {
-                    LOG.fine("Publishing the event " 
+                    LOG.fine("Publishing the event "
                              + event.getClass().getSimpleName()
                              + " to " + actor.getIdentifier());
                 }
@@ -113,7 +109,7 @@ public class EventBus
             }
         }
     }
-    
+
     /**
      * Registers a component for receiving <code>Event</code>s sent to it.
      */
@@ -125,7 +121,7 @@ public class EventBus
                                                    WaitStrategy.SLEEP));
         }
     }
-    
+
     /**
      * Registers a given component with the event bus to receive all events
      * of that type.
@@ -135,9 +131,9 @@ public class EventBus
     {
         myEvent2Actors.put(eventType, actorID);
         if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine("Following actors have registered for receiving the event " 
-                     + eventType.getSimpleName() 
-                     + " : " 
+            LOG.fine("Following actors have registered for receiving the event "
+                     + eventType.getSimpleName()
+                     + " : "
                      + myEvent2Actors.get(eventType));
         }
     }

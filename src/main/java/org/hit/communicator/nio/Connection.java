@@ -68,9 +68,6 @@ public class Connection
      */
     public ByteBuffer read() throws IOException
     {
-        if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine("Reading bytes ");
-        }
         ByteBuffer messageBuffer =
             ByteBuffer.allocate(10 * BUFFER_SIZE);
         int readBytes = -1;
@@ -78,14 +75,6 @@ public class Connection
 
         while ((readBytes = myChannel.read(buffer)) > 0) {
             buffer.flip();
-            if (LOG.isLoggable(Level.FINE)) {
-                LOG.fine("Message Buffer " + messageBuffer.position()
-                         + " cap " + messageBuffer.capacity()
-                         + " limit " + messageBuffer.limit()
-                         + " rem " + messageBuffer.remaining());
-
-                LOG.fine("Data buffer " + buffer.remaining());
-            }
 
             if (messageBuffer.remaining() < readBytes) {
                 messageBuffer = resize(messageBuffer);
@@ -98,9 +87,6 @@ public class Connection
 
     private ByteBuffer resize(ByteBuffer buffer)
     {
-        if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine("Resizing message buffer");
-        }
         buffer.flip();
         ByteBuffer newBuffer = ByteBuffer.allocate(buffer.capacity() * 2);
         newBuffer.put(buffer);
@@ -115,10 +101,7 @@ public class Connection
         if (LOG.isLoggable(Level.FINE)) {
             LOG.fine("Received message with " + message.remaining() + " bytes");
         }
-        int bytesWritten = myChannel.write(message);
-        if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine("Sent " + bytesWritten + " to the remote host ");
-        }
+        myChannel.write(message);
     }
 
     /**

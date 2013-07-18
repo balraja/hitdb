@@ -20,13 +20,15 @@
 
 package org.hit.actors;
 
+import org.hit.concurrent.epq.AccessorID;
+
 /**
  * The identifier for an actor. We abstract this as a type because it will
  * give us flexibility to change the identification mechanism if required later.
- * 
+ *
  * @author Balraja Subbiah
  */
-public class ActorID
+public class ActorID implements AccessorID
 {
     private final String myIdentifier;
 

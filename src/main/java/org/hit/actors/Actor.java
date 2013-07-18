@@ -22,7 +22,6 @@ package org.hit.actors;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.hit.event.Event;
@@ -34,21 +33,21 @@ import org.hit.util.NamedThreadFactory;
  * </code>. An actor as such is a state machine which responds to the various
  * events published by the different parts of system. It communicates with
  * other actors by sending events to them.
- * 
+ *
  * @author Balraja Subbiah
  */
 public abstract class Actor
 {
-    private static final int DEFAULT_EVENT_QUEUE_SIZE = 100;
-    
-    private final ActorID myActorID;
-    
-    private final AtomicBoolean myShouldStop;
-    
-    private final EventBus myEventBus;
-    
+    private static final int DEFAULT_EVENT_QUEUE_SIZE = 128;
+
     private final ExecutorService myActorExecutor;
-    
+
+    private final ActorID myActorID;
+
+    private final EventBus myEventBus;
+
+    private final AtomicBoolean myShouldStop;
+
     /**
      * CTOR
      */
@@ -82,12 +81,12 @@ public abstract class Actor
      * Subclasses should override this method for implementing the event loop.
      */
     protected abstract void processEvent(Event event);
-    
+
     /**
      * Registers the events to be received via event bus.
      */
     protected abstract void registerEvents();
-    
+
     /**
      * Starts the component.
      */
@@ -109,7 +108,7 @@ public abstract class Actor
                 }
             }});
     }
-    
+
     /**
      * Stops the actor from processing the events.
      */

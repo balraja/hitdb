@@ -29,15 +29,15 @@ import org.hit.event.Event;
 /**
  * Defines the contract for an interface that can be used for publishing the
  * events to <code>EventPassingQueue</code>.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class PublisherAccess extends AbstractAccess
 {
-    private final EventPassingQueue myEPQ;
-    
     private final Collection<ConsumerAccess> myConsumers;
-    
+
+    private final EventPassingQueue myEPQ;
+
     /**
      * CTOR
      */
@@ -48,7 +48,7 @@ public class PublisherAccess extends AbstractAccess
         myConsumers =
             Collections.synchronizedList(new ArrayList<ConsumerAccess>());
     }
-    
+
     /**
      * Adds <code>ConsumerAcess</code> to be tracked by this <code>Producer
      * </code>.
@@ -57,7 +57,7 @@ public class PublisherAccess extends AbstractAccess
     {
         myConsumers.add(consumer);
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -73,19 +73,35 @@ public class PublisherAccess extends AbstractAccess
     {
         // Busy waits till all the consumers have consumed upto
         // the current item in the queue.
-        boolean canPublish = true;
-        int cursor = myEPQ.getCursor();
-        do {
-            for (ConsumerAccess consumerAccess : myConsumers) {
-                if (consumerAccess.getConsumedIndex() != cursor) {
+
+        while (true) {
+            // If the queue is full and there are no consumers then wait.
+            if (myConsumers.isEmpty()
+                && (myEPQ.getCursor() == (myEPQ.getSize() - 1)))
+            {
+                waitFor();
+                continue;
+            }
+            // Get the next slot to publish.
+            int currIndex = myEPQ.getCursor();
+            int publishIndex = myEPQ.nextIndex(myEPQ.getCursor());
+            boolean canPublish = true;
+            for (ConsumerAccess consumer : myConsumers) {
+                // if the to be published index is yet to consumed index
+                // then wait.
+                if (publishIndex == consumer.getConsumedIndex()
+                    && myEPQ.getCursor() != -1)
+                {
                     canPublish = false;
+                    break;
                 }
             }
-        }
-        while(!canPublish);
-        
-        while(!myEPQ.publish(event, myEPQ.nextIndex(cursor))) {
-            cursor = myEPQ.getCursor();
+            if (canPublish && myEPQ.publish(event, currIndex, publishIndex)) {
+                return;
+            }
+            else {
+                waitFor();
+            }
         }
     }
 }

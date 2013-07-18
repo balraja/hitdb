@@ -20,11 +20,12 @@
 
 package org.hit.concurrent.epq;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
+import org.hit.concurrent.CloseableLock;
 import org.hit.event.Event;
 
 /**
@@ -32,46 +33,46 @@ import org.hit.event.Event;
  * components of a system. This is inspired by the ideas published by
  * the disruptor system. This is suitable for one publisher and one
  * consumer scenario.
- * 
+ *
  * At it's heart is a circular buffer on which producer claims a slot,
  * waits for the consumer to consume the data in that slot and then
  * overrides the data in that slot.
- * 
+ *
  * <pre>
  * final MessagePassingQueue queue = new MessagePassingQueue();
- * 
+ *
  * new Runnable() {
  *     public void run() {
  *         Message m = generate_message
  *         queue.publish(m);
  *     }
  * }
- * 
+ *
  * new Runnable() {
  *     public void run() {
  *         Message m = queue.consume(consumedIndex);
  *     }
  * }
  * </pre>
- * 
+ *
  * @author Balraja Subbiah
  */
 public class EventPassingQueue
 {
     private final Event[] myBuffer;
-    
-    private final int mySize;
-    
-    private final int myMask;
-    
+
+    private final Map<AccessorID, ConsumerAccess> myConsumers;
+
     private final AtomicInteger myCursor;
-    
-    private final Collection<PublisherAccess> myPublishers;
-    
-    private final ThreadLocal<Access> myLocalAccess;
-    
+
+    private final CloseableLock myLock;
+
+    private final Map<AccessorID, PublisherAccess> myPublishers;
+
+    private final int mySize;
+
     private final WaitStrategy myWaitStrategy;
-    
+
     /**
      * CTOR
      */
@@ -80,35 +81,36 @@ public class EventPassingQueue
         assert(size % 2 == 0);
         mySize = size;
         myBuffer = new Event[size];
-        myMask = mySize - 1;
         myCursor = new AtomicInteger(-1);
-        myPublishers =
-            Collections.synchronizedList(new ArrayList<PublisherAccess>());
-        myLocalAccess = new ThreadLocal<Access>();
+        myPublishers = new HashMap<>();
+        myConsumers = new HashMap<>();
         myWaitStrategy = waitStrategy;
+        myLock = new CloseableLock(new ReentrantLock());
     }
-    
+
     /** Consumes <code>Event</code> from the queue */
-    public Event consume()
+    public Event consume(AccessorID consumerID)
     {
-        Access access = myLocalAccess.get();
+        ConsumerAccess access = myConsumers.get(consumerID);
         if (access == null) {
-            access = new ConsumerAccess(myWaitStrategy, this, myCursor.get());
-            for (PublisherAccess publisher : myPublishers) {
-                publisher.addConsumer((ConsumerAccess) access);
+            try (CloseableLock lock = myLock.open()) {
+                access = new ConsumerAccess(myWaitStrategy, this);
+                for (PublisherAccess publisher : myPublishers.values()) {
+                    publisher.addConsumer(access);
+                }
+                myConsumers.put(consumerID, access);
             }
-            myLocalAccess.set(access);
         }
         return access.consume();
     }
-    
+
     /** Returns the <code>Message</code> to be consumed */
     Event eventAt(int index)
     {
         Event m = myBuffer[index];
         return m;
     }
-    
+
     /**
      * Returns the value of cursor
      */
@@ -118,29 +120,42 @@ public class EventPassingQueue
     }
 
     /**
+     * Returns the size of quque.
+     */
+    public int getSize()
+    {
+        return mySize;
+    }
+
+    /**
      *  Returns the next index corresponding to the current value in the buffer
      */
     int nextIndex(int currIndex)
     {
-        return (currIndex + 1) & myMask;
+        return ((currIndex + 1) % mySize);
     }
-    
+
     /** Consumes <code>Event</code> from the queue */
-    public void publish(Event event)
+    public void publish(AccessorID accessorID, Event event)
     {
-        Access access = myLocalAccess.get();
+        PublisherAccess access = myPublishers.get(accessorID);
         if (access == null) {
-            access = new PublisherAccess(myWaitStrategy, this);
-            myLocalAccess.set(access);
+            try (CloseableLock lock = myLock.open()) {
+                access = new PublisherAccess(myWaitStrategy, this);
+                for (ConsumerAccess consumer : myConsumers.values()) {
+                    access.addConsumer(consumer);
+                }
+                myPublishers.put(accessorID, access);
+            }
         }
         access.publish(event);
     }
 
     /** Publishes the message to the specified index */
-    public boolean publish(Event m, int publishedIndex)
+    public boolean publish(Event m, int currIndex, int publishedIndex)
     {
         // Producer claims the slot using compareAndSet operation.
-        if (myCursor.compareAndSet(publishedIndex - 1, publishedIndex)) {
+        if (myCursor.compareAndSet(currIndex, publishedIndex)) {
             myBuffer[publishedIndex] = m;
             return true;
         }

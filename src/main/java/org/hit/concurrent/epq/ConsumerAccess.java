@@ -25,25 +25,24 @@ import org.hit.event.Event;
 /**
  * Defines the contract for an interface that can be used by consumers for
  * accessing events from the <code>EventPassingQueue</code>.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class ConsumerAccess extends AbstractAccess
 {
     private volatile int myConsumedIndex;
-    
+
     private final EventPassingQueue myEPQ;
 
     /**
      * CTOR
      */
     public ConsumerAccess(WaitStrategy      waitStrategy,
-                          EventPassingQueue ePQ,
-                          int               currentCursor)
+                          EventPassingQueue ePQ)
     {
         super(waitStrategy);
         myEPQ = ePQ;
-        myConsumedIndex = currentCursor;
+        myConsumedIndex = -1;
     }
 
     /** Returns the <code>Event</code> for consumption */
@@ -52,6 +51,7 @@ public class ConsumerAccess extends AbstractAccess
     {
         while (myConsumedIndex == myEPQ.getCursor()) {
             // Busy wait if the queue is empty
+            waitFor();
         }
         myConsumedIndex = myEPQ.nextIndex(myConsumedIndex);
         return myEPQ.eventAt(myConsumedIndex);
@@ -73,5 +73,5 @@ public class ConsumerAccess extends AbstractAccess
     {
         throw new RuntimeException("Illegal access");
     }
-    
+
 }

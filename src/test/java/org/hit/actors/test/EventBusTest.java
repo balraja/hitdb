@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -20,7 +20,7 @@
 
 package org.hit.actors.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
@@ -31,11 +31,116 @@ import org.junit.Test;
 
 /**
  * Defines the testcase for {@link EventBus}.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class EventBusTest
 {
+    private static class ActorLauncher implements Runnable
+    {
+        private final Actor myActor;
+
+        /**
+         * CTOR
+         */
+        public ActorLauncher(Actor actor)
+        {
+            myActor = actor;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void run()
+        {
+            myActor.start();
+
+            if (myActor instanceof EventProvider) {
+                try {
+                    try {
+                        Thread.sleep(200);
+                    }
+                    catch (InterruptedException e) {
+                    }
+                    for (int i = 0; i < 10; i++) {
+                        myActor.getEventBus().publish(new DummyEvent());
+                        try {
+                            Thread.sleep(200);
+                        }
+                        catch (InterruptedException e) {
+                        }
+                    }
+                }
+                catch (EventBusException e) {
+                    e.printStackTrace();
+                }
+            }
+            else {
+                while(((EventConsumer) myActor).getReceivedEventCount() < 10) {
+                    try {
+                        Thread.sleep(1000);
+                    }
+                    catch (InterruptedException e) {
+
+                    }
+                }
+            }
+
+            try {
+                Thread.sleep(1000);
+            }
+            catch (InterruptedException e) {
+            }
+            myActor.stop();
+        }
+    }
+
+    /** An {@link Actor} that acts as a provider of an event */
+    private static class EventConsumer extends Actor
+    {
+        private int myReceivedCnt = 0;
+
+        /**
+         * CTOR
+         */
+        public EventConsumer(EventBus eventBus, int index)
+        {
+            super(eventBus,
+                  new ActorID(EventConsumer.class.getSimpleName()
+                              + " _ " + index));
+        }
+
+        /**
+         * Returns the value of receivedEvent
+         */
+        public int getReceivedEventCount()
+        {
+            return myReceivedCnt;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected void processEvent(Event event)
+        {
+            if (event instanceof DummyEvent) {
+                myReceivedCnt++;
+            }
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected void registerEvents()
+        {
+            getEventBus().registerForEvent(DummyEvent.class,
+                                           getActorID());
+        }
+    }
+
     /** An {@link Actor} that acts as a provider of an event */
     private static class EventProvider extends Actor
     {
@@ -53,7 +158,7 @@ public class EventBusTest
         @Override
         protected void processEvent(Event event)
         {
-            
+
         }
 
         /**
@@ -62,115 +167,27 @@ public class EventBusTest
         @Override
         protected void registerEvents()
         {
-            
+
         }
     }
-    
-    /** An {@link Actor} that acts as a provider of an event */
-    private static class EventConsumer extends Actor
-    {
-        private Event myReceivedEvent;
-        
-        /**
-         * CTOR
-         */
-        public EventConsumer(EventBus eventBus, int index)
-        {
-            super(eventBus, 
-                  new ActorID(EventConsumer.class.getSimpleName()
-                              + " _ " + index));
-        }
-        
-        /**
-         * Returns the value of receivedEvent
-         */
-        public Event getReceivedEvent()
-        {
-            return myReceivedEvent;
-        }
 
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        protected void processEvent(Event event)
-        {
-            if (event instanceof DummyEvent) {
-                myReceivedEvent = event;
-            }
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        protected void registerEvents()
-        {
-            getEventBus().registerForEvent(DummyEvent.class, 
-                                           getActorID());
-        }
-    }
-    
-    private static class ActorLauncher implements Runnable
-    {
-        private final Actor myActor;
-        
-        /**
-         * CTOR
-         */
-        public ActorLauncher(Actor actor)
-        {
-            myActor = actor;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void run()
-        {
-            myActor.start();
-           
-            if (myActor instanceof EventProvider) {
-                try {
-                    try {
-                        Thread.sleep(200);
-                    }
-                    catch (InterruptedException e) {
-                    }
-                    myActor.getEventBus().publish(new DummyEvent());
-                }
-                catch (EventBusException e) {
-                    e.printStackTrace();
-                }
-            }
-            
-            try {
-                Thread.sleep(1000);
-            }
-            catch (InterruptedException e) {
-            }
-            myActor.stop();
-        }
-    }
-    
     @Test
     public void test()
     {
         EventBus eventBus = new EventBus();
-        Thread senderThread = 
-            new Thread(new ActorLauncher(new EventProvider(eventBus)));
-        
+        Thread senderThread =
+            new Thread(new ActorLauncher(new EventProvider(eventBus)), "provider");
+
         EventConsumer consumer = new EventConsumer(eventBus, 1);
-        Thread receiverThread = new Thread(new ActorLauncher(consumer));
-        
+        Thread receiverThread = new Thread(new ActorLauncher(consumer), "consumer");
+
         EventConsumer consumer1 = new EventConsumer(eventBus, 2);
-        Thread receiverThread1 = new Thread(new ActorLauncher(consumer1));
-        
+        Thread receiverThread1 = new Thread(new ActorLauncher(consumer1), "consumer1");
+
         receiverThread.start();
         receiverThread1.start();
         senderThread.start();
-        
+
         try {
             senderThread.join();
             receiverThread.join();
@@ -178,8 +195,8 @@ public class EventBusTest
         }
         catch (InterruptedException e) {
         }
-        
-        assertNotNull(consumer.getReceivedEvent());
-        assertNotNull(consumer1.getReceivedEvent());
+
+        assertTrue(consumer.getReceivedEventCount() == 10);
+        assertTrue(consumer.getReceivedEventCount() == 10);
     }
 }
