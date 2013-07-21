@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -26,35 +26,36 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The type that can be used for parsing the {@link Command}s entered through 
+ * The type that can be used for parsing the {@link Command}s entered through
  * the shell.
- * 
+ *
  * @author Balraja Subbiah
  */
 public class CommandParser
 {
     private static final String HELP = "help";
-    
+
     // This is stupid way of doing things. A better way wud to be to use APT
     // and generate the help command.
-    private static final Set<Class<? extends Command>> ourCommands = 
+    private static final Set<Class<? extends Command>> ourCommands =
         new HashSet<>();
-    
+
     static {
         ourCommands.add(ListTablesCommand.class);
     }
-    
+
     private final Map<String, Command> myKeywordToCommandMap;
-    
+
     public CommandParser()
     {
         myKeywordToCommandMap = new HashMap<>();
         Map<String,String> command2HelpMap = new HashMap<>();
-        
+
         try {
             for (Class<? extends Command> commandClass : ourCommands) {
-                MetaCommand metaCommand = 
+                MetaCommand metaCommand =
                     commandClass.getAnnotation(MetaCommand.class);
+                System.out.println("Meta cmd " + metaCommand);
                 Command command = commandClass.newInstance();
                 myKeywordToCommandMap.put(metaCommand.name(),
                                           command);
@@ -67,12 +68,12 @@ public class CommandParser
             e.printStackTrace();
         }
     }
-    
+
     /** Parses the line and returns the {@link Command} */
     public Command parse(String line)
     {
         int index = line.indexOf(" ");
-        String keyword = 
+        String keyword =
             index > 0 ? line.substring(0, index) : line;
         Command command = myKeywordToCommandMap.get(keyword);
         if (command != null && command instanceof ParsableCommand) {

@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -20,15 +20,22 @@
 
 package org.hit.client.shell;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
 /**
- * Defines an annotation that can be used for defining additional 
+ * Defines an annotation that can be used for defining additional
  * attributes for a command.
- * 
+ *
  * @author Balraja Subbiah
  */
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
 public @interface MetaCommand
 {
-    public String name();
-    
     public String help();
+
+    public String name();
 }

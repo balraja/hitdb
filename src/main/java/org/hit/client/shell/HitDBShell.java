@@ -25,7 +25,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.hit.client.DBClient;
-import org.hit.facade.HitDBFacade;
 
 /**
  * The shell for interacting with the hit database.
@@ -53,7 +52,7 @@ public class HitDBShell extends DBClient
         @Override
         public void run()
         {
-            myCommand.execute(myFacade);
+            myCommand.execute(getFacade());
             myCommandExecutor.submit(new ReaderTask());
         }
     }
@@ -90,8 +89,6 @@ public class HitDBShell extends DBClient
     private final ExecutorService myCommandExecutor;
 
     private final CommandParser myCommandParser;
-
-    private HitDBFacade myFacade;
 
     /**
      * CTOR

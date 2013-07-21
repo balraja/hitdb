@@ -22,6 +22,7 @@ package org.hit.client;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.ProcessBuilder.Redirect;
 import java.util.Arrays;
 
 import org.apache.commons.cli.BasicParser;
@@ -92,6 +93,13 @@ public class ClientLauncher extends AbstractLauncher
         try {
             CommandLine cmdLine =
                 parser.parse(myClientCommandLineOptions, args);
+
+            if (cmdLine.hasOption(HELP)) {
+                HelpFormatter formatter = new HelpFormatter();
+                formatter.printHelp( "run_client", myClientCommandLineOptions);
+                System.exit(0);
+            }
+
             if (    !cmdLine.hasOption(CLIENT_CLASS_NAME)
                  || !cmdLine.hasOption(JAR_PATH))
             {
@@ -150,6 +158,10 @@ public class ClientLauncher extends AbstractLauncher
                     "bash", "-c", commandBuilder.toString()));
             }
 
+            bldr.redirectOutput(new File("C:\\hitdbtest\\test_out"));
+            bldr.redirectError(Redirect.INHERIT);
+            bldr.redirectInput(Redirect.INHERIT);
+
             bldr.environment().put(CLASSPATH_PREFIX,
                                    classPathBuilder.toString());
             bldr.environment().put(JAVA_OPTS, optsBuilder.toString());
@@ -163,7 +175,7 @@ public class ClientLauncher extends AbstractLauncher
         catch (ParseException e) {
             System.out.println(e.getMessage());
             HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp(CLIENT_LAUNCHER_FILE, 
+            formatter.printHelp(CLIENT_LAUNCHER_FILE,
                                 myClientCommandLineOptions);
         }
         catch (IOException e) {
