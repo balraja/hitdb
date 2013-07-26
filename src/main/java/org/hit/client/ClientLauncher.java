@@ -22,7 +22,6 @@ package org.hit.client;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.ProcessBuilder.Redirect;
 import java.util.Arrays;
 
 import org.apache.commons.cli.BasicParser;
@@ -133,20 +132,8 @@ public class ClientLauncher extends AbstractLauncher
                 DBClientExecutor.CLIENT_CLASS_NAME_PROPERTY,
                 cmdLine.getOptionValue(CLIENT_CLASS_NAME)));
 
-            String zooKeeperHome = System.getenv("ZOOKEEPER_INSTALL");
-            if (zooKeeperHome == null) {
-                System.out.println("ZooKeeper location is not defined");
-                System.exit(1);
-            }
-
             StringBuilder classPathBuilder = new StringBuilder();
-            classPathBuilder.append(
-                zooKeeperHome
-                + File.separator
-                + "conf"
-                + File.pathSeparator);
-             classPathBuilder.append(File.pathSeparator);
-             classPathBuilder.append(cmdLine.getOptionValue(JAR_PATH));
+            classPathBuilder.append(cmdLine.getOptionValue(JAR_PATH));
 
             ProcessBuilder bldr = null;
             if (System.getProperty("os.name").toLowerCase().contains("win")) {
@@ -157,23 +144,12 @@ public class ClientLauncher extends AbstractLauncher
                 bldr = new ProcessBuilder(Arrays.<String>asList(
                     "bash", "-c", commandBuilder.toString()));
             }
-
-            bldr.redirectOutput(new File("C:\\hitdbtest\\test_out"));
-            bldr.redirectError(Redirect.INHERIT);
-            bldr.redirectInput(Redirect.INHERIT);
-
             bldr.environment().put(CLASSPATH_PREFIX,
                                    classPathBuilder.toString());
             bldr.environment().put(JAVA_OPTS, optsBuilder.toString());
-
-            System.out.println(classPathBuilder.toString());
-            System.out.println(optsBuilder.toString());
-
-            System.out.println("Executing " + bldr.command());
             bldr.start();
         }
         catch (ParseException e) {
-            System.out.println(e.getMessage());
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp(CLIENT_LAUNCHER_FILE,
                                 myClientCommandLineOptions);

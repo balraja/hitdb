@@ -24,14 +24,16 @@ import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.hit.client.DBClient;
+import org.hit.facade.HitDBFacade;
+import org.hit.util.Application;
+import org.hit.util.ApplicationLauncher;
 
 /**
  * The shell for interacting with the hit database.
  *
  * @author Balraja Subbiah
  */
-public class HitDBShell extends DBClient
+public class HitDBShell implements Application
 {
     private class CommandTask implements Runnable
     {
@@ -52,7 +54,7 @@ public class HitDBShell extends DBClient
         @Override
         public void run()
         {
-            myCommand.execute(getFacade());
+            myCommand.execute(myServerFacade);
             myCommandExecutor.submit(new ReaderTask());
         }
     }
@@ -86,9 +88,19 @@ public class HitDBShell extends DBClient
 
     public static final String PROMPT = ">";
 
+    public static void main(String[] args)
+    {
+        ApplicationLauncher launcher =
+            new ApplicationLauncher(new HitDBShell());
+        launcher.launch();
+    }
+
     private final ExecutorService myCommandExecutor;
 
     private final CommandParser myCommandParser;
+
+    private final  HitDBFacade myServerFacade;
+
 
     /**
      * CTOR
@@ -98,16 +110,7 @@ public class HitDBShell extends DBClient
         super();
         myCommandExecutor = Executors.newSingleThreadExecutor();
         myCommandParser = new CommandParser();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void shutdown()
-    {
-        super.shutdown();
-        myCommandExecutor.shutdownNow();
+        myServerFacade = new HitDBFacade();
     }
 
     /**
@@ -116,9 +119,19 @@ public class HitDBShell extends DBClient
     @Override
     public void start()
     {
+        myServerFacade.start();
         System.out.println(BANNER);
         System.out.println(HELP_MSG);
-        super.start();
         myCommandExecutor.submit(new ReaderTask());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void stop()
+    {
+        myCommandExecutor.shutdownNow();
+        myServerFacade.stop();
     }
 }

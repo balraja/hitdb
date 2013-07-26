@@ -40,11 +40,11 @@ import org.hit.util.AbstractLauncher;
  */
 public class HitServerLauncher extends AbstractLauncher
 {
+    private static final String IS_MASTER = "is_master";
+
     private static final String SERVER_LAUNCHER_FILE = "hit_db_server";
 
     private static final String TRANSACTION_LOG_DIR = "transaction_log_dir";
-    
-    private static final String IS_MASTER = "is_master";
 
     private static final String WAL_BASE_DIR_PROPERTY = "org.hit.wal.basePath";
 
@@ -75,7 +75,7 @@ public class HitServerLauncher extends AbstractLauncher
              true,
              "The directory under which trnsaction logs are stored"
          );
-        
+
         myServerCommandLineOptions.addOption(
             IS_MASTER,
             IS_MASTER,
@@ -123,17 +123,11 @@ public class HitServerLauncher extends AbstractLauncher
                     WAL_BASE_DIR_PROPERTY,
                     cmdLine.getOptionValue(TRANSACTION_LOG_DIR)));
             }
-            
+
             if (cmdLine.hasOption(IS_MASTER)) {
                 optsBuilder.append(addProperty(
                     EnginePropertyConfig.MASTER_PROPERTY,
                     "true"));
-            }
-
-            String zooKeeperHome = System.getenv("ZOOKEEPER_INSTALL");
-            if (zooKeeperHome == null) {
-                System.out.println("ZooKeeper location is not defined");
-                System.exit(1);
             }
 
             ProcessBuilder bldr = null;
@@ -145,12 +139,6 @@ public class HitServerLauncher extends AbstractLauncher
                 bldr = new ProcessBuilder(Arrays.<String>asList(
                     "bash", "-c", commandBuilder.toString()));
             }
-
-            bldr.environment().put(CLASSPATH_PREFIX,
-                                   zooKeeperHome
-                                   + File.separator
-                                   + "conf"
-                                   + File.pathSeparator);
 
             if (optsBuilder.length() > 0) {
                 bldr.environment().put(JAVA_OPTS, optsBuilder.toString());
