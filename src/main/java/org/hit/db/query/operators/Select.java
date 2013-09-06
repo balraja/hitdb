@@ -28,6 +28,7 @@ import java.util.Collections;
 
 import org.hit.db.model.Database;
 import org.hit.db.model.Persistable;
+import org.hit.db.model.Predicate;
 import org.hit.db.model.Queryable;
 import org.hit.db.model.Table;
 
@@ -74,14 +75,24 @@ public class Select implements QueryOperator
                   database.lookUpTable(myTableName);
         
         if (table != null) {
-            return Collections2.transform(table.findMatching(
-                new PredicateAdapter(myFilteringCondition)),
-                new Function<Persistable<?>, Queryable>() 
-                {
-                    public Queryable apply(Persistable<?> persistable) {
-                        return (Queryable) persistable;
-                    }
-                });
+            Predicate predicate = 
+                myFilteringCondition != null ?
+                    new PredicateAdapter(myFilteringCondition)
+                    : new Predicate() {
+                            @Override
+                            public boolean isInterested(Queryable queryable)
+                            {
+                                return true;
+                            }
+                        };
+            return Collections2.transform(
+                 table.findMatching(predicate),
+                 new Function<Persistable<?>, Queryable>() 
+                 {
+                     public Queryable apply(Persistable<?> persistable) {
+                         return (Queryable) persistable;
+                     }
+                 });
         }
         else {
             return Collections.emptyList();
@@ -95,7 +106,10 @@ public class Select implements QueryOperator
     public void writeExternal(ObjectOutput out) throws IOException
     {
         out.writeUTF(myTableName);
-        out.writeObject(myFilteringCondition);
+        out.writeBoolean(myFilteringCondition != null);
+        if (myFilteringCondition != null) {
+            out.writeObject(myFilteringCondition);
+        }
     }
 
     /**
@@ -106,6 +120,12 @@ public class Select implements QueryOperator
         throws IOException, ClassNotFoundException
     {
         myTableName = in.readUTF();
-        myFilteringCondition = (Condition) in.readObject();
+        boolean isFCAvailable = in.readBoolean();
+        if (isFCAvailable) {
+            myFilteringCondition = (Condition) in.readObject();
+        }
+        else {
+            myFilteringCondition = null;
+        }
     }
 }

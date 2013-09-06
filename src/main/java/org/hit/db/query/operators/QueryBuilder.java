@@ -72,7 +72,9 @@ public class QueryBuilder
         
         QueryOperator operator = null;
         if (   myQueryAttributes.getTableName() != null 
-            && myQueryAttributes.getWhereCondition() != null)
+            && (   myQueryAttributes.getWhereCondition() != null
+                || (   myQueryAttributes.getWhereCondition() == null 
+                    && myQueryAttributes.getJoinCriteria() == null)))
         {
             operator = new Select(myQueryAttributes.getTableName(),
                                   myQueryAttributes.getWhereCondition());

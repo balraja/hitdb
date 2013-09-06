@@ -18,67 +18,46 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.db.query.operators;
+package org.hit.query.test;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.hit.db.model.Database;
-import org.hit.db.model.Query;
+import org.hit.db.model.Persistable;
+import org.hit.db.model.Schema;
+import org.hit.db.model.Table;
+import org.hit.example.HitDbTest;
 
 /**
- * Defines a wrapper on top of {@link QueryOperator} to match 
- * the general {@link Query} interface.
- * 
  * @author Balraja Subbiah
  */
-public class QueryAdaptor implements Query
+public class TestDB implements Database
 {
-    private QueryOperator myQueryOperator;
+    private final Map<String, Table<?, ?>> myNameTableMap;
+    
+    public TestDB()
+    {
+        myNameTableMap = new HashMap<String, Table<?,?>>();
+        myNameTableMap.put(HitDbTest.TABLE_NAME, new AirportTable());
+    }
     
     /**
-     * CTOR
+     * {@inheritDoc}
      */
-    public QueryAdaptor()
+    @Override
+    public void createTable(Schema schema)
     {
-        myQueryOperator = null;
-    }
-
-    /**
-     * CTOR
-     */
-    public QueryAdaptor(QueryOperator queryOperator)
-    {
-        super();
-        myQueryOperator = queryOperator;
     }
 
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("unchecked")
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException
+    public <K extends Comparable<K>, P extends Persistable<K>> Table<K, P>
+        lookUpTable(String tableName)
     {
-        out.writeObject(myQueryOperator);        
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void readExternal(ObjectInput in)
-        throws IOException, ClassNotFoundException
-    {
-        myQueryOperator = (QueryOperator) in.readObject();        
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Object query(Database database)
-    {
-        return myQueryOperator.getResult(database);
+        return (Table<K, P>) myNameTableMap.get(tableName);
     }
 }
