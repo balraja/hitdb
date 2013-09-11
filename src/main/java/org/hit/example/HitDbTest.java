@@ -78,7 +78,7 @@ public class HitDbTest extends DBClient
         try {
             TableCreationResponse result = futureResponse.get();
             LOG.info("Creation of table " + result.getTableName());
-            myTestData.addAll(AirportDataLoader.loadTestData());
+            myTestData.addAll(new AirportDataLoader().loadTestData());
             updateTable();
         }
         catch (InterruptedException e) {

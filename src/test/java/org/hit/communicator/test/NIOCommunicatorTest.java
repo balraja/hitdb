@@ -187,7 +187,7 @@ public class NIOCommunicatorTest
     {
         NodeID senderID = new IPNodeID(25000);
         NodeID receiverID = new IPNodeID(25001);
-        List<Airport> airportList = AirportDataLoader.loadTestData();
+        List<Airport> airportList = new AirportDataLoader().loadTestData();
         BatchMutation<Long, Airport> batchMutation =
             new BatchMutation<>("Airport", new ArrayList<>(airportList.subList(0, 5)));
         DBOperationMessage message =

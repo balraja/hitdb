@@ -22,17 +22,17 @@ package org.hit.query.test;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.TreeMap;
 
 import org.hit.db.model.Column;
+import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
 import org.hit.db.model.Schema;
 import org.hit.db.model.Table;
 import org.hit.example.Airport;
 import org.hit.example.AirportDataLoader;
+import org.hit.example.DataLoader;
 import org.hit.example.HitDbTest;
 import org.hit.key.LinearKeyspace;
 import org.hit.key.domain.LongDomain;
@@ -42,27 +42,32 @@ import org.hit.key.domain.LongDomain;
  * 
  * @author Balraja Subbiah
  */
-public class AirportTable implements Table<Long,Airport>
+public class TestTable<K extends Comparable<K>, P extends Persistable<K>> 
+    implements Table<K, P>
 {
-    private final TreeMap<Long, Airport> myData;
+    private final TreeMap<K, P> myData;
     
     private final Schema mySchema;
     
     /**
      * CTOR
      */
-    public AirportTable()
+    public TestTable(String             tableName, 
+                     Class<? extends P> tableClass,
+                     Class<? extends K> keyClass,
+                     LinearKeyspace<K>  keySpace,
+                     DataLoader<P>      dataLoader)
     {
         myData = new TreeMap<>();
-        mySchema = new Schema(HitDbTest.TABLE_NAME,
+        mySchema = new Schema(tableName,
                               new ArrayList<Column>(),
-                              Airport.class,
-                              Long.class,
-                              new LinearKeyspace<Long>(new LongDomain(1L, 
-                                                                      7000L)));
-        List<Airport> airports = AirportDataLoader.loadTestData();
-        for (Airport airport : airports) {
-            myData.put(airport.primaryKey(), airport);
+                              tableClass,
+                              keyClass,
+                              keySpace);
+        
+        List<P> data = dataLoader.loadTestData();
+        for (P persistable : data) {
+            myData.put(persistable.primaryKey(), persistable);
         }
     }
 
@@ -70,12 +75,12 @@ public class AirportTable implements Table<Long,Airport>
      * {@inheritDoc}
      */
     @Override
-    public Collection<Airport> findMatching(Predicate predicate)
+    public Collection<P> findMatching(Predicate predicate)
     {
-        List<Airport> result = new ArrayList<>();
-        for (Airport airport : myData.values()) {
-            if (predicate.isInterested(airport)) {
-                result.add(airport);
+        List<P> result = new ArrayList<>();
+        for (P persistable : myData.values()) {
+            if (predicate.isInterested(persistable)) {
+                result.add(persistable);
             }
         }
         return result;
@@ -85,14 +90,12 @@ public class AirportTable implements Table<Long,Airport>
      * {@inheritDoc}
      */
     @Override
-    public Collection<Airport> findMatching(Predicate predicate,
-                                            Long start,
-                                            Long end)
+    public Collection<P> findMatching(Predicate predicate, K start, K end)
     {
-        List<Airport> result = new ArrayList<>();
-        for (Airport airport : myData.subMap(start, end).values()) {
-            if (predicate.isInterested(airport)) {
-                result.add(airport);
+        List<P> result = new ArrayList<>();
+        for (P persistable : myData.subMap(start, end).values()) {
+            if (predicate.isInterested(persistable)) {
+                result.add(persistable);
             }
         }
         return result;
@@ -102,7 +105,7 @@ public class AirportTable implements Table<Long,Airport>
      * {@inheritDoc}
      */
     @Override
-    public Airport getRow(Long primarykey)
+    public P getRow(K primarykey)
     {
         return myData.get(primarykey);
     }
@@ -120,7 +123,7 @@ public class AirportTable implements Table<Long,Airport>
      * {@inheritDoc}
      */
     @Override
-    public boolean update(Airport old, Airport updated)
+    public boolean update(P old, P updated)
     {
         return false;
     }

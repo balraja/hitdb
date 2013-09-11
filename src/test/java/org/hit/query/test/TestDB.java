@@ -27,19 +27,53 @@ import org.hit.db.model.Database;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Schema;
 import org.hit.db.model.Table;
+import org.hit.example.Airline;
+import org.hit.example.AirlineDataLoader;
+import org.hit.example.Airport;
+import org.hit.example.AirportDataLoader;
 import org.hit.example.HitDbTest;
+import org.hit.example.Route;
+import org.hit.example.RouteDataLoader;
+import org.hit.key.LinearKeyspace;
+import org.hit.key.domain.LongDomain;
 
 /**
+ * Extends <code>Database</code> to support loading table data from the 
+ * files.
+ * 
  * @author Balraja Subbiah
  */
 public class TestDB implements Database
 {
     private final Map<String, Table<?, ?>> myNameTableMap;
     
+    /**
+     * CTOR
+     */
     public TestDB()
     {
         myNameTableMap = new HashMap<String, Table<?,?>>();
-        myNameTableMap.put(HitDbTest.TABLE_NAME, new AirportTable());
+        myNameTableMap.put(HitDbTest.TABLE_NAME,
+                           new TestTable<>(HitDbTest.TABLE_NAME, 
+                                           Airport.class, 
+                                           Long.class,
+                                           new LinearKeyspace<>(
+                                               new LongDomain(1, 7000)), 
+                                           new AirportDataLoader()));
+        myNameTableMap.put(Airline.TABLE_NAME,
+                           new TestTable<>(Airline.TABLE_NAME, 
+                                           Airline.class, 
+                                           Long.class,
+                                           new LinearKeyspace<>(
+                                               new LongDomain(1, 7000)), 
+                                           new AirlineDataLoader()));
+        myNameTableMap.put(Route.TABLE_NAME,
+                           new TestTable<>(Route.TABLE_NAME, 
+                                           Route.class, 
+                                           Long.class,
+                                           new LinearKeyspace<>(
+                                               new LongDomain(1, 7000)), 
+                                           new RouteDataLoader()));
     }
     
     /**

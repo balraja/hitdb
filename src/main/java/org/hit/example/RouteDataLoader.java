@@ -21,36 +21,38 @@
 package org.hit.example;
 
 /**
- * A simple class that's responsible for loading <code>Airport</code> from the 
+ * Extends <code>DataLoader</code> to support loading data for <code>Route
+ * </code>s from the file.
  * 
  * @author Balraja Subbiah
  */
-public final class AirportDataLoader extends DataLoader<Airport>
+public class RouteDataLoader extends DataLoader<Route>
 {
-    private static final String AIRPORT_FILE = "airports.txt";
+    private static final String ROUTES_FILE = "routes.txt";
+    
+    private long myRouteID;
 
     /**
      * CTOR
      */
-    public AirportDataLoader()
+    public RouteDataLoader()
     {
-        super(AIRPORT_FILE);
+        super(ROUTES_FILE);
+        myRouteID = 0L;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    protected Airport parseFromTokens(String[] parts)
+    protected Route parseFromTokens(String[] parts)
     {
-        return new Airport(Long.parseLong(parts[0]),
-                           parts[1],
-                           parts[2],
-                           parts[3],
-                           parts[4],
-                           Double.parseDouble(parts[6]),
-                           Double.parseDouble(parts[7]),
-                           Double.parseDouble(parts[8]),
-                           Float.parseFloat(parts[9]));
+        return new Route(
+          myRouteID++, 
+          Long.parseLong(parts[1]),
+          Long.parseLong(parts[3]),
+          Long.parseLong(parts[5]),
+          parts[6].trim().isEmpty(),
+          Integer.parseInt(parts[7]));
     }
 }

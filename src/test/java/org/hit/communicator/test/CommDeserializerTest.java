@@ -26,7 +26,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.logging.Level;
 
 import org.hit.communicator.MessageSerializer;
 import org.hit.communicator.NodeID;
@@ -51,7 +50,7 @@ public class CommDeserializerTest
     public void test()
     {
         NodeID nodeID = new IPNodeID(10000);
-        List<Airport> airportList = AirportDataLoader.loadTestData();
+        List<Airport> airportList = new AirportDataLoader().loadTestData();
         BatchMutation<Long, Airport> batchMutation = 
             new BatchMutation<>("Airport", airportList);
         DBOperationMessage message = 

@@ -21,36 +21,30 @@
 package org.hit.example;
 
 /**
- * A simple class that's responsible for loading <code>Airport</code> from the 
+ * Extends <code>DataLoader</code> to support loading <code>Airline</code>
+ * data.
  * 
  * @author Balraja Subbiah
  */
-public final class AirportDataLoader extends DataLoader<Airport>
+public class AirlineDataLoader extends DataLoader<Airline>
 {
-    private static final String AIRPORT_FILE = "airports.txt";
-
+    private static final String AIRLINE_FILE = "airlines.txt";
+    
     /**
      * CTOR
      */
-    public AirportDataLoader()
+    public AirlineDataLoader()
     {
-        super(AIRPORT_FILE);
+        super(AIRLINE_FILE);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    protected Airport parseFromTokens(String[] parts)
+    protected Airline parseFromTokens(String[] parts)
     {
-        return new Airport(Long.parseLong(parts[0]),
-                           parts[1],
-                           parts[2],
-                           parts[3],
-                           parts[4],
-                           Double.parseDouble(parts[6]),
-                           Double.parseDouble(parts[7]),
-                           Double.parseDouble(parts[8]),
-                           Float.parseFloat(parts[9]));
+        return new Airline(Long.valueOf(parts[0]),
+                           parts[1]);
     }
 }
