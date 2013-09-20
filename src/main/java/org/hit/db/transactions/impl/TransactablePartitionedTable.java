@@ -22,17 +22,25 @@ package org.hit.db.transactions.impl;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.TreeMap;
 
 import org.hit.concurrent.LocklessSkipList;
+import org.hit.concurrent.LocklessSkipList.SkipListIterator;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
 import org.hit.db.model.Schema;
+import org.hit.db.transactions.Registry;
 import org.hit.db.transactions.Transactable;
+import org.hit.db.transactions.ValidationResult;
+import org.hit.util.Pair;
+
+import com.google.common.collect.Collections2;
 
 /**
  * An implementation of a table wherein the keyspace of the table is
- * partitioned among multiple nodes.
+ * partitioned linearly among multiple nodes.
  * 
  * @author Balraja Subbiah
  */
@@ -60,6 +68,48 @@ public class TransactablePartitionedTable<K extends Comparable<K>, P extends Per
                     transactable);
     }
     
+    private Collection<Transactable<K, P>> doFindMatching(
+        Predicate        predicate,
+        long             transactionID,
+        long             time,
+        LocklessSkipList<K, Transactable<K,P>>.SkipListIterator iterator)
+    {
+        TreeMap<K, Pair<ValidationResult, Transactable<K,P>>> result = 
+                        new TreeMap<>();
+        while (iterator.hasNext()) {
+            for (Transactable<K,P> transactable : iterator.next()) {
+                if (predicate.isInterested(transactable.getPersistable())) {
+                    ValidationResult validationResult = 
+                        transactable.validate(time, transactionID);
+                    Pair<ValidationResult, Transactable<K,P>> sameKeyValue = 
+                        result.get(transactable.getPersistable().primaryKey());
+                    if (   sameKeyValue == null 
+                        && validationResult.isValid()) 
+                    {
+                        result.put(transactable.getPersistable().primaryKey(),
+                                   new Pair<>(validationResult, transactable));
+                    }
+                    else if (   validationResult.isSpeculativelyValid() 
+                              && validationResult.getTransactionId() 
+                                     != transactionID
+                              && sameKeyValue.getFirst().getTransactionId()
+                                     != transactionID
+                              && sameKeyValue.getFirst().isSpeculativelyValid()
+                              && validationResult.getTransactionId()
+                                     > sameKeyValue.getFirst()
+                                                   .getTransactionId())
+                    {
+                        result.put(transactable.getPersistable().primaryKey(),
+                                   new Pair<>(validationResult, transactable));
+                    }
+                }
+            }
+        }
+        
+        return Collections2.transform(result.values(),
+                                      new AddDependency(transactionID));
+    }
+    
     /**
      * {@inheritDoc}
      */
@@ -69,20 +119,9 @@ public class TransactablePartitionedTable<K extends Comparable<K>, P extends Per
                      long      time,
                      long      transactionID)
     {
-        ArrayList<Transactable<K,P>> result = new ArrayList<>();
         LocklessSkipList<K, Transactable<K,P>>.SkipListIterator iterator =
             myIndex.lookupAllValues();
-        
-        while (iterator.hasNext()) {
-            for (Transactable<K, P> transactable : iterator.next()) {
-                if (transactable.isValid(time, transactionID)
-                    && predicate.isInterested(transactable.getPersistable()))
-                {
-                    result.add(transactable);
-                }
-            }
-        }
-        return result;
+        return doFindMatching(predicate, transactionID, time, iterator);
     }
 
     /**
@@ -96,20 +135,9 @@ public class TransactablePartitionedTable<K extends Comparable<K>, P extends Per
                      long      time,
                      long      transactionID)
     {
-        ArrayList<Transactable<K,P>> result = new ArrayList<>();
         LocklessSkipList<K, Transactable<K,P>>.SkipListIterator iterator =
             myIndex.lookupValues(start, end);
-        
-        while (iterator.hasNext()) {
-            for (Transactable<K, P> transactable : iterator.next()) {
-                if (transactable.isValid(time, transactionID)
-                    && predicate.isInterested(transactable.getPersistable()))
-                {
-                    result.add(transactable);
-                }
-            }
-        }
-        return result;
+        return doFindMatching(predicate, transactionID, time, iterator);
     }
 
     /**
@@ -119,14 +147,7 @@ public class TransactablePartitionedTable<K extends Comparable<K>, P extends Per
     public Transactable<K, P> getRow(K key, long time, long transactionID)
     {
         List<Transactable<K, P>> result = myIndex.lookupValue(key);
-        if (result != null) {
-            for (Transactable<K, P> transactable : result) {
-                if (transactable.isValid(time, transactionID)) {
-                    return transactable;
-                }
-            }
-        }
-        return null;
+        return doGetRow(result, time, transactionID);
     }
 
     /**

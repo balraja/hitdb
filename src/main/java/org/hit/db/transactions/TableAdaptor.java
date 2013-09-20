@@ -66,7 +66,7 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
     private final TransactionTableTrail<K, P> myTableTrail;
 
     private final long                        myTransactionID;
-
+    
     /**
      * CTOR
      */
@@ -180,11 +180,23 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
             Transactable<K, P> tableOld =
                  myTable.getRow(updated.primaryKey(), myStartTime, myTransactionID);
 
-            if (!tableOld.getPersistable().equals(old)
-                || !tableOld.isValid(myStartTime, myTransactionID))
-            {
+            
+            if (!tableOld.getPersistable().equals(old)) {
                 return false;
             }
+            
+            ValidationResult result = 
+                tableOld.validate(myStartTime, myTransactionID);
+                
+            if (!result.isValid() && !result.isSpeculativelyValid()) {
+                return false;
+            }
+            
+            if (result.isSpeculativelyValid()) {
+                Registry.addDependency(result.getTransactionId(), 
+                                       myTransactionID);
+            }
+            
             // Now lock the row for this transaction
             tableOld.setEnd(TransactionHelper.toVersionID(myTransactionID));
             myTableTrail.getWriteSet().add(tableOld);

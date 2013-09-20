@@ -69,13 +69,14 @@ public class Transactable<K extends Comparable<K>, P extends Persistable<K>>
      * Returns true if the object is valid at the given time for the
      * given transaction id.
      */
-    public boolean isValid(long time, long transactionID)
+    public ValidationResult 
+        validate(long time, long transactionID)
     {
         if (   !TransactionHelper.isTransactionID(myStart)
             && !TransactionHelper.isTransactionID(myEnd))
             
         {
-            return myStart <= time  && time <= myEnd;
+            return new ValidationResult(myStart <= time  && time <= myEnd);
         }
         else {
             // if this is an old version that's updated by this transaction
@@ -84,7 +85,19 @@ public class Transactable<K extends Comparable<K>, P extends Persistable<K>>
                 && myStart < time
                 && TransactionHelper.toTransactionID(myEnd) == transactionID)
             {
-                return true;
+                return new ValidationResult(true);
+            }
+            // If an older version is locked by 
+            else if (   !TransactionHelper.isTransactionID(myStart)
+                     && myStart < time
+                     && TransactionHelper.toTransactionID(myEnd) < transactionID
+                     && (Registry.getState(TransactionHelper.toTransactionID(myEnd))
+                              .in(TransactionState.ABORTED, 
+                                  TransactionState.VALIDATE,
+                                  TransactionState.COMMITTED)))
+            {
+                return new ValidationResult(
+                    TransactionHelper.toTransactionID(myEnd));
             }
             // If this is the version created by this transaction then its valid.
             else if (   TransactionHelper.toTransactionID(myStart)
@@ -92,10 +105,26 @@ public class Transactable<K extends Comparable<K>, P extends Persistable<K>>
                      && !TransactionHelper.isTransactionID(myEnd)
                      && myEnd >= time)
             {
-                return true;
+                return new ValidationResult(true);
+            }
+            // If this is the new version created by a a preceding transaction
+            // then still allow the values to be read by this transaction.
+            // speculatively. By speculative we add an entry to dependency 
+            // graph.
+            else if (   TransactionHelper.toTransactionID(myStart)
+                            < transactionID
+                     && Registry.getState(TransactionHelper.toTransactionID(
+                            myStart)).in(
+                                TransactionState.VALIDATE,
+                                TransactionState.COMMITTED)
+                     && !TransactionHelper.isTransactionID(myEnd)
+                     && myEnd >= time)
+            {
+                return new ValidationResult(
+                    TransactionHelper.toTransactionID(myStart));
             }
             else {
-                return false;
+                return new ValidationResult(false);
             }
         }
     }

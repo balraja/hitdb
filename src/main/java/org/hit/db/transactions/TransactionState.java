@@ -40,5 +40,24 @@ public enum TransactionState
     COMMITTED,
     
     /** Transaction is aborted */
-    ABORTED
+    ABORTED,
+    
+    /** Refers to the null transaction state */
+    UNKNOWN;
+    
+    public boolean in(TransactionState...expectedStates)
+    {
+        return in(this, expectedStates);
+    }
+    
+    static boolean in(TransactionState state, TransactionState[] expectedStates)
+    {
+        for (TransactionState expState : expectedStates)
+        {
+            if (expState == state) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

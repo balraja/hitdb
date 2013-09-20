@@ -54,15 +54,15 @@ public class WriteTransactionValidator extends ReadTransactionValidator
         }
         else {
             for (Transactable<K,P> transactable : trail.getWriteSet()) {
-                if (!transactable.isValid(getValidationTime(),
-                                          getTransactionId()))
+                if (!transactable.validate(getValidationTime(),
+                                           getTransactionId()).isValid())
                 {
                     return false;
                 }
             }
             for (Transactable<K,P> transactable : trail.getNewWriteSet()) {
-                if (!transactable.isValid(getValidationTime(),
-                                          getTransactionId()))
+                if (!transactable.validate(getValidationTime(),
+                                           getTransactionId()).isValid())
                 {
                     return false;
                 }

@@ -20,6 +20,7 @@
 
 package org.hit.db.transactions;
 
+import org.hit.communicator.NodeID;
 import org.hit.db.transactions.PhasedTransactionExecutor.Phase;
 import org.hit.db.transactions.journal.WAL;
 
@@ -37,7 +38,8 @@ public class Memento<T>
     /**
      * CTOR
      */
-    public Memento(AbstractTransaction transaction, WAL writeAheadLog,
+    public Memento(AbstractTransaction transaction, 
+                   WAL writeAheadLog,
                    Phase<T> phase)
     {
         super();

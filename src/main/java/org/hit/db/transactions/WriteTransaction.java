@@ -44,7 +44,6 @@ public class WriteTransaction extends AbstractTransaction
     {
         super(transactionId, database, clock);
         myMutation = mutation;
-
     }
 
     /**

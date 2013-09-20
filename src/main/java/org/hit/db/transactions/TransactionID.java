@@ -30,7 +30,7 @@ import java.io.ObjectOutput;
  *
  * @author Balraja Subbiah
  */
-public class TransactionID implements Externalizable
+public class TransactionID implements Externalizable,Comparable<TransactionID>
 {
     private long myIdentifier;
 
@@ -75,5 +75,14 @@ public class TransactionID implements Externalizable
     public void writeExternal(ObjectOutput out) throws IOException
     {
         out.writeLong(myIdentifier);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int compareTo(TransactionID o)
+    {
+        return Long.compare(myIdentifier, o.getIdentifier());
     }
 }

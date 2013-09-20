@@ -83,7 +83,9 @@ public class ReadTransactionValidator implements TransactionValidator
         isAcceptable(TransactionTableTrail<K, P> trail)
     {
         for (Transactable<K,P> transactable : trail.getReadSet()) {
-            if (!transactable.isValid(myValidationTime, myTransactionId)) {
+            if (!transactable.validate(myValidationTime, myTransactionId)
+                             .isValid()) 
+            {
                 return false;
             }
         }

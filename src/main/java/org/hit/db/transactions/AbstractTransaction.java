@@ -102,6 +102,8 @@ public abstract class AbstractTransaction implements Transaction
     public void execute()
     {
         myState = TransactionState.ACTIVE;
+        Registry.updateTransactionState(myTransactionID.getIdentifier(), 
+                                        myState);
         doExecute(myAdaptedDatabase);
     }
 
@@ -158,6 +160,8 @@ public abstract class AbstractTransaction implements Transaction
     {
         myEndTime = myClock.currentTime();
         myState = TransactionState.VALIDATE;
+        Registry.updateTransactionState(myTransactionID.getIdentifier(), 
+                                        myState);
         return doValidation(myAdaptedDatabase);
     }
 }

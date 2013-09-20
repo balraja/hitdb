@@ -20,9 +20,19 @@
 
 package org.hit.db.transactions.impl;
 
+import java.util.Collection;
+import java.util.List;
+
 import org.hit.db.model.Persistable;
+import org.hit.db.model.Predicate;
 import org.hit.db.model.Schema;
+import org.hit.db.transactions.Registry;
+import org.hit.db.transactions.Transactable;
 import org.hit.db.transactions.TransactableTable;
+import org.hit.db.transactions.ValidationResult;
+import org.hit.util.Pair;
+
+import com.google.common.base.Function;
 
 /**
  * Defines the contract for an abstract implementation of <code>
@@ -34,8 +44,44 @@ public abstract class AbstractTransactableTable<K extends Comparable<K>,
                                                 P extends Persistable<K>>
     implements TransactableTable<K,P>
 {
+    /**
+     * Implements a <code>Function</code> to add dependency between 
+     * transactions.
+     */
+    public class AddDependency
+        implements Function<Pair<ValidationResult, Transactable<K, P>>, 
+                            Transactable<K, P>>
+    {
+        private final long myTransactionID;
+        
+        /**
+         * CTOR
+         */
+        public AddDependency(long transactionID)
+        {
+            myTransactionID = transactionID;
+        }
+        
+        /**
+         * {@inheritDoc}
+         */
+        public Transactable<K,P>  
+            apply(Pair<ValidationResult, Transactable<K, P>> input)
+        {
+            if (   input.getFirst().isSpeculativelyValid()
+                && input.getFirst().getTransactionId()
+                       != myTransactionID)
+            {
+                Registry.addDependency(input.getFirst().getTransactionId(), 
+                                      myTransactionID);
+            }
+            
+            return input.getSecond();
+        }
+    }
+    
     private final Schema mySchema;
-
+    
     /**
      * CTOR
      */
@@ -51,5 +97,30 @@ public abstract class AbstractTransactableTable<K extends Comparable<K>,
     public Schema getSchema()
     {
         return mySchema;
+    }
+    
+    /**
+     * A helper method to get the latest version of a row for a key.
+     */
+    public Transactable<K, P> doGetRow(List<Transactable<K, P>> result, 
+                                       long time, 
+                                       long transactionID)
+    {
+        if (result != null) {
+            for (int i = result.size() - 1; i >= 0; i--) {
+                Transactable<K, P> transactable = result.get(i);
+                ValidationResult validationResult = 
+                    transactable.validate(time, transactionID);
+                if (validationResult.isValid()) {
+                    return transactable;
+                }
+                else if (validationResult.isSpeculativelyValid()) {
+                    Registry.addDependency(validationResult.getTransactionId(),
+                                          transactionID);
+                    return transactable;
+                }
+            }
+        }
+        return null;
     }
 }

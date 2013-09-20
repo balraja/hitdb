@@ -22,6 +22,7 @@ package org.hit.db.transactions;
 
 import java.util.concurrent.Callable;
 
+import org.hit.communicator.NodeID;
 import org.hit.db.transactions.journal.WAL;
 
 /**
@@ -168,7 +169,7 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
     private final WAL myWriteAheadLog;
     
     private Phase<T> myPhase;
-
+    
     /**
      * CTOR
      */
@@ -200,7 +201,9 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
     {
         if (myPhase != null) {
             myPhase.execute();
-            return new Memento<>(myTransaction, myWriteAheadLog, myPhase);
+            return new Memento<>(myTransaction, 
+                                 myWriteAheadLog, 
+                                 myPhase);
         }
         else {
             throw new NullPointerException(

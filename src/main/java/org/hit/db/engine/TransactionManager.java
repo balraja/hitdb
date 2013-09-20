@@ -20,6 +20,10 @@
 
 package org.hit.db.engine;
 
+import gnu.trove.map.TLongObjectMap;
+import gnu.trove.map.hash.TLongObjectHashMap;
+import gnu.trove.set.TLongSet;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -42,8 +46,8 @@ import org.hit.db.transactions.IDAssigner;
 import org.hit.db.transactions.Memento;
 import org.hit.db.transactions.PhasedTransactionExecutor;
 import org.hit.db.transactions.ReadTransaction;
+import org.hit.db.transactions.Registry;
 import org.hit.db.transactions.TransactableDatabase;
-import org.hit.db.transactions.TransactionExecutor;
 import org.hit.db.transactions.TransactionID;
 import org.hit.db.transactions.TransactionResult;
 import org.hit.db.transactions.WriteTransaction;
@@ -73,18 +77,54 @@ import com.google.inject.Inject;
  */
 public class TransactionManager
 {
-    private class CommitPhaseCallBack
-        implements FutureCallback<Memento<TransactionResult>>
+    /**
+     * A simple class to implement a structure for capturing the 
+     * client information.
+     */
+    private static class ClientInfo
     {
-        private final ProposalNotificationEvent myNotification;
+        private final NodeID myClientID;
+        
+        private final long myClientSequenceNumber;
 
         /**
          * CTOR
          */
-        public CommitPhaseCallBack(ProposalNotificationEvent notification)
+        public ClientInfo(NodeID clientID, long clientSequenceNumber)
         {
             super();
-            myNotification = notification;
+            myClientID = clientID;
+            myClientSequenceNumber = clientSequenceNumber;
+        }
+
+        /**
+         * Returns the value of clientID
+         */
+        public NodeID getClientID()
+        {
+            return myClientID;
+        }
+
+        /**
+         * Returns the value of clientSequenceNumber
+         */
+        public long getClientSequenceNumber()
+        {
+            return myClientSequenceNumber;
+        }
+    }
+    
+    private class StandardExecutionCallback
+        implements FutureCallback<Memento<Boolean>>
+    {
+        private final long myTransactionID;
+        
+        /**
+         * CTOR
+         */
+        public StandardExecutionCallback(long transactionID)
+        {
+            myTransactionID = transactionID;
         }
 
         /**
@@ -93,21 +133,22 @@ public class TransactionManager
         @Override
         public void onFailure(Throwable exception)
         {
-            try {
-                myEventBus.publish(new ProposalNotificationResponse(myNotification,
-                                                                    false));
-                DistributedTrnProposal dtp =
-                    (DistributedTrnProposal) myNotification.getProposal();
-
-                NotifyResultTask nrt =
-                    new NotifyResultTask(dtp.getClientID(),
-                                         dtp.getNodeToDBOperationMap()
-                                            .get(myServerID),
-                                         -1L);// XXX FIX this
-                nrt.onFailure(exception);
-            }
-            catch (EventBusException e) {
-                LOG.log(Level.SEVERE, e.getMessage(), e);
+            ClientInfo clientInfo = myTrnToClientMap.get(myTransactionID);
+            if (clientInfo != null) {
+                try {
+                    myEventBus.publish(
+                                       new SendMessageEvent(
+                                           Collections.singleton(
+                                               clientInfo.getClientID()),
+                                           new DBOperationFailureMessage(
+                                               myServerID,
+                                               clientInfo.getClientSequenceNumber(),
+                                               exception.getMessage(),
+                                               exception)));
+                }
+                catch (EventBusException e) {
+                    LOG.log(Level.SEVERE, e.getMessage(), e);
+                }
             }
         }
 
@@ -115,16 +156,104 @@ public class TransactionManager
          * {@inheritDoc}
          */
         @Override
-        public void onSuccess(Memento<TransactionResult> memento)
+        public void onSuccess(Memento<Boolean> result)
         {
-            DistributedTrnProposal dtp =
-                (DistributedTrnProposal) myNotification.getProposal();
-            NotifyResultTask nrt =
-                new NotifyResultTask(dtp.getClientID(),
-                                     dtp.getNodeToDBOperationMap()
-                                        .get(myServerID),
-                                     -1L); // XXX Fixthis
-            nrt.onSuccess(memento.getPhase().getResult());
+            if (result.getPhase().getResult()) {
+                // We can commit the changes
+                ListenableFuture<Memento<TransactionResult>> future =
+                                myExecutor.submit(
+                                   new PhasedTransactionExecutor<TransactionResult>(
+                                       result));
+
+                Futures.addCallback(future,
+                                    new StandardCommitCallback(
+                                        myTransactionID));
+            }
+            else {
+                // We have to wait.
+                myAwaitingCommitMap.put(Long.valueOf(myTransactionID), 
+                                        result);
+            }
+        }
+    }
+    
+    private class StandardCommitCallback
+        implements FutureCallback<Memento<TransactionResult>>
+    {
+        private final long myTransactionID;
+        
+        /**
+         * CTOR
+         */
+        public StandardCommitCallback(long transactionID)
+        {
+            super();
+            myTransactionID = transactionID;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onFailure(Throwable exception)
+        {
+            ClientInfo clientInfo = myTrnToClientMap.get(myTransactionID);
+            if (clientInfo != null) {
+                try {
+                    myEventBus.publish(
+                                       new SendMessageEvent(
+                                           Collections.singleton(
+                                               clientInfo.getClientID()),
+                                           new DBOperationFailureMessage(
+                                               myServerID,
+                                               clientInfo.getClientSequenceNumber(),
+                                               exception.getMessage(),
+                                               exception)));
+                }
+                catch (EventBusException e) {
+                    LOG.log(Level.SEVERE, e.getMessage(), e);
+                }
+            }
+        }
+    
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onSuccess(Memento<TransactionResult> result)
+        {
+            try {
+                ClientInfo clientInfo = myTrnToClientMap.get(myTransactionID);
+                if (clientInfo != null) {
+                
+                    myEventBus.publish(myDatabase.getStatistics());
+                    TLongSet toBeProcessedTransactions = 
+                        Registry.freeDependentTransactionsOn(myTransactionID);
+                    if (!toBeProcessedTransactions.isEmpty()) {
+                        myExecutor.submit(new ScheduleTransactionTask(
+                            toBeProcessedTransactions));
+                    }
+                    
+                    Message message =
+                        result.getPhase().getResult().isCommitted() ?
+                            new DBOperationSuccessMessage(
+                                myServerID,
+                                clientInfo.getClientSequenceNumber(), 
+                                result.getPhase().getResult())
+                            : new DBOperationFailureMessage(
+                                  myServerID,
+                                  clientInfo.getClientSequenceNumber(),
+                                  "Failed to apply the transaction on db");
+    
+                    myEventBus.publish(
+                       new SendMessageEvent(
+                           Collections.singleton(clientInfo.getClientID()),
+                           message));
+                }
+            }
+            catch (EventBusException e) {
+                LOG.log(Level.SEVERE, e.getMessage(), e);
+            }
         }
     }
 
@@ -185,75 +314,45 @@ public class TransactionManager
             }
         }
     }
-
-    /**
-     * The task that's executed on completion of a <code>Transaction</code>
-     */
-    private class NotifyResultTask
-        implements FutureCallback<TransactionResult>
+    
+    private class ScheduleTransactionTask implements Runnable
     {
-        private final NodeID myClientID;
-
-        private final long mySequenceNumber;
-
+        private final TLongSet myTransactionSet;
+        
         /**
          * CTOR
          */
-        public NotifyResultTask(NodeID        clientID,
-                                DBOperation   operation,
-                                long          seqNumber)
+        public ScheduleTransactionTask(TLongSet transactionSet)
         {
             super();
-            myClientID = clientID;
-            mySequenceNumber = seqNumber;
+            myTransactionSet = transactionSet;
         }
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public void onFailure(Throwable exception)
+        public void run()
         {
-            try {
-                myEventBus.publish(
-                    new SendMessageEvent(
-                        Collections.singleton(myClientID),
-                        new DBOperationFailureMessage(
-                            myServerID,
-                            mySequenceNumber,
-                            exception.getMessage(),
-                            exception)));
-            }
-            catch (EventBusException e) {
-                LOG.log(Level.SEVERE, e.getMessage(), e);
-            }
-        }
+            for (long transactionID : myTransactionSet.toArray()) {
+                
+                @SuppressWarnings("unchecked")
+                Memento<Boolean> preservedTrnState = 
+                    (Memento<Boolean>) 
+                        myAwaitingCommitMap.get(Long.valueOf(transactionID));
+                
+                // We can commit the changes
+                ListenableFuture<Memento<TransactionResult>> future =
+                            myExecutor.submit(
+                               new PhasedTransactionExecutor<TransactionResult>(
+                                   preservedTrnState));
 
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void onSuccess(TransactionResult result)
-        {
-            try {
-                myEventBus.publish(myDatabase.getStatistics());
-                Message message =
-                    result.isCommitted() ?
-                        new DBOperationSuccessMessage(
-                            myServerID, mySequenceNumber, result.getResult())
-                        : new DBOperationFailureMessage(
-                              myServerID,
-                              mySequenceNumber,
-                              "Failed to apply the transaction on db");
-
-                myEventBus.publish(
-                   new SendMessageEvent(
-                       Collections.singleton(myClientID),
-                       message));
-            }
-            catch (EventBusException e) {
-                LOG.log(Level.SEVERE, e.getMessage(), e);
+                Futures.addCallback(future,
+                                    new StandardCommitCallback(
+                                        preservedTrnState
+                                              .getTransaction()
+                                              .getTransactionID()
+                                              .getIdentifier()));
             }
         }
     }
@@ -263,6 +362,10 @@ public class TransactionManager
         LogFactory.getInstance().getLogger(TransactionManager.class);
 
     private final Map<UnitID, Memento<?>> myAwaitingConsensusCommitMap;
+    
+    private final Map<Long, Memento<?>> myAwaitingCommitMap;
+    
+    private final TLongObjectMap<ClientInfo> myTrnToClientMap;
 
     private final Clock myClock;
 
@@ -295,6 +398,9 @@ public class TransactionManager
         myEventBus = eventBus;
         myWriteAheadLog = writeAheadLog;
         myAwaitingConsensusCommitMap = new ConcurrentHashMap<>();
+        myAwaitingCommitMap = new ConcurrentHashMap<>();
+        myTrnToClientMap = new TLongObjectHashMap<>();
+        
         myExecutor =
             MoreExecutors.listeningDecorator(
                 Executors.newFixedThreadPool(
@@ -317,7 +423,6 @@ public class TransactionManager
             LOG.log(Level.SEVERE, e.getMessage(), e);
             return false;
         }
-
     }
 
     /**
@@ -329,7 +434,9 @@ public class TransactionManager
                                  long sequenceNumber)
     {
         TransactionID id = new TransactionID(myIdAssigner.getTransactionID());
-
+        ClientInfo clientInfo = new ClientInfo(clientID, sequenceNumber);
+        myTrnToClientMap.put(id.getIdentifier(), clientInfo);
+        
         AbstractTransaction transaction =
             operation instanceof Mutation ?
                 new WriteTransaction(
@@ -337,13 +444,16 @@ public class TransactionManager
                 : new ReadTransaction(
                     id, myDatabase, myClock, (Query) operation);
 
-        ListenableFuture<TransactionResult> future =
-            myExecutor.submit(new TransactionExecutor(transaction,
-                                                      myWriteAheadLog));
-        Futures.addCallback(future,
-                            new NotifyResultTask(clientID,
-                                                 operation,
-                                                 sequenceNumber));
+        ListenableFuture<Memento<Boolean>> future =
+            myExecutor.submit(
+               new PhasedTransactionExecutor<Boolean>(
+                   transaction,
+                   myWriteAheadLog,
+                   new PhasedTransactionExecutor.ExecutionPhase(transaction)));
+
+        Futures.addCallback(future, 
+                            new StandardExecutionCallback(
+                                id.getIdentifier()));
     }
 
     /**
@@ -419,8 +529,11 @@ public class TransactionManager
                           new PhasedTransactionExecutor<TransactionResult>(
                               memento));
 
+                   // TODO Fix this, we are assuming client will take care
+                   // of merging the commits.
                    Futures.addCallback(future,
-                                       new CommitPhaseCallBack(pne));
+                                       new StandardCommitCallback(
+                                           id.getIdentifier()));
                }
            }
            else {
