@@ -100,6 +100,36 @@ public final class Registry
     }
     
     /**
+     * A helper method to add dependency between the given transaction to
+     * all other transactions.
+     */
+    public static void addDependencyToAll(long to)
+    {
+        try (CloseableRWLock l = ourLock.openWriteLock()) {
+            // We are repeating thecode here but that's ok.
+            for (long from : ourStateMap.keys()) {
+                TLongSet dependentTransactions = 
+                    ourDependenetTransactions.get(from);
+                if (dependentTransactions == null) {
+                    dependentTransactions = new TLongHashSet();
+                    ourDependenetTransactions.putIfAbsent(from, 
+                                                          dependentTransactions);
+                }
+                dependentTransactions.add(to);
+                
+                TLongSet dependeningTransactions = 
+                    ourDependingTransactions.get(from);
+                if (dependeningTransactions == null) {
+                    dependeningTransactions = new TLongHashSet();
+                    ourDependingTransactions.putIfAbsent(to, 
+                                                         dependeningTransactions);
+                }
+                dependeningTransactions.add(from);
+            }
+        }
+    }
+    
+    /**
      * A helper method to update dependency graphs when a transaction is 
      * done. 
      */

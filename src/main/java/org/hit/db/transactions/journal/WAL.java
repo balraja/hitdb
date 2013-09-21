@@ -35,7 +35,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.db.model.Mutation;
-import org.hit.db.transactions.TransactionID;
 import org.hit.db.transactions.WriteTransaction;
 import org.hit.util.LogFactory;
 
@@ -59,23 +58,23 @@ public class WAL
     {
         private Mutation myMutation;
 
-        private TransactionID myTransactionID;
+        private long myTransactionId;
 
         /**
          * CTOR
          */
         public WALRecord()
         {
-            this(null, null);
+            this(Long.MIN_VALUE, null);
         }
 
         /**
          * CTOR
          */
-        public WALRecord(TransactionID transactionID, Mutation mutation)
+        public WALRecord(long transactionID, Mutation mutation)
         {
             super();
-            myTransactionID = transactionID;
+            myTransactionId = transactionID;
             myMutation = mutation;
         }
 
@@ -86,7 +85,7 @@ public class WAL
         public void readExternal(ObjectInput in)
             throws IOException, ClassNotFoundException
         {
-            myTransactionID = (TransactionID) in.readObject();
+            myTransactionId = in.readLong();
             myMutation = (Mutation) in.readObject();
         }
 
@@ -96,7 +95,7 @@ public class WAL
         @Override
         public void writeExternal(ObjectOutput out) throws IOException
         {
-            out.writeObject(myTransactionID);
+            out.writeLong(myTransactionId);
             out.writeObject(myMutation);
         }
     }

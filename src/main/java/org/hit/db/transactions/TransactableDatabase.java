@@ -43,4 +43,30 @@ public interface TransactableDatabase
      * Generates the statistics for database.
      */
     public DBStatEvent getStatistics();
+    
+    /**
+     * Locks the database. By locking the database a transaction will 
+     * wait for all other transactions to complete, and once locked 
+     * will not allow any other transaction till the transaction
+     * that locked the database is done.
+     * 
+     * @return True, if we can lock the db successfully, false otherwise.
+     */
+    public boolean lock(long transactionID);
+    
+    /**
+     * Unlocks the database to allow other transactions to continue
+     * their work.
+     * 
+     * @return True, if we can unlock the db successfully, false otherwise.
+     */
+    public boolean unlock(long transactionID);
+    
+    /**
+     * Returns true if the database can process a transaction, false 
+     * otherwise. Database will not allow transactions to execute
+     * if it has been not locked by a transaction. Else it will allow
+     * only that transaction that locked the database to continue.
+     */
+    public boolean canProcess(long transactionID);
 }

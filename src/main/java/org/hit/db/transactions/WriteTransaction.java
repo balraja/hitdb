@@ -37,7 +37,7 @@ public class WriteTransaction extends AbstractTransaction
     /**
      * CTOR
      */
-    public WriteTransaction(TransactionID transactionId,
+    public WriteTransaction(long transactionId,
                             TransactableDatabase database,
                             Clock clock,
                             Mutation mutation)
@@ -73,7 +73,7 @@ public class WriteTransaction extends AbstractTransaction
         WriteTransactionValidator wtv =
             new WriteTransactionValidator(adaptor.getDatabase(),
                                           getEndTime(),
-                                          getTransactionID().getIdentifier());
+                                          getTransactionID());
         return adaptor.validate(wtv);
     }
 

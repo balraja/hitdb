@@ -32,7 +32,7 @@ import org.hit.consensus.paxos.PaxosProposal;
 import org.hit.db.model.DBOperation;
 
 /**
- * Defines the contract for a {@link PaxosProposal} to be used for acheiving 
+ * Defines the contract for a {@link PaxosProposal} to be used for achieving 
  * consensus among multitude of nodes for a transaction commit.
  * 
  * @author Balraja Subbiah

@@ -39,7 +39,7 @@ public class ReadTransaction extends AbstractTransaction
     /**
      * CTOR
      */
-    public ReadTransaction(TransactionID transactionId,
+    public ReadTransaction(long transactionId,
                            TransactableDatabase database,
                            Clock clock,
                            Query query)
@@ -76,7 +76,7 @@ public class ReadTransaction extends AbstractTransaction
         ReadTransactionValidator validator =
             new ReadTransactionValidator(adaptor.getDatabase(),
                                          getEndTime(),
-                                         getTransactionID().getIdentifier());
+                                         getTransactionID());
         return adaptor.validate(validator);
     }
 

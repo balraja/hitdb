@@ -27,7 +27,7 @@ package org.hit.db.transactions;
  */
 public class TransactionResult
 {
-    private final TransactionID myTransactionID;
+    private final long myTransactionID;
     
     private final boolean myCommitted;
     
@@ -37,7 +37,7 @@ public class TransactionResult
     /**
      * CTOR
      */
-    public TransactionResult(TransactionID transactionID, boolean committed)
+    public TransactionResult(long transactionID, boolean committed)
     {
         this(transactionID, committed, null);
     }
@@ -45,7 +45,7 @@ public class TransactionResult
     /**
      * CTOR
      */
-    public TransactionResult(TransactionID transactionID,
+    public TransactionResult(long transactionID,
                              boolean committed,
                              Object result)
     {
@@ -66,7 +66,7 @@ public class TransactionResult
     /**
      * Returns the value of transactionID
      */
-    public TransactionID getTransactionID()
+    public long getTransactionID()
     {
         return myTransactionID;
     }

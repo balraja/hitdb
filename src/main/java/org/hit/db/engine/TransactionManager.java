@@ -24,10 +24,13 @@ import gnu.trove.map.TLongObjectMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
 import gnu.trove.set.TLongSet;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,6 +39,8 @@ import org.hit.actors.EventBus;
 import org.hit.actors.EventBusException;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.concurrent.UnboundedLocklessQueue;
+import org.hit.concurrent.UnboundedLocklessQueue.DataException;
 import org.hit.consensus.UnitID;
 import org.hit.db.model.DBOperation;
 import org.hit.db.model.Mutation;
@@ -48,7 +53,7 @@ import org.hit.db.transactions.PhasedTransactionExecutor;
 import org.hit.db.transactions.ReadTransaction;
 import org.hit.db.transactions.Registry;
 import org.hit.db.transactions.TransactableDatabase;
-import org.hit.db.transactions.TransactionID;
+import org.hit.db.transactions.Transaction;
 import org.hit.db.transactions.TransactionResult;
 import org.hit.db.transactions.WriteTransaction;
 import org.hit.db.transactions.journal.WAL;
@@ -111,6 +116,52 @@ public class TransactionManager
         public long getClientSequenceNumber()
         {
             return myClientSequenceNumber;
+        }
+    }
+    
+    private static class DistributedTrnInfo
+    {
+        private final AbstractTransaction myTransaction;
+        
+        private final UnitID  myConsensusID;
+        
+        private final ProposalNotificationEvent myPne;
+
+        /**
+         * CTOR
+         */
+        public DistributedTrnInfo(AbstractTransaction transaction,
+                                  UnitID consensusID,
+                                  ProposalNotificationEvent pne)
+        {
+            super();
+            myTransaction = transaction;
+            myConsensusID = consensusID;
+            myPne = pne;
+        }
+
+        /**
+         * Returns the value of transaction
+         */
+        public AbstractTransaction getTransaction()
+        {
+            return myTransaction;
+        }
+
+        /**
+         * Returns the value of consensusID
+         */
+        public UnitID getConsensusID()
+        {
+            return myConsensusID;
+        }
+
+        /**
+         * Returns the value of pne
+         */
+        public ProposalNotificationEvent getPne()
+        {
+            return myPne;
         }
     }
     
@@ -190,6 +241,20 @@ public class TransactionManager
             super();
             myTransactionID = transactionID;
         }
+        
+        /**
+         * Schedules the next set of transactions which are dependent
+         * on this transaction.
+         */
+        private void scheduleNextTransactions()
+        {
+            TLongSet toBeProcessedTransactions = 
+                Registry.freeDependentTransactionsOn(myTransactionID);
+            if (!toBeProcessedTransactions.isEmpty()) {
+                myExecutor.submit(new ScheduleTransactionCommitTask(
+                    toBeProcessedTransactions));
+            }
+        }
 
         /**
          * {@inheritDoc}
@@ -214,6 +279,8 @@ public class TransactionManager
                     LOG.log(Level.SEVERE, e.getMessage(), e);
                 }
             }
+            // XXX Abort all transactions that is dependent 
+            // on this transaction.
         }
     
         /**
@@ -227,19 +294,12 @@ public class TransactionManager
                 if (clientInfo != null) {
                 
                     myEventBus.publish(myDatabase.getStatistics());
-                    TLongSet toBeProcessedTransactions = 
-                        Registry.freeDependentTransactionsOn(myTransactionID);
-                    if (!toBeProcessedTransactions.isEmpty()) {
-                        myExecutor.submit(new ScheduleTransactionTask(
-                            toBeProcessedTransactions));
-                    }
-                    
                     Message message =
                         result.getPhase().getResult().isCommitted() ?
                             new DBOperationSuccessMessage(
                                 myServerID,
                                 clientInfo.getClientSequenceNumber(), 
-                                result.getPhase().getResult())
+                                result.getPhase().getResult().getResult())
                             : new DBOperationFailureMessage(
                                   myServerID,
                                   clientInfo.getClientSequenceNumber(),
@@ -254,6 +314,64 @@ public class TransactionManager
             catch (EventBusException e) {
                 LOG.log(Level.SEVERE, e.getMessage(), e);
             }
+            scheduleNextTransactions();
+        }
+    }
+    
+    private class CommitPhaseCallBack
+        extends StandardCommitCallback
+    {
+        private final ProposalNotificationEvent myNotification;
+
+        /**
+         * CTOR
+         */
+        public CommitPhaseCallBack(long transactionID,
+                                   ProposalNotificationEvent notification)
+        {
+            super(transactionID);
+            myNotification = notification;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onFailure(Throwable exception)
+        {
+            try {
+                myEventBus.publish(new ProposalNotificationResponse(
+                                       myNotification,
+                                       false));
+                super.onFailure(exception);
+            }
+            catch (EventBusException e) {
+                LOG.log(Level.SEVERE, e.getMessage(), e);
+            }
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onSuccess(Memento<TransactionResult> memento)
+        {
+            super.onSuccess(memento);
+            long id = memento.getTransaction().getTransactionID();
+            myDistributedTrnInfoMap.remove(id);
+            myDatabase.unlock(id);
+            if (!myDistributedTrnInfoMap.isEmpty()) {
+                // XXX shud this be the only way for scheduling 
+                // waiting distributed transactions
+                long nextID = myDistributedTrnInfoMap.keys()[0];
+                if (myDatabase.lock(nextID)) {
+                    Registry.addDependencyToAll(nextID);
+                }
+            }
+            List<AbstractTransaction> queued = 
+                new ArrayList<>(myQueuedTransactions);
+            myQueuedTransactions.clear();
+            myExecutor.submit(new ScheduleTransactionExecutionTask(queued));
         }
     }
 
@@ -315,14 +433,51 @@ public class TransactionManager
         }
     }
     
-    private class ScheduleTransactionTask implements Runnable
+    private class ScheduleTransactionExecutionTask implements Runnable
+    {
+        private final List<AbstractTransaction> myList;
+        
+        /**
+         * CTOR
+         */
+        public ScheduleTransactionExecutionTask(List<AbstractTransaction> list)
+        {
+            super();
+            myList = list;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void run()
+        {
+            for (AbstractTransaction transaction : myList) {
+                ListenableFuture<Memento<Boolean>> future =
+                        myExecutor.submit(
+                           new PhasedTransactionExecutor<Boolean>(
+                               transaction,
+                               myWriteAheadLog,
+                               new PhasedTransactionExecutor.ExecutionPhase(
+                                   transaction)));
+            
+                Futures.addCallback(future, 
+                                    new StandardExecutionCallback(
+                                        transaction.getTransactionID()));
+                    
+            }
+        }
+    }
+
+    
+    private class ScheduleTransactionCommitTask implements Runnable
     {
         private final TLongSet myTransactionSet;
         
         /**
          * CTOR
          */
-        public ScheduleTransactionTask(TLongSet transactionSet)
+        public ScheduleTransactionCommitTask(TLongSet transactionSet)
         {
             super();
             myTransactionSet = transactionSet;
@@ -341,18 +496,42 @@ public class TransactionManager
                     (Memento<Boolean>) 
                         myAwaitingCommitMap.get(Long.valueOf(transactionID));
                 
-                // We can commit the changes
-                ListenableFuture<Memento<TransactionResult>> future =
+                if (preservedTrnState != null) {
+                    // We can commit the changes
+                    ListenableFuture<Memento<TransactionResult>> future =
+                                myExecutor.submit(
+                                   new PhasedTransactionExecutor<TransactionResult>(
+                                       preservedTrnState));
+    
+                    Futures.addCallback(future,
+                                        new StandardCommitCallback(
+                                            preservedTrnState
+                                                  .getTransaction()
+                                                  .getTransactionID()));
+                }
+                else {
+                    DistributedTrnInfo info = 
+                        myDistributedTrnInfoMap.get(transactionID);
+                    
+                    if (myDatabase.canProcess(transactionID))
+                    {
+                        // Now schedule a distributed transaction to 
+                        // execute.
+                        ListenableFuture<Memento<Boolean>> future =
                             myExecutor.submit(
-                               new PhasedTransactionExecutor<TransactionResult>(
-                                   preservedTrnState));
-
-                Futures.addCallback(future,
-                                    new StandardCommitCallback(
-                                        preservedTrnState
-                                              .getTransaction()
-                                              .getTransactionID()
-                                              .getIdentifier()));
+                               new PhasedTransactionExecutor<Boolean>(
+                                   info.getTransaction(),
+                                   myWriteAheadLog,
+                                   new PhasedTransactionExecutor.ExecutionPhase(
+                                       info.getTransaction())));
+                            
+                        Futures.addCallback(future,
+                                            new ExecutionPhaseCallBack(
+                                                info.getConsensusID(), 
+                                                info.getPne()));
+                            
+                    }
+                }
             }
         }
     }
@@ -380,6 +559,10 @@ public class TransactionManager
     private final NodeID myServerID;
 
     private final WAL    myWriteAheadLog;
+    
+    private final List<AbstractTransaction> myQueuedTransactions; 
+    
+    private final TLongObjectMap<DistributedTrnInfo> myDistributedTrnInfoMap;
 
     /**
      * CTOR
@@ -400,7 +583,8 @@ public class TransactionManager
         myAwaitingConsensusCommitMap = new ConcurrentHashMap<>();
         myAwaitingCommitMap = new ConcurrentHashMap<>();
         myTrnToClientMap = new TLongObjectHashMap<>();
-        
+        myQueuedTransactions = new CopyOnWriteArrayList<>();
+        myDistributedTrnInfoMap = new TLongObjectHashMap<>();
         myExecutor =
             MoreExecutors.listeningDecorator(
                 Executors.newFixedThreadPool(
@@ -433,9 +617,9 @@ public class TransactionManager
                                  DBOperation operation,
                                  long sequenceNumber)
     {
-        TransactionID id = new TransactionID(myIdAssigner.getTransactionID());
+        long id = myIdAssigner.getTransactionID();
         ClientInfo clientInfo = new ClientInfo(clientID, sequenceNumber);
-        myTrnToClientMap.put(id.getIdentifier(), clientInfo);
+        myTrnToClientMap.put(id, clientInfo);
         
         AbstractTransaction transaction =
             operation instanceof Mutation ?
@@ -443,17 +627,22 @@ public class TransactionManager
                     id, myDatabase, myClock, (Mutation) operation)
                 : new ReadTransaction(
                     id, myDatabase, myClock, (Query) operation);
+        
+        if (myDatabase.canProcess(id)) {
 
-        ListenableFuture<Memento<Boolean>> future =
-            myExecutor.submit(
-               new PhasedTransactionExecutor<Boolean>(
-                   transaction,
-                   myWriteAheadLog,
-                   new PhasedTransactionExecutor.ExecutionPhase(transaction)));
-
-        Futures.addCallback(future, 
-                            new StandardExecutionCallback(
-                                id.getIdentifier()));
+            ListenableFuture<Memento<Boolean>> future =
+                myExecutor.submit(
+                   new PhasedTransactionExecutor<Boolean>(
+                       transaction,
+                       myWriteAheadLog,
+                       new PhasedTransactionExecutor.ExecutionPhase(transaction)));
+    
+            Futures.addCallback(future, 
+                                new StandardExecutionCallback(id));
+        }
+        else {
+            myQueuedTransactions.add(transaction);
+        }
     }
 
     /**
@@ -463,18 +652,22 @@ public class TransactionManager
     public void processOperation(NodeID                   clientID,
                                  Map<NodeID, DBOperation> operations)
     {
+        // XXX Send proper seq number from the client side and create
+        // appropriate ClientInfo
+        
         Set<NodeID> acceptors =
             Sets.difference(operations.keySet(),
                             Collections.singleton(myServerID));
         UnitID unitID = new DistributedTrnConsensusID(clientID);
         try {
-            myEventBus.publish(new CreateConsensusLeaderEvent(unitID, acceptors));
+            myEventBus.publish(new CreateConsensusLeaderEvent(unitID, 
+                                                              acceptors));
         }
         catch (EventBusException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
         }
 
-        TransactionID id = new TransactionID(myIdAssigner.getTransactionID());
+        long id = myIdAssigner.getTransactionID();
         DBOperation operation = operations.get(myServerID);
 
         AbstractTransaction transaction =
@@ -483,16 +676,16 @@ public class TransactionManager
                     id, myDatabase, myClock, (Mutation) operation)
                 : new ReadTransaction(
                     id, myDatabase, myClock, (Query) operation);
-
-        ListenableFuture<Memento<Boolean>> future =
-            myExecutor.submit(
-               new PhasedTransactionExecutor<Boolean>(
-                   transaction,
-                   myWriteAheadLog,
-                   new PhasedTransactionExecutor.ExecutionPhase(transaction)));
-
-        Futures.addCallback(future,
-                            new ExecutionPhaseCallBack(unitID, null));
+        
+        myDistributedTrnInfoMap.put(id,
+                                    new DistributedTrnInfo(transaction, 
+                                                           unitID,
+                                                           null));
+        if (myDatabase.lock(id)) {
+            // The new distributed transaction will be 
+            // dependent on all other transactions to complete.
+            Registry.addDependencyToAll(id);
+        }
     }
 
     /**
@@ -503,20 +696,11 @@ public class TransactionManager
     {
         DistributedTrnProposal distributedTrnProposal =
             (DistributedTrnProposal) pne.getProposal();
-
-        TransactionID id = new TransactionID(myIdAssigner.getTransactionID());
         DBOperation operation =
             distributedTrnProposal.getNodeToDBOperationMap()
                                   .get(myServerID);
 
         if (operation != null) {
-
-            AbstractTransaction transaction =
-                operation instanceof Mutation ?
-                    new WriteTransaction(
-                        id, myDatabase, myClock, (Mutation) operation)
-                    : new ReadTransaction(
-                        id, myDatabase, myClock, (Query) operation);
 
            if (pne.isCommitNotification()) {
                Memento<?> memento =
@@ -532,23 +716,33 @@ public class TransactionManager
                    // TODO Fix this, we are assuming client will take care
                    // of merging the commits.
                    Futures.addCallback(future,
-                                       new StandardCommitCallback(
-                                           id.getIdentifier()));
+                                       new CommitPhaseCallBack(
+                                           memento.getTransaction()
+                                                  .getTransactionID(),
+                                           pne));
                }
            }
            else {
-                ListenableFuture<Memento<Boolean>> future =
-                    myExecutor.submit(
-                       new PhasedTransactionExecutor<Boolean>(
-                           transaction,
-                           myWriteAheadLog,
-                           new PhasedTransactionExecutor.ExecutionPhase(
-                               transaction)));
 
-                Futures.addCallback(future,
-                                    new ExecutionPhaseCallBack(
-                                        distributedTrnProposal.getUnitID(),
-                                        pne));
+               long id = myIdAssigner.getTransactionID();
+               AbstractTransaction transaction =
+                   operation instanceof Mutation ?
+                       new WriteTransaction(
+                           id, myDatabase, myClock, (Mutation) operation)
+                       : new ReadTransaction(
+                           id, myDatabase, myClock, (Query) operation);
+
+               myDistributedTrnInfoMap.put(id,
+                                           new DistributedTrnInfo(
+                                               transaction, 
+                                               distributedTrnProposal.getUnitID(),
+                                               pne));
+               
+               if (myDatabase.lock(id)) {
+                   // The new distributed transaction will be 
+                   // dependent on all other transactions to complete.
+                   Registry.addDependencyToAll(id);
+               }
            }
         }
     }

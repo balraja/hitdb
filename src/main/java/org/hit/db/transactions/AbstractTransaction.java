@@ -41,20 +41,20 @@ public abstract class AbstractTransaction implements Transaction
     private long myStartTime;
 
     private TransactionState myState;
-
-    private final TransactionID myTransactionID;
+    
+    private long myTransactionID;
 
     /**
      * CTOR
      */
-    public AbstractTransaction(TransactionID transactionId,
+    public AbstractTransaction(long transactionId,
                                TransactableDatabase database,
                                Clock clock)
     {
         myState = TransactionState.NOT_STARTED;
         myTransactionID = transactionId;
         myAdaptedDatabase =
-            new DatabaseAdaptor(database, myTransactionID.getIdentifier());
+            new DatabaseAdaptor(database, myTransactionID);
         myClock = clock;
     }
 
@@ -64,7 +64,7 @@ public abstract class AbstractTransaction implements Transaction
     @Override
     public void abort()
     {
-        myState = TransactionState.ABORTED;
+        updateState(TransactionState.ABORTED);
     }
 
     /**
@@ -74,7 +74,7 @@ public abstract class AbstractTransaction implements Transaction
     public void commit()
     {
         doCommit(myAdaptedDatabase);
-        myState = TransactionState.COMMITTED;
+        updateState(TransactionState.COMMITTED);
     }
 
     /**
@@ -101,9 +101,7 @@ public abstract class AbstractTransaction implements Transaction
     @Override
     public void execute()
     {
-        myState = TransactionState.ACTIVE;
-        Registry.updateTransactionState(myTransactionID.getIdentifier(), 
-                                        myState);
+        updateState(TransactionState.ACTIVE);
         doExecute(myAdaptedDatabase);
     }
 
@@ -137,7 +135,7 @@ public abstract class AbstractTransaction implements Transaction
     /**
      * Returns the value of transactionID
      */
-    public TransactionID getTransactionID()
+    public long getTransactionID()
     {
         return myTransactionID;
     }
@@ -159,9 +157,13 @@ public abstract class AbstractTransaction implements Transaction
     public boolean validate()
     {
         myEndTime = myClock.currentTime();
-        myState = TransactionState.VALIDATE;
-        Registry.updateTransactionState(myTransactionID.getIdentifier(), 
-                                        myState);
+        updateState(TransactionState.VALIDATE);
         return doValidation(myAdaptedDatabase);
+    }
+    
+    private void updateState(TransactionState state)
+    {
+        myState = state;
+        Registry.updateTransactionState(myTransactionID, myState);
     }
 }

@@ -20,11 +20,9 @@
 
 package org.hit.db.transactions.impl;
 
-import java.util.Collection;
 import java.util.List;
 
 import org.hit.db.model.Persistable;
-import org.hit.db.model.Predicate;
 import org.hit.db.model.Schema;
 import org.hit.db.transactions.Registry;
 import org.hit.db.transactions.Transactable;
@@ -116,7 +114,7 @@ public abstract class AbstractTransactableTable<K extends Comparable<K>,
                 }
                 else if (validationResult.isSpeculativelyValid()) {
                     Registry.addDependency(validationResult.getTransactionId(),
-                                          transactionID);
+                                           transactionID);
                     return transactable;
                 }
             }

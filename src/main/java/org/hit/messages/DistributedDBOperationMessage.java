@@ -33,7 +33,7 @@ import org.hit.db.model.DBOperation;
  * Defines the contract for the Message being sent to the nodes for 
  * performing operations across multitude of nodes. This message is primarily
  * sent to the leader which in turns coordinates the execution across all 
- * transactions.
+ * other nodes.
  * 
  * @author Balraja Subbiah
  */

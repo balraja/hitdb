@@ -22,6 +22,8 @@ package org.hit.db.transactions.impl;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Schema;
@@ -38,9 +40,13 @@ import org.hit.key.HashKeyspace;
  */
 public class TransactableHitDatabase implements TransactableDatabase
 {
+    private static final long UNLOCKED_VALUE = Long.MIN_VALUE;
+    
     private final Map<String, TransactableTable<?, ?>> myDatabaseTables;
 
     private final Map<String, Schema> myTable2Schema;
+    
+    private final AtomicLong myLock;
 
     /**
      * CTOR
@@ -49,6 +55,7 @@ public class TransactableHitDatabase implements TransactableDatabase
     {
         myDatabaseTables = new HashMap<>();
         myTable2Schema = new HashMap<>();
+        myLock = new AtomicLong(UNLOCKED_VALUE);
     }
 
     /**
@@ -110,6 +117,34 @@ public class TransactableHitDatabase implements TransactableDatabase
             }
         }
         return stat;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean lock(long transactionID)
+    {
+        return myLock.compareAndSet(UNLOCKED_VALUE, transactionID);   
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean unlock(long transactionID)
+    {
+        return myLock.compareAndSet(transactionID, UNLOCKED_VALUE);      
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean canProcess(long transactionID)
+    {
+        return (   myLock.get() == UNLOCKED_VALUE
+                || myLock.get() == transactionID);
     }
 }
 

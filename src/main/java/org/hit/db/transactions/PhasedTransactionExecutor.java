@@ -22,7 +22,6 @@ package org.hit.db.transactions;
 
 import java.util.concurrent.Callable;
 
-import org.hit.communicator.NodeID;
 import org.hit.db.transactions.journal.WAL;
 
 /**

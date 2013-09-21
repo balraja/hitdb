@@ -20,18 +20,14 @@
 
 package org.hit.db.transactions.impl;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.TreeMap;
 
 import org.hit.concurrent.LocklessSkipList;
-import org.hit.concurrent.LocklessSkipList.SkipListIterator;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
 import org.hit.db.model.Schema;
-import org.hit.db.transactions.Registry;
 import org.hit.db.transactions.Transactable;
 import org.hit.db.transactions.ValidationResult;
 import org.hit.util.Pair;
