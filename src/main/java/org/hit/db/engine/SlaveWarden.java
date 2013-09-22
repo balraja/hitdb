@@ -29,12 +29,10 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
-import org.hit.actors.EventBusException;
 import org.hit.communicator.NodeID;
 import org.hit.event.DBStatEvent;
 import org.hit.event.Event;
@@ -49,12 +47,12 @@ import org.hit.util.NamedThreadFactory;
 import com.google.inject.Inject;
 
 /**
- * Defines the <code>NodeCoordinator</code> that acts as client to the
- * <code>NodeMonitor</code> running on the master.
+ * Defines the <code>Coordinator</code> that acts as client to the
+ * <code>Monitor</code> running on the master.
  *
  * @author Balraja Subbiah
  */
-public class LocalWarden extends AbstractWarden
+public class SlaveWarden extends AbstractWarden
 {
     private class ApplyDBStatsTask implements Runnable
     {
@@ -86,22 +84,17 @@ public class LocalWarden extends AbstractWarden
         @Override
         public void run()
         {
-            try {
-                if (myMaster != null) {
-                    getEventBus().publish(
-                        new SendMessageEvent(
-                            Collections.singletonList(myMaster),
-                            new Heartbeat(myTableRowCountMap)));
-                }
-            }
-            catch (EventBusException e) {
-                LOG.log(Level.SEVERE, e.getMessage(), e);
+            if (myMaster != null) {
+                getEventBus().publish(
+                    new SendMessageEvent(
+                        Collections.singletonList(myMaster),
+                        new Heartbeat(myTableRowCountMap)));
             }
         }
     }
 
     private static final Logger LOG =
-        LogFactory.getInstance().getLogger(LocalWarden.class);
+        LogFactory.getInstance().getLogger(SlaveWarden.class);
 
     private NodeID myMaster;
 
@@ -115,7 +108,7 @@ public class LocalWarden extends AbstractWarden
      * CTOR
      */
     @Inject
-    public LocalWarden(TransactionManager transactionManager,
+    public SlaveWarden(TransactionManager transactionManager,
                        EngineConfig       engineConfig,
                        EventBus           eventBus)
     {

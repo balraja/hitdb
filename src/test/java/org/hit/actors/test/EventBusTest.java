@@ -25,7 +25,6 @@ import static org.junit.Assert.assertTrue;
 import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
-import org.hit.actors.EventBusException;
 import org.hit.event.Event;
 import org.junit.Test;
 
@@ -58,22 +57,17 @@ public class EventBusTest
 
             if (myActor instanceof EventProvider) {
                 try {
+                    Thread.sleep(200);
+                }
+                catch (InterruptedException e) {
+                }
+                for (int i = 0; i < 10; i++) {
+                    myActor.getEventBus().publish(new DummyEvent());
                     try {
                         Thread.sleep(200);
                     }
                     catch (InterruptedException e) {
                     }
-                    for (int i = 0; i < 10; i++) {
-                        myActor.getEventBus().publish(new DummyEvent());
-                        try {
-                            Thread.sleep(200);
-                        }
-                        catch (InterruptedException e) {
-                        }
-                    }
-                }
-                catch (EventBusException e) {
-                    e.printStackTrace();
                 }
             }
             else {

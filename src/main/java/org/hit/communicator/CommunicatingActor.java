@@ -26,7 +26,6 @@ import java.util.logging.Logger;
 import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
-import org.hit.actors.EventBusException;
 import org.hit.event.Event;
 import org.hit.event.SendMessageEvent;
 import org.hit.util.LogFactory;
@@ -59,18 +58,13 @@ public class CommunicatingActor extends Actor
             @Override
             public void handle(Message message)
             {
-                try {
-                    if (LOG.isLoggable(Level.FINE)) {
-                        LOG.fine("Received " + message + " from "
-                                 + message.getNodeId());
-                    }
-                    getEventBus().publish(message);
-                    if (LOG.isLoggable(Level.FINE)) {
-                        LOG.fine("Returned from publishing the message");
-                    }
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("Received " + message + " from "
+                             + message.getNodeId());
                 }
-                catch (EventBusException e) {
-                    throw new RuntimeException(e);
+                getEventBus().publish(message);
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("Returned from publishing the message");
                 }
             }
         });;

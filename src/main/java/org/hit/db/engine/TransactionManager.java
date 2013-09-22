@@ -36,7 +36,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.actors.EventBus;
-import org.hit.actors.EventBusException;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
 import org.hit.concurrent.UnboundedLocklessQueue;
@@ -186,20 +185,15 @@ public class TransactionManager
         {
             ClientInfo clientInfo = myTrnToClientMap.get(myTransactionID);
             if (clientInfo != null) {
-                try {
-                    myEventBus.publish(
-                                       new SendMessageEvent(
-                                           Collections.singleton(
-                                               clientInfo.getClientID()),
-                                           new DBOperationFailureMessage(
-                                               myServerID,
-                                               clientInfo.getClientSequenceNumber(),
-                                               exception.getMessage(),
-                                               exception)));
-                }
-                catch (EventBusException e) {
-                    LOG.log(Level.SEVERE, e.getMessage(), e);
-                }
+                myEventBus.publish(
+                   new SendMessageEvent(
+                       Collections.singleton(
+                           clientInfo.getClientID()),
+                       new DBOperationFailureMessage(
+                           myServerID,
+                           clientInfo.getClientSequenceNumber(),
+                           exception.getMessage(),
+                           exception)));
             }
         }
 
@@ -264,20 +258,15 @@ public class TransactionManager
         {
             ClientInfo clientInfo = myTrnToClientMap.get(myTransactionID);
             if (clientInfo != null) {
-                try {
                     myEventBus.publish(
-                                       new SendMessageEvent(
-                                           Collections.singleton(
-                                               clientInfo.getClientID()),
-                                           new DBOperationFailureMessage(
-                                               myServerID,
-                                               clientInfo.getClientSequenceNumber(),
-                                               exception.getMessage(),
-                                               exception)));
-                }
-                catch (EventBusException e) {
-                    LOG.log(Level.SEVERE, e.getMessage(), e);
-                }
+                       new SendMessageEvent(
+                           Collections.singleton(
+                               clientInfo.getClientID()),
+                           new DBOperationFailureMessage(
+                               myServerID,
+                               clientInfo.getClientSequenceNumber(),
+                               exception.getMessage(),
+                               exception)));
             }
             // XXX Abort all transactions that is dependent 
             // on this transaction.
@@ -289,30 +278,24 @@ public class TransactionManager
         @Override
         public void onSuccess(Memento<TransactionResult> result)
         {
-            try {
-                ClientInfo clientInfo = myTrnToClientMap.get(myTransactionID);
-                if (clientInfo != null) {
-                
-                    myEventBus.publish(myDatabase.getStatistics());
-                    Message message =
-                        result.getPhase().getResult().isCommitted() ?
-                            new DBOperationSuccessMessage(
-                                myServerID,
-                                clientInfo.getClientSequenceNumber(), 
-                                result.getPhase().getResult().getResult())
-                            : new DBOperationFailureMessage(
-                                  myServerID,
-                                  clientInfo.getClientSequenceNumber(),
-                                  "Failed to apply the transaction on db");
-    
-                    myEventBus.publish(
-                       new SendMessageEvent(
-                           Collections.singleton(clientInfo.getClientID()),
-                           message));
-                }
-            }
-            catch (EventBusException e) {
-                LOG.log(Level.SEVERE, e.getMessage(), e);
+            ClientInfo clientInfo = myTrnToClientMap.get(myTransactionID);
+            if (clientInfo != null) {
+                myEventBus.publish(myDatabase.getStatistics());
+                Message message =
+                    result.getPhase().getResult().isCommitted() ?
+                        new DBOperationSuccessMessage(
+                            myServerID,
+                            clientInfo.getClientSequenceNumber(), 
+                            result.getPhase().getResult().getResult())
+                        : new DBOperationFailureMessage(
+                              myServerID,
+                              clientInfo.getClientSequenceNumber(),
+                              "Failed to apply the transaction on db");
+
+                myEventBus.publish(
+                   new SendMessageEvent(
+                       Collections.singleton(clientInfo.getClientID()),
+                       message));
             }
             scheduleNextTransactions();
         }
@@ -339,15 +322,10 @@ public class TransactionManager
         @Override
         public void onFailure(Throwable exception)
         {
-            try {
-                myEventBus.publish(new ProposalNotificationResponse(
-                                       myNotification,
-                                       false));
-                super.onFailure(exception);
-            }
-            catch (EventBusException e) {
-                LOG.log(Level.SEVERE, e.getMessage(), e);
-            }
+            myEventBus.publish(new ProposalNotificationResponse(
+                                   myNotification,
+                                   false));
+            super.onFailure(exception);
         }
 
         /**
@@ -399,15 +377,10 @@ public class TransactionManager
         @Override
         public void onFailure(Throwable exception)
         {
-            try {
-                if (myNotification != null) {
-                    myEventBus.publish(
-                        new ProposalNotificationResponse(myNotification,
-                                                         false));
-                }
-            }
-            catch (EventBusException e) {
-                LOG.log(Level.SEVERE, e.getMessage(), e);
+            if (myNotification != null) {
+                myEventBus.publish(
+                    new ProposalNotificationResponse(myNotification,
+                                                     false));
             }
         }
 
@@ -420,15 +393,10 @@ public class TransactionManager
             myAwaitingConsensusCommitMap.put(myUnitID, memento);
 
             if (myNotification != null) {
-                try {
-                    myEventBus.publish(
-                        new ProposalNotificationResponse(
-                            myNotification,
-                            memento.getPhase().getResult()));
-                }
-                catch (EventBusException e) {
-                    LOG.log(Level.SEVERE, e.getMessage(), e);
-                }
+                myEventBus.publish(
+                    new ProposalNotificationResponse(
+                        myNotification,
+                        memento.getPhase().getResult()));
             }
         }
     }
@@ -659,13 +627,8 @@ public class TransactionManager
             Sets.difference(operations.keySet(),
                             Collections.singleton(myServerID));
         UnitID unitID = new DistributedTrnConsensusID(clientID);
-        try {
-            myEventBus.publish(new CreateConsensusLeaderEvent(unitID, 
-                                                              acceptors));
-        }
-        catch (EventBusException e) {
-            LOG.log(Level.SEVERE, e.getMessage(), e);
-        }
+        myEventBus.publish(new CreateConsensusLeaderEvent(unitID, 
+                                                          acceptors));
 
         long id = myIdAssigner.getTransactionID();
         DBOperation operation = operations.get(myServerID);

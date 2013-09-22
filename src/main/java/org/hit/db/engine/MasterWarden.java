@@ -29,7 +29,6 @@ import java.util.logging.Logger;
 
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
-import org.hit.actors.EventBusException;
 import org.hit.communicator.NodeID;
 import org.hit.db.model.Schema;
 import org.hit.event.DBStatEvent;
@@ -160,7 +159,7 @@ public class MasterWarden extends AbstractWarden
                                                  myAllocator.getPartitions())));
             }
         }
-        catch (IllegalAccessException | EventBusException e) {
+        catch (IllegalAccessException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
         }
     }
@@ -196,13 +195,8 @@ public class MasterWarden extends AbstractWarden
                 @Override
                 public void run()
                 {
-                    try {
-                        getEventBus().publish(
-                            myAllocator.getGossipUpdates());
-                    }
-                    catch (EventBusException e) {
-                        LOG.log(Level.SEVERE, e.getMessage(), e);
-                    }
+                    getEventBus().publish(
+                        myAllocator.getGossipUpdates());
                 }
             },
             getEngineConfig().getGossipUpdateSecs(),

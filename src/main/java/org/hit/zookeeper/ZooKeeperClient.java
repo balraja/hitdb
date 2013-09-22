@@ -36,7 +36,6 @@ import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.hit.actors.EventBus;
-import org.hit.actors.EventBusException;
 import org.hit.communicator.NodeID;
 import org.hit.communicator.nio.IPNodeID;
 import org.hit.event.MasterDownEvent;
@@ -88,12 +87,7 @@ public class ZooKeeperClient implements RegistryService
         public void process(WatchedEvent event)
         {
             if (event.getState() == KeeperState.Disconnected) {
-                 try {
-                    myEventBus.publish(new MasterDownEvent());
-                }
-                catch (EventBusException e) {
-                    LOG.log(Level.SEVERE, e.getMessage(), e);
-                }
+                myEventBus.publish(new MasterDownEvent());
             }
         }
     }

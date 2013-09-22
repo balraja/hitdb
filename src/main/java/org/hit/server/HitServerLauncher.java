@@ -31,6 +31,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.hit.db.engine.EnginePropertyConfig;
+import org.hit.di.HitModule;
 import org.hit.util.AbstractLauncher;
 
 /**
@@ -45,6 +46,8 @@ public class HitServerLauncher extends AbstractLauncher
     private static final String SERVER_LAUNCHER_FILE = "hit_db_server";
 
     private static final String TRANSACTION_LOG_DIR = "transaction_log_dir";
+    
+    private static final String SERVER_PORT = "server_port";
 
     private static final String WAL_BASE_DIR_PROPERTY = "org.hit.wal.basePath";
 
@@ -81,6 +84,12 @@ public class HitServerLauncher extends AbstractLauncher
             IS_MASTER,
             false,
             "Option to determine whether this server is marked as master");
+        
+        myServerCommandLineOptions.addOption(
+             SERVER_PORT,
+             SERVER_PORT,
+             true,
+             "Option to determine whether this server is marked as master");
 
         myServerCommandLineOptions.addOption(
              HELP,
@@ -128,6 +137,12 @@ public class HitServerLauncher extends AbstractLauncher
                 optsBuilder.append(addProperty(
                     EnginePropertyConfig.MASTER_PROPERTY,
                     "true"));
+            }
+            
+            if (cmdLine.hasOption(SERVER_PORT)) {
+                optsBuilder.append(addProperty(
+                    HitModule.HIT_COMM_PORT_PROPERTY, 
+                    cmdLine.getOptionValue(SERVER_PORT)));
             }
 
             ProcessBuilder bldr = null;

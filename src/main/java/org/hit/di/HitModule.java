@@ -45,6 +45,9 @@ import com.google.inject.name.Names;
  */
 public abstract class HitModule extends AbstractModule
 {
+    public static final String HIT_COMM_PORT_PROPERTY = 
+        "org.hit.communicator.port";
+    
     /**
      * {@inheritDoc}
      */
@@ -62,11 +65,22 @@ public abstract class HitModule extends AbstractModule
         bind(ZooKeeperClient.class).toProvider(ZookeeperClientProvider.class);
     }
 
-    protected abstract Integer getBoundPort();
+    protected Integer getBoundPort()
+    {
+        String boundPort = System.getProperty(HIT_COMM_PORT_PROPERTY);
+        return boundPort != null ? Integer.valueOf(boundPort)
+                                 : getDefaultBoundPort();
+    }
 
     @Provides
     protected NodeID provideNodeID(@Named("PreferredPort") Integer port)
     {
         return new IPNodeID(port);
     }
+
+    /**
+     * Sub classes should override this method to provide a 
+     * default value for communicator port.
+     */
+    protected abstract Integer getDefaultBoundPort();
 }

@@ -81,7 +81,7 @@ public class HitServerModule extends HitModule
      * {@inheritDoc}
      */
     @Override
-    protected Integer getBoundPort()
+    protected Integer getDefaultBoundPort()
     {
         return Integer.valueOf(10000);
     }

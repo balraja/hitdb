@@ -25,11 +25,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.actors.EventBus;
-import org.hit.actors.EventBusException;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.ConsensusLeader;
@@ -257,14 +255,9 @@ public class PaxosLeader extends ConsensusLeader
             }
             
             if (record.canInitiateCommit()) {
-                try {
-                    getEventBus().publish(
-                        new ProposalNotificationEvent(record.getProposal(), true)
-                    );
-                }
-                catch (EventBusException e) {
-                    LOG.log(Level.SEVERE, e.getMessage(), e);
-                }
+                getEventBus().publish(
+                    new ProposalNotificationEvent(record.getProposal(), true)
+                );
                 
                 sendMessage(
                     getAcceptors(),
@@ -292,32 +285,16 @@ public class PaxosLeader extends ConsensusLeader
             }
             
             if (record.isCommitted()) {
-                try {
-                    record.changeState(State.COMMITTED);
-                    getEventBus().publish(new ConsensusResponseEvent(
-                        record.getProposal(), true));
-                }
-                catch (EventBusException e) {
-                    LOG.log(Level.SEVERE,
-                            "Error when publishing commit response for "
-                                + record.getProposal(),
-                             e);
-                }
+                record.changeState(State.COMMITTED);
+                getEventBus().publish(new ConsensusResponseEvent(
+                    record.getProposal(), true));
             }
         }
     }
     
     private void sendMessage(Collection<NodeID> acceptors, Message message)
     {
-        try {
-            getEventBus().publish(
-                new SendMessageEvent(acceptors, message));
-        }
-        catch (EventBusException e) {
-            LOG.log(Level.SEVERE,
-                    "Exception when sending the message " +
-                         message.toString(),
-                    e);
-        }
+        getEventBus().publish(
+            new SendMessageEvent(acceptors, message));
     }
 }

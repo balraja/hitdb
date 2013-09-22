@@ -45,7 +45,7 @@ public class HitFacadeModule extends HitModule
      * {@inheritDoc}
      */
     @Override
-    protected Integer getBoundPort()
+    protected Integer getDefaultBoundPort()
     {
         return Integer.valueOf(16000);
     }

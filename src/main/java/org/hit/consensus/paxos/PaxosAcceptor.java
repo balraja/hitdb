@@ -27,7 +27,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.actors.EventBus;
-import org.hit.actors.EventBusException;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.ConsensusAcceptor;
@@ -76,54 +75,49 @@ public class PaxosAcceptor extends ConsensusAcceptor
     @Override
     public void handle(Message message)
     {
-        try {
-            if (message instanceof PaxosSolicitConsensusMessage) {
-                PaxosSolicitConsensusMessage pscm =
-                    (PaxosSolicitConsensusMessage) message;
-                
-                if (pscm.getRequestID() > myLastSeqAccepted) {
-                    myLastSeqAccepted = pscm.getRequestID();
-                    myProposalToSeqNumMap.put(pscm.getProposal(), 
-                                              pscm.getRequestID());
-                    getEventBus().publish(
-                        new ProposalNotificationEvent(pscm.getProposal())
-                    );
-                }
-                else {
-                    getEventBus().publish(new SendMessageEvent(
-                        Collections.singletonList(pscm.getNodeId()),
-                        new PaxosConsensusAcceptMessage(getNodeID(),
-                                                        getConsensusUnitID(),
-                                                        pscm.getProposal(),
-                                                        pscm.getRequestID(),
-                                                        false,
-                                                        myLastSeqAccepted,
-                                                        myLastProposalCommitted))); 
-                }
+        if (message instanceof PaxosSolicitConsensusMessage) {
+            PaxosSolicitConsensusMessage pscm =
+                (PaxosSolicitConsensusMessage) message;
+            
+            if (pscm.getRequestID() > myLastSeqAccepted) {
+                myLastSeqAccepted = pscm.getRequestID();
+                myProposalToSeqNumMap.put(pscm.getProposal(), 
+                                          pscm.getRequestID());
+                getEventBus().publish(
+                    new ProposalNotificationEvent(pscm.getProposal())
+                );
             }
-            else if (message instanceof PaxosCommitRequest) {
-                PaxosCommitRequest pcr =
-                    (PaxosCommitRequest) message;
-                
-                if (pcr.getSequenceID() <= myLastSeqAccepted) {
-                    myProposalToSeqNumMap.put(pcr.getProposal(), 
-                                              pcr.getSequenceID());
-                    getEventBus().publish(
-                        new ProposalNotificationEvent(pcr.getProposal(), true)
-                    );
-                }
-                else {
-                    getEventBus().publish(new PaxosCommitResponse(
-                        getNodeID(),
-                        getConsensusUnitID(),
-                        pcr.getProposal(),
-                        false,
-                        pcr.getSequenceID()));
-                }
+            else {
+                getEventBus().publish(new SendMessageEvent(
+                    Collections.singletonList(pscm.getNodeId()),
+                    new PaxosConsensusAcceptMessage(getNodeID(),
+                                                    getConsensusUnitID(),
+                                                    pscm.getProposal(),
+                                                    pscm.getRequestID(),
+                                                    false,
+                                                    myLastSeqAccepted,
+                                                    myLastProposalCommitted))); 
             }
         }
-        catch (EventBusException e) {
-            LOG.log(Level.SEVERE, e.getMessage(), e);
+        else if (message instanceof PaxosCommitRequest) {
+            PaxosCommitRequest pcr =
+                (PaxosCommitRequest) message;
+            
+            if (pcr.getSequenceID() <= myLastSeqAccepted) {
+                myProposalToSeqNumMap.put(pcr.getProposal(), 
+                                          pcr.getSequenceID());
+                getEventBus().publish(
+                    new ProposalNotificationEvent(pcr.getProposal(), true)
+                );
+            }
+            else {
+                getEventBus().publish(new PaxosCommitResponse(
+                    getNodeID(),
+                    getConsensusUnitID(),
+                    pcr.getProposal(),
+                    false,
+                    pcr.getSequenceID()));
+            }
         }
     }
 
@@ -133,35 +127,30 @@ public class PaxosAcceptor extends ConsensusAcceptor
     @Override
     public void handleResponse(ProposalNotificationResponse response)
     {
-        try {
-            long seqNumber = 
-                myProposalToSeqNumMap.get(response.getProposalNotification()
-                                                  .getProposal());
+        long seqNumber = 
+            myProposalToSeqNumMap.get(response.getProposalNotification()
+                                              .getProposal());
+        
+        if (!response.getProposalNotification().isCommitNotification()) {
             
-            if (!response.getProposalNotification().isCommitNotification()) {
-                
-                getEventBus().publish(new SendMessageEvent(
-                    Collections.singletonList(getLeader()),
-                    new PaxosConsensusAcceptMessage(getNodeID(),
-                                                    getConsensusUnitID(),
-                                                    response.getProposalNotification()
-                                                            .getProposal(),
-                                                    seqNumber,
-                                                    response.canAccept(),
-                                                    myLastSeqAccepted,
-                                                    myLastProposalCommitted)));
-            }
-            else {
-                getEventBus().publish(new PaxosCommitResponse(
-                    getNodeID(),
-                    getConsensusUnitID(),
-                    response.getProposalNotification().getProposal(),
-                    response.canAccept(),
-                    seqNumber));
-            }
+            getEventBus().publish(new SendMessageEvent(
+                Collections.singletonList(getLeader()),
+                new PaxosConsensusAcceptMessage(getNodeID(),
+                                                getConsensusUnitID(),
+                                                response.getProposalNotification()
+                                                        .getProposal(),
+                                                seqNumber,
+                                                response.canAccept(),
+                                                myLastSeqAccepted,
+                                                myLastProposalCommitted)));
         }
-        catch (EventBusException e) {
-            LOG.log(Level.SEVERE, e.getMessage(), e);
+        else {
+            getEventBus().publish(new PaxosCommitResponse(
+                getNodeID(),
+                getConsensusUnitID(),
+                response.getProposalNotification().getProposal(),
+                response.canAccept(),
+                seqNumber));
         }
         
     }

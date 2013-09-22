@@ -53,8 +53,8 @@ public class DBEngine extends Actor
      */
     public void init(NodeID masterNode)
     {
-        if (myEngineWarden instanceof LocalWarden) {
-            ((LocalWarden) myEngineWarden).setMaster(masterNode);
+        if (myEngineWarden instanceof SlaveWarden) {
+            ((SlaveWarden) myEngineWarden).setMaster(masterNode);
         }
     }
 

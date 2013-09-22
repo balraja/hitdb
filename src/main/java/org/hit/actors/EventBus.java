@@ -70,11 +70,14 @@ public class EventBus
     /**
      * Consumes <code>Event</code>s delivered to this component.
      */
-    public Event consume(ActorID actorID) throws EventBusException
+    public Event consume(ActorID actorID)
     {
         EventPassingQueue epq = myActorToEPQ.get(actorID);
         if (epq == null) {
-            throw new EventBusException(actorID + " not registered");
+            LOG.log(Level.SEVERE,
+                    "Returning as the " + actorID + " hasn't "
+                    + " registered itself with the event bus ");
+            return null;
         }
         return epq.consume(actorID);
     }
@@ -83,11 +86,13 @@ public class EventBus
      * Publishes the given <code>Event</code> to the actor.
      */
     private void publish(ActorID actorID, Event event)
-        throws EventBusException
     {
         EventPassingQueue epq = myActorToEPQ.get(actorID);
         if (epq == null) {
-            throw new EventBusException(actorID + " not registered");
+            LOG.log(Level.SEVERE,
+                    "Returning as the " + actorID + " hasn't "
+                    + " registered itself with the event bus ");
+            return;
         }
         epq.publish(actorID, event);
     }
@@ -95,7 +100,7 @@ public class EventBus
     /**
      * Publishes the <code>Event</code> to interested actors.
      */
-    public void publish(Event event) throws EventBusException
+    public void publish(Event event) 
     {
         Collection<ActorID> actors = myEvent2Actors.get(event.getClass());
         if (actors != null) {

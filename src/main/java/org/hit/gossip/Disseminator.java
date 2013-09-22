@@ -26,13 +26,11 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
-import org.hit.actors.EventBusException;
 import org.hit.communicator.NodeID;
 import org.hit.event.Event;
 import org.hit.event.GossipNotificationEvent;
@@ -83,14 +81,9 @@ public class Disseminator extends Actor
         @Override
         public void run()
         {
-            try {
-                getEventBus().publish(new SendMessageEvent(
-                    Collections.singletonList(myParticipatingNode),
-                    new ReconcillationRequest(myOwner, myDigest)));
-            }
-            catch (EventBusException e) {
-                LOG.log(Level.SEVERE, e.getMessage(), e);
-            }            
+            getEventBus().publish(new SendMessageEvent(
+                Collections.singletonList(myParticipatingNode),
+                new ReconcillationRequest(myOwner, myDigest)));
         }
     }
     
@@ -115,19 +108,14 @@ public class Disseminator extends Actor
         @Override
         public void run()
         {
-            try {
-                if (!myParticipants.contains(myDigestOwner)) {
-                    myParticipants.add(myDigestOwner);
-                }
-                getEventBus().publish(new SendMessageEvent(
-                    Collections.singletonList(myDigestOwner),
-                    new ReconcilliationResponse(
-                        myOwner,
-                        myRepository.processDigest(myDigest))));
+            if (!myParticipants.contains(myDigestOwner)) {
+                myParticipants.add(myDigestOwner);
             }
-            catch (EventBusException e) {
-                LOG.log(Level.SEVERE, e.getMessage(), e);
-            }            
+            getEventBus().publish(new SendMessageEvent(
+                Collections.singletonList(myDigestOwner),
+                new ReconcilliationResponse(
+                    myOwner,
+                    myRepository.processDigest(myDigest))));
         }
     }
 
@@ -151,13 +139,8 @@ public class Disseminator extends Actor
         public void run()
         {
             myRepository.update(myResponse);
-            try {
-                getEventBus().publish(new GossipNotificationEvent(
-                    myRepository.getLatestInformation()));
-            }
-            catch (EventBusException e) {
-                LOG.log(Level.SEVERE, e.getMessage(), e);
-            }
+            getEventBus().publish(new GossipNotificationEvent(
+                myRepository.getLatestInformation()));
         }
     }
     

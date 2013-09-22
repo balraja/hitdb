@@ -25,7 +25,7 @@ import org.hit.communicator.NodeID;
 import org.hit.db.engine.Allocator;
 import org.hit.db.engine.EngineConfig;
 import org.hit.db.engine.EngineWarden;
-import org.hit.db.engine.LocalWarden;
+import org.hit.db.engine.SlaveWarden;
 import org.hit.db.engine.MasterWarden;
 import org.hit.db.engine.TransactionManager;
 
@@ -57,7 +57,7 @@ public class EngineWardenProvider implements Provider<EngineWarden>
                                         eventBus,
                                         nodeID,
                                         allocator)
-                        : new LocalWarden(transactionManager,
+                        : new SlaveWarden(transactionManager,
                                           engineConfig,
                                           eventBus);
     }

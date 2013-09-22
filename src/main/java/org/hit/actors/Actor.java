@@ -98,13 +98,8 @@ public abstract class Actor
             @Override
             public void run() {
                 while (!myShouldStop.get()) {
-                    try {
-                        Event event = myEventBus.consume(myActorID);
-                        processEvent(event);
-                    }
-                    catch (EventBusException e) {
-                        throw new RuntimeException(e);
-                    }
+                    Event event = myEventBus.consume(myActorID);
+                    processEvent(event);
                 }
             }});
     }
