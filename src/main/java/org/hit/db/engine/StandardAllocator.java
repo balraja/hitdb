@@ -121,6 +121,7 @@ public class StandardAllocator implements Allocator
 
         Map<String, Schema> tableSchemaMap = new HashMap<>();
         Map<String, Partitioner<?,?>> partitionTableMap = new HashMap<>();
+        Map<String, NodeID> dataNodeMap = new HashMap<>();
         for (Map.Entry<String, Schema> entry : myTableToSchemaMap.entrySet())
         {
             tableSchemaMap.put(entry.getKey(), entry.getValue());
@@ -133,8 +134,11 @@ public class StandardAllocator implements Allocator
                     nodeRange.getMinValue(), nodeRange.getMaxValue());
             partition.update(new Pair<Comparable<?>, NodeID>(newValue, nodeID));
             partitionTableMap.put(entry.getKey(), partition);
+            dataNodeMap.put(entry.getKey(), maxLoadedNode);
         }
-        return new Allocation(tableSchemaMap, partitionTableMap);
+        return new Allocation(tableSchemaMap, 
+                              partitionTableMap,
+                              dataNodeMap);
     }
 
     /**

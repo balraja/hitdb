@@ -48,7 +48,7 @@ public class ObjectStreamSerializerTest
             (TestMessage) serializer.parse(buffer);
         
         assertNotNull(deserializedMessage);
-        assertEquals(nodeID, deserializedMessage.getNodeId());
+        assertEquals(nodeID, deserializedMessage.getSenderId());
         assertEquals(1001, deserializedMessage.getValue());
     }
 }

@@ -152,7 +152,7 @@ public class NIOCommunicator implements Communicator
                                 try (CloseableLock lock =
                                                 mySessionMapLock.open())
                                 {
-                                    myIdSessionMap.put(message.getNodeId(),
+                                    myIdSessionMap.put(message.getSenderId(),
                                                        session);
                                 }
                                 for (MessageHandler handler : myHandlers)

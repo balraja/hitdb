@@ -64,8 +64,6 @@ public class MasterWarden extends AbstractWarden
 
     private final Allocator myAllocator;
 
-    private final NodeID myNodeID;
-
     private final ScheduledExecutorService myScheduler;
 
     /**
@@ -75,11 +73,10 @@ public class MasterWarden extends AbstractWarden
     public MasterWarden(TransactionManager transactionManager,
                         EngineConfig engineConfig,
                         EventBus eventBus,
-                        NodeID nodeID,
+                        NodeID masterID,
                         Allocator allocator)
     {
-        super(transactionManager, engineConfig, eventBus);
-        myNodeID = nodeID;
+        super(transactionManager, engineConfig, eventBus, masterID);
         myAllocator = allocator;
         myScheduler =
             Executors.newScheduledThreadPool(
@@ -98,7 +95,7 @@ public class MasterWarden extends AbstractWarden
             if (event instanceof CreateTableMessage) {
                 CreateTableMessage ctm = (CreateTableMessage) event;
                 LOG.info(String.format(TABLE_CREATION_LOG,
-                                       ctm.getNodeId(),
+                                       ctm.getSenderId(),
                                        ctm.getTableSchema()));
                 Schema schema = ctm.getTableSchema();
                 myAllocator.addSchema(schema);
@@ -108,7 +105,7 @@ public class MasterWarden extends AbstractWarden
                 if (isSuccess) {
                     response =
                         new CreateTableResponseMessage(
-                            myNodeID,
+                            getServerID(),
                             schema.getTableName(),
                             myAllocator.getPartitions().get(
                                 schema.getTableName()),
@@ -121,7 +118,7 @@ public class MasterWarden extends AbstractWarden
                 else {
                     response =
                         new CreateTableResponseMessage(
-                            myNodeID,
+                            getServerID(),
                             schema.getTableName(),
                             null,
                             String.format(TABLE_CREATION_FAILURE_MSG,
@@ -131,7 +128,7 @@ public class MasterWarden extends AbstractWarden
                              + " failed");
                 }
                 getEventBus().publish(new SendMessageEvent(
-                    Collections.singleton(ctm.getNodeId()),
+                    Collections.singleton(ctm.getSenderId()),
                     response));
             }
             else if (event instanceof DBStatEvent) {
@@ -141,12 +138,13 @@ public class MasterWarden extends AbstractWarden
             else if (event instanceof NodeAdvertisement) {
                 NodeAdvertisement na = (NodeAdvertisement) event;
                 Allocation allocation =
-                    myAllocator.getAllocation(na.getNodeId());
+                    myAllocator.getAllocation(na.getSenderId());
                 if (allocation != null) {
                     getEventBus().publish(
                         new SendMessageEvent(
-                            Collections.singletonList(na.getNodeId()),
-                            new NodeAdvertisementResponse(myNodeID, allocation)));
+                            Collections.singletonList(na.getSenderId()),
+                            new NodeAdvertisementResponse(
+                                getServerID(), allocation)));
                     getEventBus().publish(myAllocator.getGossipUpdates());
                 }
             }
@@ -154,8 +152,8 @@ public class MasterWarden extends AbstractWarden
                 FacadeInitRequest fir = (FacadeInitRequest) event;
                 getEventBus().publish(
                       new SendMessageEvent(
-                          Collections.singletonList(fir.getNodeId()),
-                          new FacadeInitResponse(myNodeID,
+                          Collections.singletonList(fir.getSenderId()),
+                          new FacadeInitResponse(getServerID(),
                                                  myAllocator.getPartitions())));
             }
         }
@@ -186,6 +184,7 @@ public class MasterWarden extends AbstractWarden
     @Override
     public void start()
     {
+        getIsInitialized().compareAndSet(false, true);
         myScheduler.schedule(
             new Runnable()
             {

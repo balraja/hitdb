@@ -262,7 +262,7 @@ public class Disseminator extends Actor
             NodeAdvertisement advertisement = 
                 (NodeAdvertisement) event;
             myScheduler.submit(
-                new AddParticipantTask(advertisement.getNodeId()));
+                new AddParticipantTask(advertisement.getSenderId()));
         }
         else if (event instanceof GossipUpdateEvent) {
             GossipUpdateEvent update = 

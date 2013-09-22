@@ -59,7 +59,8 @@ public class EngineWardenProvider implements Provider<EngineWarden>
                                         allocator)
                         : new SlaveWarden(transactionManager,
                                           engineConfig,
-                                          eventBus);
+                                          eventBus,
+                                          nodeID);
     }
 
     /**

@@ -20,13 +20,18 @@
 
 package org.hit.db.engine;
 
+import java.util.Collections;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
+import org.hit.communicator.NodeID;
 import org.hit.db.model.DBOperation;
 import org.hit.event.Event;
+import org.hit.event.SendMessageEvent;
+import org.hit.messages.DBOperationFailureMessage;
 import org.hit.messages.DBOperationMessage;
 import org.hit.messages.DistributedDBOperationMessage;
 import org.hit.util.LogFactory;
@@ -50,17 +55,24 @@ public abstract class AbstractWarden implements EngineWarden
     private final EventBus myEventBus;
 
     private final TransactionManager myTransactionManager;
-
+    
+    private final AtomicBoolean myIsInitialized;
+    
+    private final NodeID myServerID;
+    
     /**
      * CTOR
      */
     public AbstractWarden(TransactionManager transactionManager,
                           EngineConfig       engineConfig,
-                          EventBus           eventBus)
+                          EventBus           eventBus,
+                          NodeID             serverID)
     {
         myTransactionManager = transactionManager;
         myEngineConfig = engineConfig;
         myEventBus = eventBus;
+        myIsInitialized = new AtomicBoolean(false);
+        myServerID = serverID;
     }
 
     /**
@@ -86,6 +98,22 @@ public abstract class AbstractWarden implements EngineWarden
     {
         return myTransactionManager;
     }
+    
+    /**
+     * Returns the value of isInitialized
+     */
+    protected AtomicBoolean getIsInitialized()
+    {
+        return myIsInitialized;
+    }
+    
+    /**
+     * Returns the value of serverID
+     */
+    protected NodeID getServerID()
+    {
+        return myServerID;
+    }
 
     /**
      * {@inheritDoc}
@@ -98,17 +126,24 @@ public abstract class AbstractWarden implements EngineWarden
         }
 
         if (event instanceof DBOperationMessage) {
-
-            DBOperationMessage message =
-                (DBOperationMessage) event;
-
-            LOG.info(String.format(DB_OPERATION_LOG,
-                                   message.getNodeId(),
-                                   message.getOperation()));
-            DBOperation operation =
-                ((DBOperationMessage) event).getOperation();
-            myTransactionManager.processOperation(
-                message.getNodeId(), operation, message.getSequenceNumber());
+            DBOperationMessage message = (DBOperationMessage) event;
+            if (myIsInitialized.get()) {
+                LOG.info(String.format(DB_OPERATION_LOG,
+                                       message.getSenderId(),
+                                       message.getOperation()));
+                DBOperation operation =
+                    ((DBOperationMessage) event).getOperation();
+                myTransactionManager.processOperation(
+                    message.getSenderId(), operation, message.getSequenceNumber());
+            }
+            else {
+                myEventBus.publish(new SendMessageEvent(
+                    Collections.singletonList(message.getSenderId()),
+                    new DBOperationFailureMessage(
+                        myServerID, 
+                        message.getSequenceNumber(),
+                        "DB not yet initialized")));
+            }
         }
         else if (event instanceof DistributedDBOperationMessage) {
 
@@ -116,11 +151,11 @@ public abstract class AbstractWarden implements EngineWarden
                 (DistributedDBOperationMessage) event;
 
             LOG.info(String.format(DB_OPERATION_LOG,
-                                   ddbMessage.getNodeId(),
+                                   ddbMessage.getSenderId(),
                                    ddbMessage.getNodeToOperationMap().keySet()));
 
             myTransactionManager.processOperation(
-                ddbMessage.getNodeId(),
+                ddbMessage.getSenderId(),
                 ddbMessage.getNodeToOperationMap());
         }
     }

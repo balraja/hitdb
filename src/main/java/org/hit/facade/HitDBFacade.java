@@ -151,7 +151,7 @@ public class HitDBFacade
 
                     if (queryFuture != null) {
                         queryFuture.set(new Pair<>(
-                            dbOperationSuccessMessage.getNodeId(),
+                            dbOperationSuccessMessage.getSenderId(),
                             (Collection<Queryable>)
                                 dbOperationSuccessMessage.getResult()));
                     }

@@ -27,6 +27,7 @@ import java.io.ObjectOutput;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.hit.communicator.NodeID;
 import org.hit.db.model.Schema;
 import org.hit.partitioner.Partitioner;
 
@@ -42,6 +43,8 @@ public class Allocation implements Externalizable
     
     private Map<String, Partitioner<?,?>> myTable2PartitionMap;
     
+    private Map<String, NodeID> myTableToDataNodeMap;
+    
     /**
      * CTOR
      */
@@ -49,17 +52,20 @@ public class Allocation implements Externalizable
     {
         myTable2PartitionMap = new HashMap<>();
         myTable2SchemaMap = new HashMap<>();
+        myTableToDataNodeMap = new HashMap<>();
     }
 
     /**
      * CTOR
      */
     public Allocation(Map<String, Schema> table2SchemaMap,
-                      Map<String, Partitioner<?,?>> table2PartitionMap)
+                      Map<String, Partitioner<?,?>> table2PartitionMap,
+                      Map<String, NodeID> tableToDataNodeMap)
     {
         super();
         myTable2SchemaMap = table2SchemaMap;
         myTable2PartitionMap = table2PartitionMap;
+        myTableToDataNodeMap = tableToDataNodeMap;
     }
 
     /**
@@ -77,6 +83,14 @@ public class Allocation implements Externalizable
     {
         return myTable2PartitionMap;
     }
+    
+    /**
+     * Returns the value of tableToDataNodeMap
+     */
+    public Map<String, NodeID> getTableToDataNodeMap()
+    {
+        return myTableToDataNodeMap;
+    }
 
     /**
      * {@inheritDoc}
@@ -86,6 +100,7 @@ public class Allocation implements Externalizable
     {
         out.writeObject(myTable2PartitionMap);
         out.writeObject(myTable2SchemaMap);
+        out.writeObject(myTableToDataNodeMap);
     }
 
     /**
@@ -99,5 +114,6 @@ public class Allocation implements Externalizable
         myTable2PartitionMap = 
            (Map<String, Partitioner<?,?>>) in.readObject();
         myTable2SchemaMap = (Map<String, Schema>) in.readObject();
+        myTableToDataNodeMap = (Map<String, NodeID>) in.readObject();
     }
 }

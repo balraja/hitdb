@@ -65,6 +65,7 @@ import org.hit.messages.DBOperationSuccessMessage;
 import org.hit.time.Clock;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
+import org.hit.util.Range;
 
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.FutureCallback;
@@ -81,43 +82,6 @@ import com.google.inject.Inject;
  */
 public class TransactionManager
 {
-    /**
-     * A simple class to implement a structure for capturing the 
-     * client information.
-     */
-    private static class ClientInfo
-    {
-        private final NodeID myClientID;
-        
-        private final long myClientSequenceNumber;
-
-        /**
-         * CTOR
-         */
-        public ClientInfo(NodeID clientID, long clientSequenceNumber)
-        {
-            super();
-            myClientID = clientID;
-            myClientSequenceNumber = clientSequenceNumber;
-        }
-
-        /**
-         * Returns the value of clientID
-         */
-        public NodeID getClientID()
-        {
-            return myClientID;
-        }
-
-        /**
-         * Returns the value of clientSequenceNumber
-         */
-        public long getClientSequenceNumber()
-        {
-            return myClientSequenceNumber;
-        }
-    }
-    
     private static class DistributedTrnInfo
     {
         private final AbstractTransaction myTransaction;
@@ -576,6 +540,25 @@ public class TransactionManager
             return false;
         }
     }
+    
+    /**
+     * Creates appropriate <code>Transaction<code> to process the mutations/
+     * queries on the database.
+     */
+    public void processQueryAndDeleteOperation(
+        NodeID originatorNode, Range<?> deletedRange)
+    {
+        
+    }
+    
+    /**
+     * Creates appropriate <code>Transaction<code> to process the mutations/
+     * queries on the database.
+     */
+    public void processOperation(Mutation mutation)
+    {
+        processOperation(null, mutation, -1);
+    }
 
     /**
      * Creates appropriate <code>Transaction<code> to process the mutations/
@@ -586,8 +569,10 @@ public class TransactionManager
                                  long sequenceNumber)
     {
         long id = myIdAssigner.getTransactionID();
-        ClientInfo clientInfo = new ClientInfo(clientID, sequenceNumber);
-        myTrnToClientMap.put(id, clientInfo);
+        if (clientID != null) {
+            ClientInfo clientInfo = new ClientInfo(clientID, sequenceNumber);
+            myTrnToClientMap.put(id, clientInfo);
+        }
         
         AbstractTransaction transaction =
             operation instanceof Mutation ?

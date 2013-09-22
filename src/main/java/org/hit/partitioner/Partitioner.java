@@ -40,7 +40,7 @@ import org.hit.util.Range;
  * @author Balraja Subbiah
  */
 public class Partitioner<S extends Comparable<S>, 
-                               T extends Comparable<T>>
+                         T extends Comparable<T>>
     extends AbstractGossip<Pair<Comparable<?>, NodeID>>
 {
     private TreeMap<T, NodeID> myKeyToNodeMap;

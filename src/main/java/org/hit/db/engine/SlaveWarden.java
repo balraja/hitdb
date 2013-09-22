@@ -39,11 +39,21 @@ import org.hit.event.Event;
 import org.hit.event.GossipNotificationEvent;
 import org.hit.event.SendMessageEvent;
 import org.hit.gossip.Gossip;
+import org.hit.messages.Allocation;
+import org.hit.messages.DataLoadRequest;
+import org.hit.messages.DataLoadResponse;
 import org.hit.messages.Heartbeat;
+import org.hit.messages.NodeAdvertisement;
+import org.hit.messages.NodeAdvertisementResponse;
 import org.hit.partitioner.Partitioner;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 import com.google.inject.Inject;
 
 /**
@@ -92,6 +102,49 @@ public class SlaveWarden extends AbstractWarden
             }
         }
     }
+    
+    private class LoadAllocationTask implements FutureCallback<DataLoadResponse>
+    {
+        private final Allocation myAllocation;
+
+        /**
+         * CTOR
+         */
+        public LoadAllocationTask(Allocation allocation)
+        {
+            super();
+            myAllocation = allocation;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onFailure(Throwable arg0)
+        {
+            throw new RuntimeException(args0);
+            
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onSuccess(DataLoadResponse response)
+        {
+            getTransactionManager().processOperation(
+                response.getDataLoadResponseMutation());
+            myAllocation.getTableToDataNodeMap().remove(
+                response.getTableName());
+            
+            if (myAllocation.getTableToDataNodeMap().isEmpty()) {
+                getIsInitialized().compareAndSet(false, true);
+            }
+            else {
+                sendDataFetchRequest(myAllocation);
+            }
+        }
+    }
 
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(SlaveWarden.class);
@@ -100,25 +153,31 @@ public class SlaveWarden extends AbstractWarden
 
     private final Map<String, Partitioner<?, ?>> myPartitions;
 
-    private final ScheduledExecutorService myScheduler;
+    private final ListeningScheduledExecutorService myScheduler;
 
     private final TObjectLongMap<String> myTableRowCountMap;
-
+    
+    private final Map<NodeID, SettableFuture<DataLoadResponse>> myNodeToResponseFutureMap;
+    
     /**
      * CTOR
      */
     @Inject
     public SlaveWarden(TransactionManager transactionManager,
                        EngineConfig       engineConfig,
-                       EventBus           eventBus)
+                       EventBus           eventBus,
+                       NodeID             slaveID)
     {
-        super(transactionManager, engineConfig, eventBus);
+        super(transactionManager, engineConfig, eventBus, slaveID);
         myPartitions = new HashMap<>();
         myTableRowCountMap = new TObjectLongHashMap<>();
+        myNodeToResponseFutureMap = new HashMap<>();
+        
         myScheduler =
-            Executors.newScheduledThreadPool(
-                1,
-                new NamedThreadFactory("NodeCoordinatorScheduler"));
+            MoreExecutors.listeningDecorator(
+                Executors.newScheduledThreadPool(
+                    1,
+                    new NamedThreadFactory("NodeCoordinatorScheduler")));
     }
 
     /**
@@ -132,7 +191,7 @@ public class SlaveWarden extends AbstractWarden
             GossipNotificationEvent gne = (GossipNotificationEvent) event;
             for (Gossip gossip : gne.getGossip()) {
                 if (gossip instanceof Partitioner) {
-                    myPartitions.put((String)              gossip.getKey(),
+                    myPartitions.put((String)           gossip.getKey(),
                                      (Partitioner<?,?>) gossip);
                 }
             }
@@ -140,6 +199,21 @@ public class SlaveWarden extends AbstractWarden
         else if (event instanceof DBStatEvent) {
             DBStatEvent stat = (DBStatEvent) event;
             myScheduler.submit(new ApplyDBStatsTask(stat));
+        }
+        else if (event instanceof NodeAdvertisementResponse) {
+            NodeAdvertisementResponse nar = 
+                (NodeAdvertisementResponse) event;
+            if (nar.getAllocation() != null) {
+                sendDataFetchRequest(nar.getAllocation());
+            }
+        }
+        else if (event instanceof DataLoadResponse) {
+            DataLoadResponse dlr = (DataLoadResponse) event;
+            SettableFuture<DataLoadResponse> nodeFuture = 
+                myNodeToResponseFutureMap.get(dlr.getSenderId());
+            if (nodeFuture != null) {
+                nodeFuture.set(dlr);
+            }
         }
     }
 
@@ -152,8 +226,9 @@ public class SlaveWarden extends AbstractWarden
         super.register(actorID);
         getEventBus().registerForEvent(
             GossipNotificationEvent.class, actorID);
-
         getEventBus().registerForEvent(DBStatEvent.class, actorID);
+        getEventBus().registerForEvent(NodeAdvertisementResponse.class, actorID);
+        getEventBus().registerForEvent(DataLoadResponse.class, actorID);
     }
 
     /**
@@ -170,6 +245,10 @@ public class SlaveWarden extends AbstractWarden
     @Override
     public void start()
     {
+        getEventBus().publish(
+            new SendMessageEvent(Collections.singletonList(myMaster),
+                                 new NodeAdvertisement(getServerID())));
+        
         myScheduler.scheduleWithFixedDelay(
             new PublishHeartbeatTask(),
             getEngineConfig().getHeartBeatIntervalSecs(),
@@ -184,5 +263,27 @@ public class SlaveWarden extends AbstractWarden
     public void stop()
     {
         myScheduler.shutdownNow();
+    }
+    
+    private void sendDataFetchRequest(Allocation allocation)
+    {
+        String tableName = allocation.getTableToDataNodeMap()
+                                      .keySet()
+                                      .iterator()
+                                      .next();
+        NodeID targetNode = allocation.getTableToDataNodeMap()
+                                      .get(tableName);
+        
+        getEventBus().publish(new SendMessageEvent(
+            Collections.singletonList(targetNode),
+            new DataLoadRequest(getServerID(), 
+                                tableName,
+                                allocation.getTable2PartitionMap()
+                                          .get(tableName)
+                                          .getNodeRange(getServerID()))));
+        
+        SettableFuture<DataLoadResponse> future = SettableFuture.create();
+        Futures.addCallback(future, new LoadAllocationTask(allocation));
+        myNodeToResponseFutureMap.put(targetNode, future);
     }
 }

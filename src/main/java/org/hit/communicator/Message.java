@@ -34,31 +34,31 @@ import org.hit.event.Event;
  */
 public abstract class Message implements Externalizable, Event
 {
-    private NodeID myNodeId;
+    private NodeID mySenderId;
     
     /**
      * CTOR
      */
     public Message()
     {
-        myNodeId = null;
+        mySenderId = null;
     }
 
     /**
      * CTOR
      */
-    public Message(NodeID nodeId)
+    public Message(NodeID senderId)
     {
-        myNodeId = nodeId;
+        mySenderId = senderId;
     }
     
     /**
      * Returns the value of nodeId corresponding to the originating node of
      * this message.
      */
-    public NodeID getNodeId()
+    public NodeID getSenderId()
     {
-        return myNodeId;
+        return mySenderId;
     }
 
     /**
@@ -68,7 +68,7 @@ public abstract class Message implements Externalizable, Event
     public void readExternal(ObjectInput in) throws IOException,
             ClassNotFoundException
     {
-        myNodeId = (NodeID) in.readObject();
+        mySenderId = (NodeID) in.readObject();
     }
 
     /**
@@ -77,6 +77,6 @@ public abstract class Message implements Externalizable, Event
     @Override
     public void writeExternal(ObjectOutput out) throws IOException
     {
-        out.writeObject(myNodeId);
+        out.writeObject(mySenderId);
     }
 }

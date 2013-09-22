@@ -118,7 +118,7 @@ public class ConsensusManager extends Actor
                 // is not present. So we create one here.
                 consensusProtocol = 
                     myProvider.makeAcceptor(message.getUnitID(),
-                                            message.getNodeId(),
+                                            message.getSenderId(),
                                                         myNodeID);
                 
                 myUnitToConsensusProtocolMap.put(message.getUnitID(),

@@ -89,7 +89,7 @@ public class PaxosAcceptor extends ConsensusAcceptor
             }
             else {
                 getEventBus().publish(new SendMessageEvent(
-                    Collections.singletonList(pscm.getNodeId()),
+                    Collections.singletonList(pscm.getSenderId()),
                     new PaxosConsensusAcceptMessage(getNodeID(),
                                                     getConsensusUnitID(),
                                                     pscm.getProposal(),

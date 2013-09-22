@@ -60,7 +60,7 @@ public class CommunicatingActor extends Actor
             {
                 if (LOG.isLoggable(Level.FINE)) {
                     LOG.fine("Received " + message + " from "
-                             + message.getNodeId());
+                             + message.getSenderId());
                 }
                 getEventBus().publish(message);
                 if (LOG.isLoggable(Level.FINE)) {

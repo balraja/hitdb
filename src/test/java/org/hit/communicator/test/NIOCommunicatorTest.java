@@ -89,7 +89,7 @@ public class NIOCommunicatorTest
         {
             myReceivedMessage = message;
             System.out.println("Received message from "
-                               + myReceivedMessage.getNodeId());
+                               + myReceivedMessage.getSenderId());
             myResultAvailable.set(true);
             myCommunicator.stop();
         }

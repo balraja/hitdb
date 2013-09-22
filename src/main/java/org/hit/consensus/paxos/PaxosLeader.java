@@ -249,7 +249,7 @@ public class PaxosLeader extends ConsensusLeader
             }
             
             if (pcam.isAccepted()) {
-                record.addAcceptedAcceptor(pcam.getNodeId(),
+                record.addAcceptedAcceptor(pcam.getSenderId(),
                                            pcam.getPreviousAcceptedID(),
                                            pcam.getPreviouslyAcceptedProposal());
             }
@@ -281,7 +281,7 @@ public class PaxosLeader extends ConsensusLeader
             }
                         
             if (pcm.isAccepted()) {
-                record.addCommittedAcceptor(pcm.getNodeId());
+                record.addCommittedAcceptor(pcm.getSenderId());
             }
             
             if (record.isCommitted()) {
