@@ -104,6 +104,15 @@
                 <platform>unix</platform>
                 </platforms>
 	            <programs>
+	              <program>
+                  <mainClass>org.hit.db.ddl.SchemaGenerator</mainClass>
+                  <name>run_schema_generator</name>
+                  <jvmSettings>
+                    <systemProperties>
+                      <systemProperty>org.hit.app.home=${project.build.directory}/hitdatabase</systemProperty>
+                    </systemProperties>
+                  </jvmSettings>
+                </program>
 	             <program>
                   <mainClass>org.hit.server.HitServerLauncher</mainClass>
                   <commandLineArguments>

@@ -18,23 +18,42 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.db.apt;
+package org.hit.db.ddl;
 
 /**
- * Defines an annotation for a column.
+ * Defines an annotation for defining the characteristics of a HIT table.
  * 
  * @author Balraja Subbiah
  */
-public @interface MetaColumn
+public class MetaTable
 {
+    private String myKeyTypeName;
+    
+    private String myTableName;
+    
     /**
-     * Returns true if the column is a primary column.
+     * CTOR
      */
-    boolean primary() default false ;
-    
-    /** Returns the name of column */
-    String name();
-    
-    /** Returns the type of column */
-    String type();
+    public MetaTable(String keyTypeName, String tableName)
+    {
+        super();
+        myKeyTypeName = keyTypeName;
+        myTableName = tableName;
+    }
+
+    /**
+     * Returns the value of keyTypeName
+     */
+    public String getKeyTypeName()
+    {
+        return myKeyTypeName;
+    }
+
+    /**
+     * Returns the value of tableName
+     */
+    public String getTableName()
+    {
+        return myTableName;
+    }
 }
