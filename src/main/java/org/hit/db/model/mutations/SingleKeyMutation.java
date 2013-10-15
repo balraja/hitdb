@@ -28,12 +28,9 @@ package org.hit.db.model.mutations;
  *
  * @author Balraja Subbiah
  */
-public interface SingleKeyMutation<K extends Comparable<K>> extends TableMutation
+public interface SingleKeyMutation<K extends Comparable<K>> 
+    extends TableMutation
 {
     /** Returns the key of the row that will be affected */
     public K getKey();
-
-
-    @Override
-    public String getTableName();
 }

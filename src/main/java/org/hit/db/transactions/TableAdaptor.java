@@ -128,7 +128,8 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
            new PredicateWrapper<K,P>(predicate), result);
         Collection<P> actualResult =
             Collections2.transform(result, new Transactable2Persistable<K,P>());
-        return Collections.unmodifiableCollection(actualResult);    }
+        return Collections.unmodifiableCollection(actualResult);    
+    }
 
     /**
      * {@inheritDoc}
@@ -219,5 +220,50 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
     public boolean validate(TransactionValidator validator)
     {
         return validator.isAcceptable(myTableTrail);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public P deleteRow(K primaryKey)
+    {
+        Transactable<K, P> result = myTable.deleteRow(primaryKey, 
+                                                      myStartTime,
+                                                      myTransactionID);
+                                                      
+        return result != null ? result.getPersistable() : null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<P> deleteRange(K primaryKey, K secondaryKey)
+    {
+        Collection<Transactable<K,P>> result =
+            myTable.deleteRange(primaryKey, 
+                                secondaryKey, 
+                                myStartTime, 
+                                myTransactionID);
+        
+        // XXX Not sure about how to validate
+        /*
+        myTableTrail.getPredicateToDataMap().put(
+           new PredicateWrapper<K,P>(predicate), result);  */
+        
+        Collection<P> actualResult =
+            Collections2.transform(result, new Transactable2Persistable<K,P>());
+        return Collections.unmodifiableCollection(actualResult);    
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public Collection<P> deleteRange(Object primaryKey, Object secondaryKey)
+    {
+        return deleteRange((K) primaryKey, (K) secondaryKey);
     }
 }

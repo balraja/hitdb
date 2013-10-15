@@ -20,6 +20,7 @@
 
 package org.hit.db.transactions.impl;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -42,7 +43,8 @@ import com.google.common.collect.Collections2;
  * 
  * @author Balraja Subbiah
  */
-public class TransactableHashedTable <K extends Comparable<K>, P extends Persistable<K>>
+public class TransactableHashedTable <K extends Comparable<K>, 
+                                      P extends Persistable<K>>
     extends AbstractTransactableTable<K,P>
 {
     private final HashTable<K, Transactable<K,P>> myIndex;
@@ -220,4 +222,41 @@ public class TransactableHashedTable <K extends Comparable<K>, P extends Persist
     {
         return myIndex.count();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Transactable<K, P> deleteRow(K key, long time, long transactionID)
+    {
+        Transactable<K, P> row = getRow(key, time, transactionID);
+        if (myIndex.remove(key, row)) {
+            return row;
+        }
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<Transactable<K, P>> deleteRange(
+                                                      K start,
+                                                      K end,
+                                                      long time,
+                                                      long transactionID)
+    {
+        List<Transactable<K,P>> result = new ArrayList<>();
+        Iterator<Transactable<K,P>> iterator = myIndex.getAllValues();
+        while (iterator.hasNext()) {
+            Transactable<K,P> row = iterator.next();
+            if (myIndex.remove(row.getPersistable().primaryKey(), 
+                               row))
+            {
+                result.add(row);
+            }
+        }
+        return result;
+    }
+
 }

@@ -60,6 +60,15 @@ public interface TransactableTable<K extends Comparable<K>, P extends Persistabl
 
     /** Returns row corresponding to a primary key */
     public Transactable<K,P> getRow(K key, long time, long transactionID);
+    
+    /** Deletes row corresponding to a primary key */
+    public Transactable<K,P> deleteRow(K key, long time, long transactionID);
+    
+    /** Deletes rows that falls between the given key range */
+    public Collection<Transactable<K,P>> deleteRange(K rangeStart,
+                                                     K rangeEnd,
+                                                     long time, 
+                                                     long transactionID);
 
     /** Returns schema of the table */
     public Schema getSchema();

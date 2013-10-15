@@ -42,10 +42,10 @@ public final class Registry
     private static TLongObjectMap<TransactionState> ourStateMap = 
         new TLongObjectHashMap<>();
     
-    private static TLongObjectHashMap<TLongSet> ourDependenetTransactions =
+    private static TLongObjectHashMap<TLongSet> ourDependentTransactions =
         new TLongObjectHashMap<>();
         
-    private static TLongObjectHashMap<TLongSet> ourDependingTransactions =
+    private static TLongObjectHashMap<TLongSet> ourPrecedentTransactions =
         new TLongObjectHashMap<>();
     
     /**
@@ -80,19 +80,19 @@ public final class Registry
     {
         try (CloseableRWLock l = ourLock.openWriteLock()) {
             TLongSet dependentTransactions = 
-                ourDependenetTransactions.get(from);
+                ourDependentTransactions.get(from);
             if (dependentTransactions == null) {
                 dependentTransactions = new TLongHashSet();
-                ourDependenetTransactions.putIfAbsent(from, 
+                ourDependentTransactions.putIfAbsent(from, 
                                                       dependentTransactions);
             }
             dependentTransactions.add(to);
             
             TLongSet dependeningTransactions = 
-                ourDependingTransactions.get(from);
+                ourPrecedentTransactions.get(to);
             if (dependeningTransactions == null) {
                 dependeningTransactions = new TLongHashSet();
-                ourDependingTransactions.putIfAbsent(to, 
+                ourPrecedentTransactions.putIfAbsent(to, 
                                                      dependeningTransactions);
             }
             dependeningTransactions.add(from);
@@ -109,19 +109,19 @@ public final class Registry
             // We are repeating thecode here but that's ok.
             for (long from : ourStateMap.keys()) {
                 TLongSet dependentTransactions = 
-                    ourDependenetTransactions.get(from);
+                    ourDependentTransactions.get(from);
                 if (dependentTransactions == null) {
                     dependentTransactions = new TLongHashSet();
-                    ourDependenetTransactions.putIfAbsent(from, 
+                    ourDependentTransactions.putIfAbsent(from, 
                                                           dependentTransactions);
                 }
                 dependentTransactions.add(to);
                 
                 TLongSet dependeningTransactions = 
-                    ourDependingTransactions.get(from);
+                    ourPrecedentTransactions.get(from);
                 if (dependeningTransactions == null) {
                     dependeningTransactions = new TLongHashSet();
-                    ourDependingTransactions.putIfAbsent(to, 
+                    ourPrecedentTransactions.putIfAbsent(to, 
                                                          dependeningTransactions);
                 }
                 dependeningTransactions.add(from);
@@ -137,15 +137,15 @@ public final class Registry
     {
         TLongSet result = new TLongHashSet();
         try (CloseableRWLock l = ourLock.openWriteLock()) {
-            ourDependingTransactions.remove(from);
+            ourPrecedentTransactions.remove(from);
             
             TLongSet dependentTransactions = 
-                ourDependenetTransactions.remove(from);
+                ourDependentTransactions.remove(from);
             
             if (dependentTransactions != null) {
                 for (long dependentTrn : dependentTransactions.toArray()) {
                     TLongSet dependeningTransactions = 
-                        ourDependingTransactions.get(from);
+                        ourPrecedentTransactions.get(from);
                     if (dependeningTransactions != null) {
                         dependeningTransactions.remove(from);
                         if (dependeningTransactions.isEmpty()) {
@@ -163,10 +163,10 @@ public final class Registry
      * Returns the list of trnsactions on which a given transaction 
      * is dependent upon.
      */
-    public static TLongSet getDependencyOn(long transactionID)
+    public static TLongSet getPrecedencyFor(long transactionID)
     {
         try (CloseableRWLock l = ourLock.openWriteLock()) {
-            return ourDependingTransactions.get(transactionID);
+            return ourPrecedentTransactions.get(transactionID);
         }
     }
 }

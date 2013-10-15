@@ -23,7 +23,6 @@ package org.hit.query.test;
 import static org.junit.Assert.*;
 
 import java.util.Collection;
-import java.util.List;
 
 import org.antlr.runtime.RecognitionException;
 import org.hit.db.model.Query;
@@ -55,10 +54,14 @@ public class QueryTest
     {
         Query query = 
             QueryFactory.makeQuery("select * from " + HitDbTest.TABLE_NAME);
+        
         @SuppressWarnings("unchecked")
         Collection<Airport> airports = 
             (Collection<Airport>) query.query(myTestDB);
         assertTrue(airports != null);
         assertFalse(airports.isEmpty());
+        
+        Query query = 
+            QueryFactory.makeQuery("select * from " + HitDbTest.TABLE_NAME);
     }
 }

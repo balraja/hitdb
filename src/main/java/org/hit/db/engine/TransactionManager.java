@@ -40,6 +40,7 @@ import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.UnitID;
 import org.hit.db.model.DBOperation;
+import org.hit.db.model.DatabaseException;
 import org.hit.db.model.Mutation;
 import org.hit.db.model.Query;
 import org.hit.db.model.Schema;
@@ -50,6 +51,7 @@ import org.hit.db.transactions.PhasedTransactionExecutor;
 import org.hit.db.transactions.ReadTransaction;
 import org.hit.db.transactions.Registry;
 import org.hit.db.transactions.TransactableDatabase;
+import org.hit.db.transactions.Transaction;
 import org.hit.db.transactions.TransactionResult;
 import org.hit.db.transactions.WriteTransaction;
 import org.hit.db.transactions.journal.WAL;
@@ -79,122 +81,69 @@ import com.google.inject.Inject;
  */
 public class TransactionManager
 {
-    private static class DistributedTrnInfo
+    /**
+     * Defines the contract for a workflow that captures the state of
+     * transaction execution.
+     */
+    private static interface WorkFlow
     {
-        private final AbstractTransaction myTransaction;
+        /** Returns the transaction id corresponding to this work flow */
+        public long getTransactionID();
         
-        private final UnitID  myConsensusID;
+        /** Starts workflow processing */
+        public void start();
         
-        private final ProposalNotificationEvent myPne;
-
-        /**
-         * CTOR
-         */
-        public DistributedTrnInfo(AbstractTransaction transaction,
-                                  UnitID consensusID,
-                                  ProposalNotificationEvent pne)
-        {
-            super();
-            myTransaction = transaction;
-            myConsensusID = consensusID;
-            myPne = pne;
-        }
-
-        /**
-         * Returns the value of transaction
-         */
-        public AbstractTransaction getTransaction()
-        {
-            return myTransaction;
-        }
-
-        /**
-         * Returns the value of consensusID
-         */
-        public UnitID getConsensusID()
-        {
-            return myConsensusID;
-        }
-
-        /**
-         * Returns the value of pne
-         */
-        public ProposalNotificationEvent getPne()
-        {
-            return myPne;
-        }
+        /** Initiates commit phase for a transaction */
+        public void initiateCommit();
+        
+        /** The actual method via which workflow responds to an event */
+        public void respondTO(Object event);
     }
     
-    private class StandardExecutionCallback
-        implements FutureCallback<Memento<Boolean>>
+    private class SimpleWorkflow implements WorkFlow
     {
-        private final long myTransactionID;
+        private final ClientInfo myClientInfo;
         
+        private final AbstractTransaction myTransaction;
+        
+        private boolean myExecutionPahse;
+        
+        private Memento<Boolean> myMemento;
+
         /**
          * CTOR
          */
-        public StandardExecutionCallback(long transactionID)
+        public SimpleWorkflow(ClientInfo clientInfo, 
+                              AbstractTransaction transaction)
         {
-            myTransactionID = transactionID;
+            super();
+            myClientInfo = clientInfo;
+            myTransaction = transaction;
+            myExecutionPahse = true;
         }
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public void onFailure(Throwable exception)
+        public long getTransactionID()
         {
-            ClientInfo clientInfo = myTrnToClientMap.get(myTransactionID);
-            if (clientInfo != null) {
+            return myTransaction.getTransactionID();
+        }
+
+        private void sendErrorToClient(Exception exception)
+        {
+            if (myClientInfo != null) {
                 myEventBus.publish(
                    new SendMessageEvent(
                        Collections.singleton(
-                           clientInfo.getClientID()),
+                           myClientInfo.getClientID()),
                        new DBOperationFailureMessage(
                            myServerID,
-                           clientInfo.getClientSequenceNumber(),
+                           myClientInfo.getClientSequenceNumber(),
                            exception.getMessage(),
                            exception)));
             }
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void onSuccess(Memento<Boolean> result)
-        {
-            if (result.getPhase().getResult()) {
-                // We can commit the changes
-                ListenableFuture<Memento<TransactionResult>> future =
-                                myExecutor.submit(
-                                   new PhasedTransactionExecutor<TransactionResult>(
-                                       result));
-
-                Futures.addCallback(future,
-                                    new StandardCommitCallback(
-                                        myTransactionID));
-            }
-            else {
-                // We have to wait.
-                myAwaitingCommitMap.put(Long.valueOf(myTransactionID), 
-                                        result);
-            }
-        }
-    }
-    
-    private class StandardCommitCallback
-        implements FutureCallback<Memento<TransactionResult>>
-    {
-        private final long myTransactionID;
-        
-        /**
-         * CTOR
-         */
-        public StandardCommitCallback(long transactionID)
-        {
-            super();
-            myTransactionID = transactionID;
         }
         
         /**
@@ -204,132 +153,238 @@ public class TransactionManager
         private void scheduleNextTransactions()
         {
             TLongSet toBeProcessedTransactions = 
-                Registry.freeDependentTransactionsOn(myTransactionID);
+                Registry.freeDependentTransactionsOn(
+                    myTransaction.getTransactionID());
             if (!toBeProcessedTransactions.isEmpty()) {
                 myExecutor.submit(new ScheduleTransactionCommitTask(
                     toBeProcessedTransactions));
             }
         }
+        
+        public void initiateCommit()
+        {
+            if (myMemento != null) {
+                ListenableFuture<Memento<TransactionResult>> future =
+                    myExecutor.submit(
+                       new PhasedTransactionExecutor<TransactionResult>(
+                           myMemento));
+        
+                Futures.addCallback(future,
+                                    new WorkflowProcessor<>(
+                                        SimpleWorkflow.this));
+            }
+        }
+        
+        /**
+         * {@inheritDoc}
+         */
+        public void start()
+        {
+            if (myExecutionPahse) {
+                ListenableFuture<Memento<Boolean>> future =
+                    myExecutor.submit(
+                       new PhasedTransactionExecutor<Boolean>(
+                           myTransaction,
+                           myWriteAheadLog,
+                           new PhasedTransactionExecutor.ExecutionPhase(
+                               myTransaction)));
+                    
+                Futures.addCallback(future, 
+                                    new WorkflowProcessor<>(SimpleWorkflow.this));
+
+            }
+            else {
+                LOG.severe("For " + getTransactionID() + " we are initiating "
+                           + " start when commit is expected ");
+            }
+        }
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public void onFailure(Throwable exception)
+        public void respondTO(Object event)
         {
-            ClientInfo clientInfo = myTrnToClientMap.get(myTransactionID);
-            if (clientInfo != null) {
-                    myEventBus.publish(
-                       new SendMessageEvent(
-                           Collections.singleton(
-                               clientInfo.getClientID()),
-                           new DBOperationFailureMessage(
-                               myServerID,
-                               clientInfo.getClientSequenceNumber(),
-                               exception.getMessage(),
-                               exception)));
+            if (event instanceof Memento && myExecutionPahse) {
+                
+                @SuppressWarnings("unchecked")
+                Memento<Boolean> result = (Memento<Boolean>) event;
+                
+                if (result.getPhase().getResult()) {
+                    myMemento = result;
+                    if (Registry.getPrecedencyFor(getTransactionID()).isEmpty())
+                    {
+                        // We can commit the changes
+                        initiateCommit();
+                    }
+                }
+                else {
+                    sendErrorToClient(new DatabaseException(
+                        "Transaction validation failed"));
+                }
+                myExecutionPahse = false;
             }
-            // XXX Abort all transactions that is dependent 
-            // on this transaction.
-        }
-    
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void onSuccess(Memento<TransactionResult> result)
-        {
-            ClientInfo clientInfo = myTrnToClientMap.get(myTransactionID);
-            if (clientInfo != null) {
+            else if (event instanceof Memento && !myExecutionPahse) {
                 myEventBus.publish(myDatabase.getStatistics());
+                @SuppressWarnings("unchecked")
+                Memento<TransactionResult> result = 
+                    (Memento<TransactionResult>) event;
+
                 Message message =
                     result.getPhase().getResult().isCommitted() ?
                         new DBOperationSuccessMessage(
                             myServerID,
-                            clientInfo.getClientSequenceNumber(), 
+                            myClientInfo.getClientSequenceNumber(), 
                             result.getPhase().getResult().getResult())
                         : new DBOperationFailureMessage(
                               myServerID,
-                              clientInfo.getClientSequenceNumber(),
+                              myClientInfo.getClientSequenceNumber(),
                               "Failed to apply the transaction on db");
 
                 myEventBus.publish(
                    new SendMessageEvent(
-                       Collections.singleton(clientInfo.getClientID()),
+                       Collections.singleton(myClientInfo.getClientID()),
                        message));
+                
+                scheduleNextTransactions();
             }
-            scheduleNextTransactions();
+            else if (event instanceof Exception) {
+                Exception exception = (Exception) event;
+                sendErrorToClient(exception);
+                // XXX Abort all transactions that is dependent 
+                // on this transaction.
+            }
         }
     }
     
-    private class CommitPhaseCallBack
-        extends StandardCommitCallback
+    private class DistributedWorkflow implements WorkFlow
     {
-        private final ProposalNotificationEvent myNotification;
+        private final AbstractTransaction myTransaction;
+        
+        private final ProposalNotificationEvent myPne;
+        
+        private boolean myExecutionPhase;
+        
+        private Memento<Boolean> myMemento;
 
         /**
          * CTOR
          */
-        public CommitPhaseCallBack(long transactionID,
-                                   ProposalNotificationEvent notification)
-        {
-            super(transactionID);
-            myNotification = notification;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void onFailure(Throwable exception)
-        {
-            myEventBus.publish(new ProposalNotificationResponse(
-                                   myNotification,
-                                   false));
-            super.onFailure(exception);
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void onSuccess(Memento<TransactionResult> memento)
-        {
-            super.onSuccess(memento);
-            long id = memento.getTransaction().getTransactionID();
-            myDistributedTrnInfoMap.remove(id);
-            myDatabase.unlock(id);
-            if (!myDistributedTrnInfoMap.isEmpty()) {
-                // XXX shud this be the only way for scheduling 
-                // waiting distributed transactions
-                long nextID = myDistributedTrnInfoMap.keys()[0];
-                if (myDatabase.lock(nextID)) {
-                    Registry.addDependencyToAll(nextID);
-                }
-            }
-            List<AbstractTransaction> queued = 
-                new ArrayList<>(myQueuedTransactions);
-            myQueuedTransactions.clear();
-            myExecutor.submit(new ScheduleTransactionExecutionTask(queued));
-        }
-    }
-
-    private class ExecutionPhaseCallBack
-        implements FutureCallback<Memento<Boolean>>
-    {
-        private final ProposalNotificationEvent myNotification;
-
-        private final UnitID myUnitID;
-
-        /**
-         * CTOR
-         */
-        public ExecutionPhaseCallBack(UnitID unitID,
-                                      ProposalNotificationEvent notification)
+        public DistributedWorkflow(AbstractTransaction transaction,
+                                   ProposalNotificationEvent pne)
         {
             super();
-            myUnitID = unitID;
-            myNotification = notification;
+            myTransaction = transaction;
+            myPne = pne;
+            myExecutionPhase = true;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public long getTransactionID()
+        {
+            return myTransaction.getTransactionID();
+        }
+        
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void start()
+        {
+            if (myDatabase.canProcess(getTransactionID())) {
+                // Now schedule a distributed transaction to 
+                // execute.
+                ListenableFuture<Memento<Boolean>> future =
+                    myExecutor.submit(
+                       new PhasedTransactionExecutor<Boolean>(
+                           myTransaction,
+                           myWriteAheadLog,
+                           new PhasedTransactionExecutor.ExecutionPhase(
+                               myTransaction)));
+                    
+                Futures.addCallback(future, 
+                                    new WorkflowProcessor<>(
+                                        DistributedWorkflow.this));
+            }
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void respondTO(Object event)
+        {
+            if (event instanceof Memento && myExecutionPhase) {
+                @SuppressWarnings("unchecked")
+                Memento<Boolean> result = (Memento<Boolean>) event;
+                if (myPne != null) {
+                    myEventBus.publish(
+                        new ProposalNotificationResponse(
+                            myPne,
+                            result.getPhase().getResult()));
+                }
+                myMemento = result;
+                myExecutionPhase = false;
+            }
+            else if (event instanceof Memento && myExecutionPhase) {
+                myEventBus.publish(
+                   new ProposalNotificationResponse(myPne, false));
+            }
+            else if (   event instanceof ProposalNotificationEvent
+                     && ((ProposalNotificationEvent) event).isCommitNotification()
+                     && myMemento != null) 
+            {
+
+            }
+            else if (   !myExecutionPhase 
+                     && event instanceof Memento)
+            {
+                @SuppressWarnings("unchecked")
+                Memento<TransactionResult> result = 
+                    (Memento<TransactionResult>) event;
+                // XXX Make changes to send the result to the client.
+                List<WorkFlow> queued = 
+                    new ArrayList<>(myQueuedWorkFlows);
+                myQueuedWorkFlows.clear();
+                myExecutor.submit(new ScheduleTransactionExecutionTask(queued));
+            }
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void initiateCommit()
+        {
+            if (myMemento != null) {
+                ListenableFuture<Memento<TransactionResult>> future =
+                    myExecutor.submit(
+                       new PhasedTransactionExecutor<TransactionResult>(
+                           myMemento));
+
+                // TODO Fix this, we are assuming client will take care
+                // of merging the commits.
+                Futures.addCallback(future,
+                                    new WorkflowProcessor<>(
+                                        DistributedWorkflow.this));
+            }
+        }
+    }
+    
+    private class WorkflowProcessor<T> implements FutureCallback<T>
+    {
+        private final WorkFlow myWorkFlow;
+
+        /**
+         * CTOR
+         */
+        public WorkflowProcessor(WorkFlow workFlow)
+        {
+            super();
+            myWorkFlow = workFlow;
         }
 
         /**
@@ -338,38 +393,27 @@ public class TransactionManager
         @Override
         public void onFailure(Throwable exception)
         {
-            if (myNotification != null) {
-                myEventBus.publish(
-                    new ProposalNotificationResponse(myNotification,
-                                                     false));
-            }
+            myWorkFlow.respondTO(exception);
         }
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public void onSuccess(Memento<Boolean> memento)
+        public void onSuccess(T result)
         {
-            myAwaitingConsensusCommitMap.put(myUnitID, memento);
-
-            if (myNotification != null) {
-                myEventBus.publish(
-                    new ProposalNotificationResponse(
-                        myNotification,
-                        memento.getPhase().getResult()));
-            }
+            myWorkFlow.respondTO(result);
         }
     }
     
     private class ScheduleTransactionExecutionTask implements Runnable
     {
-        private final List<AbstractTransaction> myList;
+        private final List<WorkFlow> myList;
         
         /**
          * CTOR
          */
-        public ScheduleTransactionExecutionTask(List<AbstractTransaction> list)
+        public ScheduleTransactionExecutionTask(List<WorkFlow> list)
         {
             super();
             myList = list;
@@ -381,23 +425,11 @@ public class TransactionManager
         @Override
         public void run()
         {
-            for (AbstractTransaction transaction : myList) {
-                ListenableFuture<Memento<Boolean>> future =
-                        myExecutor.submit(
-                           new PhasedTransactionExecutor<Boolean>(
-                               transaction,
-                               myWriteAheadLog,
-                               new PhasedTransactionExecutor.ExecutionPhase(
-                                   transaction)));
-            
-                Futures.addCallback(future, 
-                                    new StandardExecutionCallback(
-                                        transaction.getTransactionID()));
-                    
+            for (WorkFlow workFlow : myList) {
+                workFlow.start();
             }
         }
     }
-
     
     private class ScheduleTransactionCommitTask implements Runnable
     {
@@ -419,46 +451,14 @@ public class TransactionManager
         public void run()
         {
             for (long transactionID : myTransactionSet.toArray()) {
-                
-                @SuppressWarnings("unchecked")
-                Memento<Boolean> preservedTrnState = 
-                    (Memento<Boolean>) 
-                        myAwaitingCommitMap.get(Long.valueOf(transactionID));
-                
-                if (preservedTrnState != null) {
-                    // We can commit the changes
-                    ListenableFuture<Memento<TransactionResult>> future =
-                                myExecutor.submit(
-                                   new PhasedTransactionExecutor<TransactionResult>(
-                                       preservedTrnState));
-    
-                    Futures.addCallback(future,
-                                        new StandardCommitCallback(
-                                            preservedTrnState
-                                                  .getTransaction()
-                                                  .getTransactionID()));
-                }
-                else {
-                    DistributedTrnInfo info = 
-                        myDistributedTrnInfoMap.get(transactionID);
-                    
-                    if (myDatabase.canProcess(transactionID))
-                    {
-                        // Now schedule a distributed transaction to 
-                        // execute.
-                        ListenableFuture<Memento<Boolean>> future =
-                            myExecutor.submit(
-                               new PhasedTransactionExecutor<Boolean>(
-                                   info.getTransaction(),
-                                   myWriteAheadLog,
-                                   new PhasedTransactionExecutor.ExecutionPhase(
-                                       info.getTransaction())));
-                            
-                        Futures.addCallback(future,
-                                            new ExecutionPhaseCallBack(
-                                                info.getConsensusID(), 
-                                                info.getPne()));
-                            
+                WorkFlow workFlow = 
+                    myWorkFlowMap.get(Long.valueOf(transactionID));
+                if (workFlow != null) {
+                    if (workFlow instanceof SimpleWorkflow)  {
+                        workFlow.initiateCommit();
+                    }
+                    else {
+                        workFlow.start();
                     }
                 }
             }
@@ -468,13 +468,7 @@ public class TransactionManager
     /** LOGGER */
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(TransactionManager.class);
-
-    private final Map<UnitID, Memento<?>> myAwaitingConsensusCommitMap;
     
-    private final Map<Long, Memento<?>> myAwaitingCommitMap;
-    
-    private final TLongObjectMap<ClientInfo> myTrnToClientMap;
-
     private final Clock myClock;
 
     private final TransactableDatabase myDatabase;
@@ -489,10 +483,12 @@ public class TransactionManager
 
     private final WAL    myWriteAheadLog;
     
-    private final List<AbstractTransaction> myQueuedTransactions; 
+    private final List<WorkFlow> myQueuedWorkFlows; 
     
-    private final TLongObjectMap<DistributedTrnInfo> myDistributedTrnInfoMap;
-
+    private final Map<Long, WorkFlow> myWorkFlowMap;
+    
+    private final Map<UnitID, WorkFlow> myConsensusToWorkFlowMap;
+    
     /**
      * CTOR
      */
@@ -509,11 +505,10 @@ public class TransactionManager
         myServerID = serverID;
         myEventBus = eventBus;
         myWriteAheadLog = writeAheadLog;
-        myAwaitingConsensusCommitMap = new ConcurrentHashMap<>();
-        myAwaitingCommitMap = new ConcurrentHashMap<>();
-        myTrnToClientMap = new TLongObjectHashMap<>();
-        myQueuedTransactions = new CopyOnWriteArrayList<>();
-        myDistributedTrnInfoMap = new TLongObjectHashMap<>();
+        myQueuedWorkFlows = new CopyOnWriteArrayList<>();
+        myWorkFlowMap = new ConcurrentHashMap<>();
+        myConsensusToWorkFlowMap = new ConcurrentHashMap<>();
+        
         myExecutor =
             MoreExecutors.listeningDecorator(
                 Executors.newFixedThreadPool(
@@ -545,7 +540,6 @@ public class TransactionManager
     public void processQueryAndDeleteOperation(
         NodeID originatorNode, Range<?> deletedRange)
     {
-        
     }
     
     /**
@@ -566,10 +560,7 @@ public class TransactionManager
                                  long sequenceNumber)
     {
         long id = myIdAssigner.getTransactionID();
-        if (clientID != null) {
-            ClientInfo clientInfo = new ClientInfo(clientID, sequenceNumber);
-            myTrnToClientMap.put(id, clientInfo);
-        }
+        ClientInfo clientInfo = new ClientInfo(clientID, sequenceNumber);
         
         AbstractTransaction transaction =
             operation instanceof Mutation ?
@@ -577,6 +568,12 @@ public class TransactionManager
                     id, myDatabase, myClock, (Mutation) operation)
                 : new ReadTransaction(
                     id, myDatabase, myClock, (Query) operation);
+        
+                    
+        WorkFlow workFlow = 
+            new SimpleWorkflow(clientInfo, transaction);
+        
+        myWorkFlowMap.put(Long.valueOf(id), workFlow);
         
         if (myDatabase.canProcess(id)) {
 
@@ -588,10 +585,10 @@ public class TransactionManager
                        new PhasedTransactionExecutor.ExecutionPhase(transaction)));
     
             Futures.addCallback(future, 
-                                new StandardExecutionCallback(id));
+                                new WorkflowProcessor<>(workFlow));
         }
         else {
-            myQueuedTransactions.add(transaction);
+            myQueuedWorkFlows.add(workFlow);
         }
     }
 
@@ -622,10 +619,10 @@ public class TransactionManager
                 : new ReadTransaction(
                     id, myDatabase, myClock, (Query) operation);
         
-        myDistributedTrnInfoMap.put(id,
-                                    new DistributedTrnInfo(transaction, 
-                                                           unitID,
-                                                           null));
+        WorkFlow workFlow = new DistributedWorkflow(transaction, null);
+        myWorkFlowMap.put(Long.valueOf(id), workFlow);
+        myConsensusToWorkFlowMap.put(unitID, workFlow);
+        
         if (myDatabase.lock(id)) {
             // The new distributed transaction will be 
             // dependent on all other transactions to complete.
@@ -639,56 +636,41 @@ public class TransactionManager
      */
     public void processOperation(ProposalNotificationEvent pne)
     {
-        DistributedTrnProposal distributedTrnProposal =
-            (DistributedTrnProposal) pne.getProposal();
-        DBOperation operation =
-            distributedTrnProposal.getNodeToDBOperationMap()
-                                  .get(myServerID);
 
-        if (operation != null) {
-
-           if (pne.isCommitNotification()) {
-               Memento<?> memento =
-                   myAwaitingConsensusCommitMap.get(
-                       pne.getProposal().getUnitID());
-
-               if (memento != null) {
-                   ListenableFuture<Memento<TransactionResult>> future =
-                       myExecutor.submit(
-                          new PhasedTransactionExecutor<TransactionResult>(
-                              memento));
-
-                   // TODO Fix this, we are assuming client will take care
-                   // of merging the commits.
-                   Futures.addCallback(future,
-                                       new CommitPhaseCallBack(
-                                           memento.getTransaction()
-                                                  .getTransactionID(),
-                                           pne));
-               }
+       if (pne.isCommitNotification()) {
+           WorkFlow workFlow = 
+               myConsensusToWorkFlowMap.get(pne.getProposal().getUnitID());
+           if (workFlow != null) {
+               workFlow.initiateCommit();
            }
-           else {
+       }
+       else {        
+           DistributedTrnProposal distributedTrnProposal =
+               (DistributedTrnProposal) pne.getProposal();
 
-               long id = myIdAssigner.getTransactionID();
-               AbstractTransaction transaction =
-                   operation instanceof Mutation ?
-                       new WriteTransaction(
-                           id, myDatabase, myClock, (Mutation) operation)
-                       : new ReadTransaction(
-                           id, myDatabase, myClock, (Query) operation);
+           DBOperation operation =
+               distributedTrnProposal.getNodeToDBOperationMap()
+                                     .get(myServerID);
 
-               myDistributedTrnInfoMap.put(id,
-                                           new DistributedTrnInfo(
-                                               transaction, 
-                                               distributedTrnProposal.getUnitID(),
-                                               pne));
-               
-               if (myDatabase.lock(id)) {
-                   // The new distributed transaction will be 
-                   // dependent on all other transactions to complete.
-                   Registry.addDependencyToAll(id);
-               }
+           long id = myIdAssigner.getTransactionID();
+           AbstractTransaction transaction =
+               operation instanceof Mutation ?
+                   new WriteTransaction(
+                       id, myDatabase, myClock, (Mutation) operation)
+                   : new ReadTransaction(
+                       id, myDatabase, myClock, (Query) operation);
+                       
+           WorkFlow workFlow = 
+               new DistributedWorkflow(transaction, pne);
+           myWorkFlowMap.put(Long.valueOf(id), workFlow);
+           myConsensusToWorkFlowMap.put(pne.getProposal().getUnitID(), 
+                                        workFlow);
+
+           if (myDatabase.lock(id)) {
+               // The new distributed transaction will be 
+               // dependent on all other transactions to complete.
+               Registry.addDependencyToAll(id);
            }
-        }
+       }
     }
 }

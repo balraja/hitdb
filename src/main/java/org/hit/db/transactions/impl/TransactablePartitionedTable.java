@@ -20,6 +20,7 @@
 
 package org.hit.db.transactions.impl;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.TreeMap;
@@ -163,5 +164,43 @@ public class TransactablePartitionedTable<K extends Comparable<K>, P extends Per
     public long rowCount()
     {
         return myIndex.getCount();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Transactable<K, P> deleteRow(K key, long time, long transactionID)
+    {
+        Transactable<K, P> row = getRow(key, time, transactionID);
+        if (myIndex.remove(key, row)) {
+            return row;
+        }
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<Transactable<K, P>> deleteRange(
+                                                      K start,
+                                                      K end,
+                                                      long time,
+                                                      long transactionID)
+    {
+        List<Transactable<K,P>> result = new ArrayList<>();
+        LocklessSkipList<K, Transactable<K,P>>.SkipListIterator iterator =
+            myIndex.lookupValues(start, end);
+        while (iterator.hasNext()) {
+            List<Transactable<K,P>> rowVersions = iterator.next();
+            Transactable<K,P> row = doGetRow(rowVersions, time, transactionID);
+            if (myIndex.remove(row.getPersistable().primaryKey(), 
+                               row))
+            {
+                result.add(row);
+            }
+        }
+        return result;
     }
 }

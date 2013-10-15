@@ -45,6 +45,25 @@ public interface Table<K extends Comparable<K>, P extends Persistable<K>>
     
     /** Returns row corresponding to a primary key */
     public P getRow(K primarykey);
+    
+    /** 
+     * Deletes the row that matches the given primary key and returns that
+     * row, else returns null.
+     */
+    public P deleteRow(K primaryKey);
+    
+    /** 
+     * Deletes the rows that falls between the given key range and returns those
+     * rows, else returns null.
+     */
+    public Collection<P> deleteRange(K primaryKey, K secondaryKey);
+    
+    /** 
+     * Deletes the rows that falls between the given key range and returns those
+     * rows, else returns null.
+     */
+    public Collection<P> deleteRange(Object primaryKey, Object secondaryKey);
+
 
     /** Returns schema of the table */
     public Schema getSchema();
