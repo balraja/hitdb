@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -120,9 +119,9 @@ public class SlaveWarden extends AbstractWarden
          * {@inheritDoc}
          */
         @Override
-        public void onFailure(Throwable arg0)
+        public void onFailure(Throwable e)
         {
-            throw new RuntimeException(args0);
+            throw new RuntimeException(e);
             
         }
 
