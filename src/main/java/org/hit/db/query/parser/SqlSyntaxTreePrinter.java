@@ -29,7 +29,7 @@ import org.antlr.runtime.tree.CommonTreeNodeStream;
 /**
  * @author Balraja Subbiah
  */
-public class QueryTest
+public class SqlSyntaxTreePrinter
 {
     public static void printTree(CommonTree t, int indent) {
         if ( t != null ) {
@@ -52,9 +52,8 @@ public class QueryTest
         try {
             ANTLRStringStream fs = 
                 new ANTLRStringStream(
-                    "select climate_data.station  " +
-                    "from climate_data join country " +
-                    "on climate_data.country_id = country.id ");
+                    "select max(id) from climate_data");
+            
             HitSQLLexer lex = new HitSQLLexer(fs);
             TokenRewriteStream tokens = new TokenRewriteStream(lex);
             HitSQLParser parser = new HitSQLParser(tokens);

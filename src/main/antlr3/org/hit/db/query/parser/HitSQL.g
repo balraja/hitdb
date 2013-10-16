@@ -9,7 +9,7 @@ options
 
 tokens {
     SELECTED_COLUMNS;
-    ALL;
+    ALL_COLUMNS;
     GROUPING_COLUMNS;
     GROUPED_COLUMN;
     ORDERED_COLUMNS;
@@ -130,9 +130,10 @@ WHITESPACE: SPACE+ { $channel = HIDDEN; };
 group_function:
     AVG | COUNT | MAX_SYM | MIN_SYM | SUM;
 table_name  : ID;
-column_name : (ID DOT)* ID -> ^(COLUMN_NAME ID+);
-aggr_column_name : group_function LPAREN column_name RPAREN {System.out.println("Aggr column name");} 
-       -> column_name;
+column_name : (ID DOT)* ID -> ^(COLUMN_NAME ID+)
+             | ASTERISK -> ^(COLUMN_NAME ALL_COLUMNS);
+aggr_column_name : group_function LPAREN column_name RPAREN 
+       ->^(GROUPED_COLUMN group_function column_name);
 
 // expression
 relational_op: 
@@ -191,8 +192,7 @@ orderby_item: column_name (order)? -> ^(ORDERED_COLUMN column_name order?) ;
 limit_clause: LIMIT INTEGER_NUM -> ^(LIMIT INTEGER_NUM);
 
 select_list:
-    (column_ref ( COMMA column_ref )*) -> ^(SELECTED_COLUMNS column_ref+)
-    | ASTERISK -> ^(SELECTED_COLUMNS ALL);
+    (column_ref ( COMMA column_ref )*) -> ^(SELECTED_COLUMNS column_ref+);
 
 column_ref :
      column_name

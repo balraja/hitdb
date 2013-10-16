@@ -20,7 +20,6 @@
 
 package org.hit.db.query.operators;
 
-import java.util.Set;
 import java.util.SortedSet;
 
 import org.hit.db.model.Queryable;

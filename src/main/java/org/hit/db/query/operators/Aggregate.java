@@ -27,7 +27,7 @@ import org.hit.db.model.Queryable;
 import com.google.common.base.Function;
 
 /**
- * Defines the contract for the namespace that can used for capturing
+ * Defines the contract for a type that can used for capturing
  * aggregate information. This class is final and non-initializable.
  * 
  * @author Balraja Subbiah
@@ -150,6 +150,9 @@ public final class Aggregate
         {
            if (myID == ID.AVG) {
                return Double.valueOf(myResult / (double) myCount);
+           }
+           else if (myID == ID.CNT) {
+               return Double.valueOf(myCount);
            }
            else {
                return Double.valueOf(myResult);

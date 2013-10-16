@@ -29,6 +29,10 @@ import org.hit.db.model.Queryable;
  */
 public final class ColumnNameUtil
 {
+    public static final String ALL_COLUMNS = "ALL_COLUMNS";
+    
+    public static final String ALL_COLUMNS_SYMBOLIC = "(*)";
+    
     public static String[] nestedColumnNames(String columnName)
     {
         return columnName.split("\\.");

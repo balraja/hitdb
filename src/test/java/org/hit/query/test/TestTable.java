@@ -127,4 +127,32 @@ public class TestTable<K extends Comparable<K>, P extends Persistable<K>>
     {
         return false;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public P deleteRow(K primaryKey)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<P> deleteRange(K primaryKey, K secondaryKey)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<P> deleteRange(Object primaryKey, Object secondaryKey)
+    {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }

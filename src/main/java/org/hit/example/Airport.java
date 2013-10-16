@@ -123,6 +123,7 @@ public class Airport implements Persistable<Long>, Externalizable
     public Object getFieldValue(String fieldName)
     {
         switch (fieldName) {
+        case "id" : return myID;
         case "name" : return myName;
         case "city" : return myCity;
         case "country" : return myCountry;

@@ -49,7 +49,9 @@ scope {
         $column_name::builder.append(".");
     }
     $column_name::builder.append($ID.text);
- } )+);
+ } )+)
+ | ^(COLUMN_NAME ALL_COLUMNS) {$column_name::builder.append("ALL_COLUMNS");}
+ ;
 
 // expression
 relational_op returns [ComparisionOperator operator]: 

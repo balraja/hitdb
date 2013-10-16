@@ -49,13 +49,44 @@ public class QueryBuilder
      */
     public Query buildQuery() throws QueryBuildingException
     {
-        if (myQueryAttributes.getSelectedColumns() == null 
+        if (   myQueryAttributes.getSelectedColumns() == null 
             || myQueryAttributes.getSelectedColumns().isEmpty())
         {
             throw new QueryBuildingException(
                 "Please select some columns for the output");
         }
-        else if (myQueryAttributes.getGroupByAttributes() != null) {
+        
+        for (Map.Entry<String, ID> selectedColumn : 
+                 myQueryAttributes.getSelectedColumns().entrySet())
+        {
+            if (selectedColumn.getKey().equals(ColumnNameUtil.ALL_COLUMNS)
+                && selectedColumn.getValue() != null
+                && selectedColumn.getValue() != Aggregate.ID.CNT) 
+            {
+                throw new QueryBuildingException(
+                    "Only CNT aggregation is valid in select * format");
+
+            }
+        }
+        
+        boolean hasSelectAggregation = false, hasNonAggregatedColumns = false;
+        for (Map.Entry<String, ID> selectedColumn : 
+            myQueryAttributes.getSelectedColumns().entrySet())
+        {
+            if (selectedColumn.getValue() != null) {
+                hasSelectAggregation = true;
+            }
+            else {
+                hasNonAggregatedColumns = true;
+            }
+        }
+        
+        if (hasSelectAggregation && hasNonAggregatedColumns) {
+            throw new QueryBuildingException(
+                "Select cann't contain aggregated and non aggregated columns");
+        }
+        
+        if (myQueryAttributes.getGroupByAttributes() != null) {
             for (Map.Entry<String, ID> selectedColumn : 
                     myQueryAttributes.getSelectedColumns().entrySet())
             {
@@ -76,7 +107,7 @@ public class QueryBuilder
                 || (   myQueryAttributes.getWhereCondition() == null 
                     && myQueryAttributes.getJoinCriteria() == null)))
         {
-            operator = new Select(myQueryAttributes.getTableName(),
+            operator = new Where(myQueryAttributes.getTableName(),
                                   myQueryAttributes.getWhereCondition());
         }
         else if (myQueryAttributes.getJoinCriteria() != null) {
@@ -94,13 +125,17 @@ public class QueryBuilder
                                        myQueryAttributes.getGroupByAttributes(),
                                        myQueryAttributes.getSelectedColumns());
             }
+            
+            if (myQueryAttributes.getHavingCondition() != null) {
+                
+                operator = new Having(operator, 
+                                      myQueryAttributes.getHavingCondition());
+            }
         }
-        
-        if (myQueryAttributes.getHavingCondition() != null) {
-            operator = new Having(operator, 
-                                  myQueryAttributes.getHavingCondition());
+        else {
+            operator = new Select(operator,
+                                  myQueryAttributes.getSelectedColumns());
         }
-        
         return new QueryAdaptor(operator);
     }
 }

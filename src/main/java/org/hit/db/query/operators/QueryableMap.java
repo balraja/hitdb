@@ -20,6 +20,7 @@
 
 package org.hit.db.query.operators;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,6 +51,12 @@ public class QueryableMap implements Queryable
     public Object getFieldValue(String fieldName)
     {
         return myAttributeMap.get(fieldName);
+    }
+    
+    /** Returns the collection of keys stored in this map */
+    public Collection<String> keySet()
+    {
+        return myAttributeMap.keySet();
     }
     
     /** Sets the value of an attribute */

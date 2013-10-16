@@ -23,109 +23,116 @@ package org.hit.db.query.operators;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Map;
 
-import org.hit.db.model.Database;
-import org.hit.db.model.Persistable;
-import org.hit.db.model.Predicate;
+import javax.management.RuntimeErrorException;
+
 import org.hit.db.model.Queryable;
-import org.hit.db.model.Table;
+import org.hit.db.query.operators.Aggregate.Aggregator;
+import org.hit.db.query.operators.Aggregate.ID;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 
 /**
- * Defines the simple select operation that performs a table scan 
- * and filters results based on the predicate.
+ * Extends <Code>Decorator</code> to support aggregation on top of 
+ * filtered rows.
  * 
  * @author Balraja Subbiah
  */
-public class Select implements QueryOperator
+public class Select extends Decorator
 {
-    private String myTableName;
-    
-    private Condition myFilteringCondition;
+    private Map<String, Aggregate.ID> mySelectColumns;
     
     /**
      * CTOR
      */
     public Select()
     {
-        myTableName = null;
-        myFilteringCondition = null;
+        this(null, null);
     }
 
     /**
      * CTOR
      */
-    public Select(String tableName, Condition filteringCondition)
+    public Select(QueryOperator operator, Map<String, ID> selectColumns)
     {
-        myTableName = tableName;
-        myFilteringCondition = filteringCondition;
+        super(operator);
+        mySelectColumns = selectColumns;
     }
 
     /**
      * {@inheritDoc}
      */
-    public Collection<Queryable> getResult(Database database)
+    @Override
+    protected Collection<Queryable>
+        doPerformOperation(Collection<Queryable> toBeOperatedCollection)
     {
-        Table<? extends Comparable<?>,
-              ? extends Persistable<?>> table = 
-                  database.lookUpTable(myTableName);
-        
-        if (table != null) {
-            Predicate predicate = 
-                myFilteringCondition != null ?
-                    new PredicateAdapter(myFilteringCondition)
-                    : new Predicate() {
-                            @Override
-                            public boolean isInterested(Queryable queryable)
-                            {
-                                return true;
-                            }
-                        };
-            return Collections2.transform(
-                 table.findMatching(predicate),
-                 new Function<Persistable<?>, Queryable>() 
-                 {
-                     public Queryable apply(Persistable<?> persistable) {
-                         return (Queryable) persistable;
-                     }
-                 });
+        if (mySelectColumns.containsKey(ColumnNameUtil.ALL_COLUMNS)) {
+            Aggregate.ID aggregatingFunctionID = 
+                mySelectColumns.get(ColumnNameUtil.ALL_COLUMNS);
+            if (aggregatingFunctionID != null) {
+                if (aggregatingFunctionID == Aggregate.ID.CNT) {
+                    QueryableMap result = new QueryableMap();
+                    result.setFieldValue(ColumnNameUtil.ALL_COLUMNS, 
+                                         Integer.valueOf(
+                                             toBeOperatedCollection.size()));
+                    return Lists.<Queryable>newArrayList(result);
+                }
+                else {
+                    return new ArrayList<Queryable>();
+                }
+            }
+            else {
+                return toBeOperatedCollection;
+            }
         }
         else {
-            return Collections.emptyList();
+            boolean hasAggregation = 
+                mySelectColumns.values().iterator().next() != null;
+            if (hasAggregation) {
+                QueryableMap result = new QueryableMap();
+                for (Map.Entry<String, ID> selectedColumn : 
+                         mySelectColumns.entrySet())
+                {
+                    Aggregator aggregator = 
+                        new Aggregator(
+                            selectedColumn.getValue(), 
+                            selectedColumn.getKey());
+                    
+                    result.setFieldValue(selectedColumn.getKey(),
+                                         aggregator.apply(toBeOperatedCollection));
+
+                }
+                return Lists.<Queryable>newArrayList(result);
+            }
+            else {
+                return toBeOperatedCollection;
+            }
         }
     }
-
+    
     /**
      * {@inheritDoc}
      */
     @Override
     public void writeExternal(ObjectOutput out) throws IOException
     {
-        out.writeUTF(myTableName);
-        out.writeBoolean(myFilteringCondition != null);
-        if (myFilteringCondition != null) {
-            out.writeObject(myFilteringCondition);
-        }
+        super.writeExternal(out);
+        out.writeObject(mySelectColumns);
     }
-
+    
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("unchecked")
     @Override
     public void readExternal(ObjectInput in)
-        throws IOException, ClassNotFoundException
+        throws IOException,
+            ClassNotFoundException
     {
-        myTableName = in.readUTF();
-        boolean isFCAvailable = in.readBoolean();
-        if (isFCAvailable) {
-            myFilteringCondition = (Condition) in.readObject();
-        }
-        else {
-            myFilteringCondition = null;
-        }
+        super.readExternal(in);
+        mySelectColumns = (Map<String, ID>) in.readObject();
     }
 }

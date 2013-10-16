@@ -26,7 +26,9 @@ import java.util.Collection;
 
 import org.antlr.runtime.RecognitionException;
 import org.hit.db.model.Query;
+import org.hit.db.model.Queryable;
 import org.hit.db.query.operators.QueryBuildingException;
+import org.hit.db.query.operators.QueryableMap;
 import org.hit.db.query.parser.QueryFactory;
 import org.hit.example.Airport;
 import org.hit.example.HitDbTest;
@@ -41,7 +43,7 @@ public class QueryTest
     private TestDB myTestDB;
     
     /**
-     * @throws java.lang.Exception
+     * Sets up the artifacts for testing.
      */
     @Before
     public void setUp() throws Exception
@@ -49,8 +51,11 @@ public class QueryTest
         myTestDB = new TestDB();
     }
 
+    /**
+     * Tests the select * query.
+     */
     @Test
-    public void testQueries() throws RecognitionException, QueryBuildingException
+    public void testSelect() throws RecognitionException, QueryBuildingException
     {
         Query query = 
             QueryFactory.makeQuery("select * from " + HitDbTest.TABLE_NAME);
@@ -60,8 +65,59 @@ public class QueryTest
             (Collection<Airport>) query.query(myTestDB);
         assertTrue(airports != null);
         assertFalse(airports.isEmpty());
-        
-        Query query = 
-            QueryFactory.makeQuery("select * from " + HitDbTest.TABLE_NAME);
+        assertEquals(7411, airports.size());
     }
+    
+    /**
+     * Tests the select count(*) query.
+     */
+    @Test
+    public void testCount() throws RecognitionException, QueryBuildingException
+    {
+        Query query = 
+            QueryFactory.makeQuery(
+                "select count(*) from " + HitDbTest.TABLE_NAME);
+        
+        @SuppressWarnings("unchecked")
+        Collection<Queryable> result = 
+            (Collection<Queryable>) query.query(myTestDB);
+        assertEquals(1, result.size());
+        
+        QueryableMap cntResult = (QueryableMap) result.iterator().next();
+        assertNotNull(cntResult);
+        
+        Collection<String> cntResultKeys = cntResult.keySet();
+        assertEquals(1, cntResultKeys.size());
+        
+        Integer rowCount = 
+            (Integer) cntResult.getFieldValue(cntResultKeys.iterator().next());
+        assertEquals(7411, rowCount.intValue());
+    }
+    
+    /**
+     * Tests the select max(column_name) query.
+     */
+    @Test
+    public void testMax() throws RecognitionException, QueryBuildingException
+    {
+        Query query = 
+            QueryFactory.makeQuery(
+                "select max(id) from " + HitDbTest.TABLE_NAME);
+        
+        @SuppressWarnings("unchecked")
+        Collection<Queryable> result = 
+            (Collection<Queryable>) query.query(myTestDB);
+        assertEquals(1, result.size());
+        
+        QueryableMap cntResult = (QueryableMap) result.iterator().next();
+        assertNotNull(cntResult);
+        
+        Collection<String> cntResultKeys = cntResult.keySet();
+        assertEquals(1, cntResultKeys.size());
+        
+        Double maxID = 
+            (Double) cntResult.getFieldValue(cntResultKeys.iterator().next());
+        assertEquals(8844L, maxID.longValue());
+    }
+
 }
