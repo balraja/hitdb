@@ -50,4 +50,13 @@ public class TableIndexedQueryable implements Queryable
     {
         return myTable2ObjectIndex.get(fieldName);
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString()
+    {
+        return myTable2ObjectIndex.toString();
+    }
 }

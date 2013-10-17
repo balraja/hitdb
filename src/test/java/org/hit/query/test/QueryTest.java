@@ -36,6 +36,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
+ * Testcases for verifying the correctness of query execution.
+ * 
  * @author Balraja Subbiah
  */
 public class QueryTest
@@ -119,5 +121,25 @@ public class QueryTest
             (Double) cntResult.getFieldValue(cntResultKeys.iterator().next());
         assertEquals(8844L, maxID.longValue());
     }
-
+    
+    /**
+     * Tests the select max(column_name) query.
+     */
+    @Test
+    public void testJoin() throws RecognitionException, QueryBuildingException
+    {
+        Query query = 
+            QueryFactory.makeQuery(
+               "select count(*) " +
+               "from airports join routes " +
+               "on airports.id = routes.src_airport_id" +
+               "where airports.id = 3093");
+                    
+        @SuppressWarnings("unchecked")
+        Collection<Queryable> result = 
+            (Collection<Queryable>) query.query(myTestDB);
+        
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+    }
 }

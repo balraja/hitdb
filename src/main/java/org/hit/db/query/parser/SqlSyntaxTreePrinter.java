@@ -52,7 +52,10 @@ public class SqlSyntaxTreePrinter
         try {
             ANTLRStringStream fs = 
                 new ANTLRStringStream(
-                    "select max(id) from climate_data");
+                    "select count(*) " +
+                    "from airport join routes " +
+                    "on airport.id = routes.src_airport_id" +
+                    " where airport.id = 3093");
             
             HitSQLLexer lex = new HitSQLLexer(fs);
             TokenRewriteStream tokens = new TokenRewriteStream(lex);

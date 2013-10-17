@@ -111,7 +111,8 @@ public class QueryBuilder
                                   myQueryAttributes.getWhereCondition());
         }
         else if (myQueryAttributes.getJoinCriteria() != null) {
-            operator = new Join(myQueryAttributes.getJoinCriteria());
+            operator = new Join(myQueryAttributes.getJoinCriteria(),
+                                myQueryAttributes.getWhereCondition());
         }
         
         if (myQueryAttributes.getGroupByAttributes() != null) {

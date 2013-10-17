@@ -20,6 +20,8 @@
 
 package org.hit.db.query.operators;
 
+import java.util.Arrays;
+
 import org.hit.db.model.Queryable;
 
 /**
@@ -40,7 +42,7 @@ public final class ColumnNameUtil
     
     public static Object getValue(Queryable record, String[] columnNames)
     {
-        Object result = null;
+        Object result = record;
         for (String nestedColumn : columnNames) {
             result = ((Queryable) result).getFieldValue(nestedColumn);
         }

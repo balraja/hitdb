@@ -50,7 +50,7 @@ public class Join implements QueryOperator
 {
     /**
      * Defines an iterator that generates the cross product of 
-     * objects stored in multiple columns.
+     * objects stored in multiple tables.
      */
     private static class MultiTableIterator implements Iterator<Queryable>
     {
@@ -76,7 +76,8 @@ public class Join implements QueryOperator
                       database.lookUpTable(tableName);
                 myTableData.add(
                     new ArrayList<>(
-                          Collections2.transform(table.findMatching(
+                        Collections2.transform(
+                          table.findMatching(
                                MatchAllPredicate.INSTANCE),
                           new Function<Persistable<?>, Queryable>() 
                           {
@@ -160,6 +161,8 @@ public class Join implements QueryOperator
     
     private Pair<List<String>, Condition> myJoinCondition;
     
+    private Condition myFilter;
+    
     /**
      * CTOR
      */
@@ -171,9 +174,12 @@ public class Join implements QueryOperator
     /**
      * CTOR
      */
-    public Join(Pair<List<String>, Condition> joinCondition)
+    public Join(Pair<List<String>, Condition> joinCondition,
+                Condition                     filter)
     {
         myJoinCondition = joinCondition;
+        myFilter        = filter;
+        
     }
 
     /**
@@ -189,7 +195,9 @@ public class Join implements QueryOperator
         List<Queryable> result = new ArrayList<>();
         while (itr.hasNext()) {
             Queryable queryable = itr.next();
-            if (myJoinCondition.getSecond().isValid(queryable)) {
+            if (   myJoinCondition.getSecond().isValid(queryable)
+                && (myFilter == null || myFilter.isValid(queryable))) 
+            {
                 result.add(queryable);
             }
         }
