@@ -22,7 +22,7 @@ package org.hit.db.query.operators;
 
 import java.util.Map;
 
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
  * Defines the contract for <code>Queryable</code> which stores the 
@@ -30,14 +30,14 @@ import org.hit.db.model.Queryable;
  * 
  * @author Balraja Subbiah
  */
-public class TableIndexedQueryable implements Queryable
+public class TableIndexedQueryable implements Row
 {
-    private final Map<String, Queryable> myTable2ObjectIndex;
+    private final Map<String, Row> myTable2ObjectIndex;
     
     /**
      * CTOR
      */
-    public TableIndexedQueryable(Map<String, Queryable> table2ObjectIndex)
+    public TableIndexedQueryable(Map<String, Row> table2ObjectIndex)
     {
         myTable2ObjectIndex = table2ObjectIndex;
     }

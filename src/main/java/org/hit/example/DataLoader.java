@@ -71,7 +71,10 @@ public abstract class DataLoader<T>
                 }
 
                 String[] parts = line.split(",");
-                result.add(parseFromTokens(parts));
+                T parsedValue = parseFromTokens(parts);
+                if (parsedValue != null) {
+                    result.add(parsedValue);
+                }
 
             }
         }

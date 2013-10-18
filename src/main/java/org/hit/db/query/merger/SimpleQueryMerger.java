@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
  * A simple query merger which just collects the partial result and returns
@@ -34,7 +34,7 @@ import org.hit.db.model.Queryable;
  */
 public class SimpleQueryMerger implements QueryMerger
 {
-    private final List<Queryable> myCollectedResult;
+    private final List<Row> myCollectedResult;
     
     /**
      * CTOR
@@ -49,7 +49,7 @@ public class SimpleQueryMerger implements QueryMerger
      * {@inheritDoc}
      */
     @Override
-    public void addPartialResult(Collection<Queryable> result)
+    public void addPartialResult(Collection<Row> result)
     {
         myCollectedResult.addAll(result);
     }
@@ -58,7 +58,7 @@ public class SimpleQueryMerger implements QueryMerger
      * {@inheritDoc}
      */
     @Override
-    public Collection<Queryable> getMergedResult()
+    public Collection<Row> getMergedResult()
     {
         return myCollectedResult;
     }

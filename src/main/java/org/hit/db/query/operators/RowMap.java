@@ -24,22 +24,22 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
- * Defines the contract for {@link Queryable} which wraps it's attributes
+ * Defines the contract for {@link Row} which wraps it's attributes
  * in a map.
  * 
  * @author Balraja Subbiah
  */
-public class QueryableMap implements Queryable
+public class RowMap implements Row
 {
     private final Map<String, Object> myAttributeMap;
     
     /**
      * CTOR
      */
-    public QueryableMap()
+    public RowMap()
     {
         myAttributeMap = new HashMap<>();
     }

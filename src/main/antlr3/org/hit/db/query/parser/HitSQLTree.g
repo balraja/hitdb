@@ -110,13 +110,12 @@ scope {
 : ^(OR_SYM (f=filtering_expression{$or_grouped_expression::groupedConditions.add($f.condition);})+);
 
 expression_atom returns [Condition condition]:
-    (f=filtering_expression { System.out.println("filtering");condition = $f.condition;})
+    (f=filtering_expression { condition = $f.condition;})
     | (a=and_grouped_expression {condition= $a.condition;}) 
     | (o=or_grouped_expression {condition=$o.condition;});
     
 expression returns[Condition condition]: 
     e=expression_atom {
-        System.out.println("evaluating expression");
         condition = $e.condition;
     }
     | ^(c=conjunction_operators e1=expression_atom e2=expression_atom) {
@@ -131,7 +130,6 @@ select_statement:
  ^(SELECT select_list ^(FROM table_references) where_clause? groupby_clause? having_clause? orderby_clause? limit_clause?);
 
 where_clause: ^(WHERE e=expression) {
-    System.out.println("where");
     myQueryAttributes.setWhereCondition($e.condition);
 };
 

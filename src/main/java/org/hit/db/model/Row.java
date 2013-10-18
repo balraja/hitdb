@@ -26,7 +26,7 @@ package org.hit.db.model;
  * 
  * @author Balraja Subbiah
  */
-public interface Queryable
+public interface Row
 {
     /** Returns value corresponding to the given field name */
     public Object getFieldValue(String fieldName);

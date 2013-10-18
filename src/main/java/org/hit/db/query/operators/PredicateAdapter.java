@@ -21,7 +21,7 @@
 package org.hit.db.query.operators;
 
 import org.hit.db.model.Predicate;
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
  * Adapts <code>Condition</code> to match the requirements of <code>Predicate
@@ -46,7 +46,7 @@ public class PredicateAdapter implements Predicate
      * {@inheritDoc}
      */
     @Override
-    public boolean isInterested(Queryable object)
+    public boolean isInterested(Row object)
     {
         return myCondition.isValid(object);
     }

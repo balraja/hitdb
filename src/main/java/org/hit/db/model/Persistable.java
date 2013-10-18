@@ -26,7 +26,7 @@ package org.hit.db.model;
  * @author Balraja Subbiah
  */
 public interface Persistable<K extends Comparable<K>>
-    extends Cloneable, Queryable
+    extends Cloneable, Row
 {
     /** Defines the contract for a primary key */
     public K primaryKey();

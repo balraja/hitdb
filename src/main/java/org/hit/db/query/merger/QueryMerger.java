@@ -22,7 +22,7 @@ package org.hit.db.query.merger;
 
 import java.util.Collection;
 
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
  * Defines an interface for merging the query results from different nodes
@@ -32,8 +32,8 @@ import org.hit.db.model.Queryable;
 public interface QueryMerger
 {
     /** Adds partial result from individual nodes */
-    public void addPartialResult(Collection<Queryable> result);
+    public void addPartialResult(Collection<Row> result);
     
     /** The final result of query after merging the values */
-    public Collection<Queryable> getMergedResult();
+    public Collection<Row> getMergedResult();
 }

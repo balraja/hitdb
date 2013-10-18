@@ -22,7 +22,7 @@ package org.hit.facade;
 
 import java.util.Collection;
 
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
  * Defines the contract for the response to be received after query 
@@ -32,12 +32,12 @@ import org.hit.db.model.Queryable;
  */
 public class QueryResponse
 {
-    private final Collection<Queryable> myQueryResponse;
+    private final Collection<Row> myQueryResponse;
 
     /**
      * CTOR
      */
-    public QueryResponse(Collection<Queryable> queryResponse)
+    public QueryResponse(Collection<Row> queryResponse)
     {
         super();
         myQueryResponse = queryResponse;
@@ -46,7 +46,7 @@ public class QueryResponse
     /**
      * Returns the value of queryResponse
      */
-    public Collection<Queryable> getQueryResponse()
+    public Collection<Row> getQueryResponse()
     {
         return myQueryResponse;
     }

@@ -43,7 +43,7 @@ import org.hit.communicator.NodeID;
 import org.hit.db.model.DBOperation;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Query;
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 import org.hit.db.model.Schema;
 import org.hit.db.model.mutations.RangeMutation;
 import org.hit.db.model.mutations.SingleKeyMutation;
@@ -146,13 +146,13 @@ public class HitDBFacade
                         dbOperationSuccessMessage.getResult()));
                 }
                 else {
-                    final SettableFuture<Pair<NodeID, Collection<Queryable>>>
+                    final SettableFuture<Pair<NodeID, Collection<Row>>>
                         queryFuture = myQueryToMergableFutureMap.get(id);
 
                     if (queryFuture != null) {
                         queryFuture.set(new Pair<>(
                             dbOperationSuccessMessage.getSenderId(),
-                            (Collection<Queryable>)
+                            (Collection<Row>)
                                 dbOperationSuccessMessage.getResult()));
                     }
                     else {
@@ -179,7 +179,7 @@ public class HitDBFacade
                         dbOperationFailure.getException());
                 }
                 else {
-                    final SettableFuture<Pair<NodeID, Collection<Queryable>>>
+                    final SettableFuture<Pair<NodeID, Collection<Row>>>
                         queryFuture = myQueryToMergableFutureMap.get(id);
 
                     if (queryFuture != null) {
@@ -198,7 +198,7 @@ public class HitDBFacade
     }
 
     private class QueryResponserHandler
-        implements FutureCallback<Pair<NodeID, Collection<Queryable>>>
+        implements FutureCallback<Pair<NodeID, Collection<Row>>>
     {
         private final SettableFuture<QueryResponse> myClientFuture;
 
@@ -237,7 +237,7 @@ public class HitDBFacade
          * {@inheritDoc}
          */
         @Override
-        public void onSuccess(Pair<NodeID, Collection<Queryable>> result)
+        public void onSuccess(Pair<NodeID, Collection<Row>> result)
         {
             myServerNodes.remove(result.getFirst());
             myQueryMerger.addPartialResult(result.getSecond());
@@ -327,7 +327,7 @@ public class HitDBFacade
         @Override
         public void run()
         {
-            SettableFuture<Pair<NodeID, Collection<Queryable>>>
+            SettableFuture<Pair<NodeID, Collection<Row>>>
                 resultFuture = SettableFuture.create();
             Set<NodeID> serverNodes =
                 new HashSet<>(myRegistryService.getServerNodes());
@@ -468,7 +468,7 @@ public class HitDBFacade
 
     private final AtomicLong myOperationsCount;
 
-    private final Map<Long, SettableFuture<Pair<NodeID, Collection<Queryable>>>>
+    private final Map<Long, SettableFuture<Pair<NodeID, Collection<Row>>>>
         myQueryToMergableFutureMap;
 
     private final RegistryService myRegistryService;

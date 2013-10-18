@@ -28,5 +28,5 @@ package org.hit.db.model;
  */
 public interface Predicate
 {
-    public boolean isInterested(Queryable queryable);
+    public boolean isInterested(Row row);
 }

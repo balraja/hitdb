@@ -22,7 +22,7 @@ package org.hit.db.query.operators;
 
 import java.util.SortedSet;
 
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
  * Defines the contract for key that can be used in grouping operations
@@ -33,12 +33,12 @@ public class GroupKey
 {
     private final SortedSet<String> myGroupingColumns;
     
-    private final Queryable myWrappedObject;
+    private final Row myWrappedObject;
 
     /**
      * CTOR
      */
-    public GroupKey(SortedSet<String> groupingColumns, Queryable wrappedObject)
+    public GroupKey(SortedSet<String> groupingColumns, Row wrappedObject)
     {
         super();
         myGroupingColumns = groupingColumns;

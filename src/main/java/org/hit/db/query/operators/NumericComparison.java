@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
  * Defines the contract for a class that can be used for comparing 
@@ -73,12 +73,21 @@ public class NumericComparison implements Condition
         myOperator = operator;
         myComparedValue = comparedValue;
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString()
+    {
+        return "Columns" + myColumnNames + " " + myOperator.name() + " " + myComparedValue;
+    }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public boolean isValid(Queryable record)
+    public boolean isValid(Row record)
     {
         Object fieldValue = ColumnNameUtil.getValue(record, myColumnNames);
         if (fieldValue != null && fieldValue instanceof Number) {

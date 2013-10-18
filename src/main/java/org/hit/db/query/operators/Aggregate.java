@@ -22,7 +22,7 @@ package org.hit.db.query.operators;
 
 import java.util.Collection;
 
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 import com.google.common.base.Function;
 
@@ -164,7 +164,7 @@ public final class Aggregate
      * Defines the contract for an function that can be used for 
      * performing aggregation operations.
      */
-    public static class Aggregator implements Function<Collection<Queryable>, 
+    public static class Aggregator implements Function<Collection<Row>, 
                                                        Number>
     {
         private final Aggregate.ID myID;
@@ -181,11 +181,11 @@ public final class Aggregate
             myColumnName = columnName;
         }
         
-        public Number apply(Collection<Queryable> aggregatingCollection)
+        public Number apply(Collection<Row> aggregatingCollection)
         {
             Accumulator accumulator = new Accumulator(myID);
-            for (Queryable queryable : aggregatingCollection) {
-                Number value = (Number) queryable.getFieldValue(myColumnName);
+            for (Row row : aggregatingCollection) {
+                Number value = (Number) row.getFieldValue(myColumnName);
                 accumulator.accumulate(value);
             }
             return accumulator.getResult();

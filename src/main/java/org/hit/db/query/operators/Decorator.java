@@ -26,7 +26,7 @@ import java.io.ObjectOutput;
 import java.util.Collection;
 
 import org.hit.db.model.Database;
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
  * Defines contract for the query operator, which supports decoration.
@@ -54,7 +54,7 @@ public abstract class Decorator implements QueryOperator
      * {@inheritDoc} 
      */
     @Override
-    public Collection<Queryable> getResult(Database database)
+    public Collection<Row> getResult(Database database)
     {
         return myDecoratedOperator != null ? 
            doPerformOperation(myDecoratedOperator.getResult(database))
@@ -65,8 +65,8 @@ public abstract class Decorator implements QueryOperator
      * Subclasses should override this method to perform the required 
      * translation.
      */
-    protected abstract Collection<Queryable> doPerformOperation(
-        Collection<Queryable> toBeOperatedCollection);
+    protected abstract Collection<Row> doPerformOperation(
+        Collection<Row> toBeOperatedCollection);
 
     /**
      * {@inheritDoc}

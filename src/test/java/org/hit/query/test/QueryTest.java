@@ -26,9 +26,10 @@ import java.util.Collection;
 
 import org.antlr.runtime.RecognitionException;
 import org.hit.db.model.Query;
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
+import org.hit.db.query.operators.ColumnNameUtil;
 import org.hit.db.query.operators.QueryBuildingException;
-import org.hit.db.query.operators.QueryableMap;
+import org.hit.db.query.operators.RowMap;
 import org.hit.db.query.parser.QueryFactory;
 import org.hit.example.Airport;
 import org.hit.example.HitDbTest;
@@ -81,11 +82,11 @@ public class QueryTest
                 "select count(*) from " + HitDbTest.TABLE_NAME);
         
         @SuppressWarnings("unchecked")
-        Collection<Queryable> result = 
-            (Collection<Queryable>) query.query(myTestDB);
+        Collection<Row> result = 
+            (Collection<Row>) query.query(myTestDB);
         assertEquals(1, result.size());
         
-        QueryableMap cntResult = (QueryableMap) result.iterator().next();
+        RowMap cntResult = (RowMap) result.iterator().next();
         assertNotNull(cntResult);
         
         Collection<String> cntResultKeys = cntResult.keySet();
@@ -107,11 +108,11 @@ public class QueryTest
                 "select max(id) from " + HitDbTest.TABLE_NAME);
         
         @SuppressWarnings("unchecked")
-        Collection<Queryable> result = 
-            (Collection<Queryable>) query.query(myTestDB);
+        Collection<Row> result = 
+            (Collection<Row>) query.query(myTestDB);
         assertEquals(1, result.size());
         
-        QueryableMap cntResult = (QueryableMap) result.iterator().next();
+        RowMap cntResult = (RowMap) result.iterator().next();
         assertNotNull(cntResult);
         
         Collection<String> cntResultKeys = cntResult.keySet();
@@ -133,13 +134,17 @@ public class QueryTest
                "select count(*) " +
                "from airports join routes " +
                "on airports.id = routes.src_airport_id" +
-               "where airports.id = 3093");
+               " where airports.id = 3093");
                     
         @SuppressWarnings("unchecked")
-        Collection<Queryable> result = 
-            (Collection<Queryable>) query.query(myTestDB);
+        Collection<Row> result = 
+            (Collection<Row>) query.query(myTestDB);
         
         assertNotNull(result);
         assertFalse(result.isEmpty());
+        assertEquals(1, result.size());
+        
+        Row firstRow = result.iterator().next();
+        assertEquals(4, firstRow.getFieldValue(ColumnNameUtil.ALL_COLUMNS_SYMBOLIC));
     }
 }

@@ -21,7 +21,7 @@
 package org.hit.db.query.operators;
 
 import org.hit.db.model.Predicate;
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
  * Defines a <code>Predicate</code> that matches every row in the table
@@ -36,7 +36,7 @@ public class MatchAllPredicate implements Predicate
      * {@inheritDoc}
      */
     @Override
-    public boolean isInterested(Queryable queryable)
+    public boolean isInterested(Row row)
     {
         return true;
     }

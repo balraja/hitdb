@@ -26,7 +26,7 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
  * Defines the contract for the query operator that supports filtering
@@ -59,11 +59,11 @@ public class Having extends Decorator
      * {@inheritDoc}
      */
     @Override
-    protected Collection<Queryable>
-        doPerformOperation(Collection<Queryable> toBeOperatedCollection)
+    protected Collection<Row>
+        doPerformOperation(Collection<Row> toBeOperatedCollection)
     {
-        ArrayList<Queryable> result = new ArrayList<>();
-        for (Queryable q : toBeOperatedCollection) {
+        ArrayList<Row> result = new ArrayList<>();
+        for (Row q : toBeOperatedCollection) {
             if (myCondition.isValid(q)) {
                 result.add(q);
             }

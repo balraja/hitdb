@@ -33,7 +33,7 @@ import java.util.Map;
 
 import org.hit.db.model.Database;
 import org.hit.db.model.Persistable;
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 import org.hit.db.model.Table;
 import org.hit.util.Pair;
 
@@ -52,11 +52,11 @@ public class Join implements QueryOperator
      * Defines an iterator that generates the cross product of 
      * objects stored in multiple tables.
      */
-    private static class MultiTableIterator implements Iterator<Queryable>
+    private static class MultiTableIterator implements Iterator<Row>
     {
         private final List<String> myTables;
         
-        private final List<List<Queryable>> myTableData;
+        private final List<List<Row>> myTableData;
         
         private final int[] mySizeArray;
         
@@ -79,10 +79,10 @@ public class Join implements QueryOperator
                         Collections2.transform(
                           table.findMatching(
                                MatchAllPredicate.INSTANCE),
-                          new Function<Persistable<?>, Queryable>() 
+                          new Function<Persistable<?>, Row>() 
                           {
-                              public Queryable apply(Persistable<?> persistable) {
-                                  return (Queryable) persistable;
+                              public Row apply(Persistable<?> persistable) {
+                                  return (Row) persistable;
                               }
                           })));
             }
@@ -109,9 +109,9 @@ public class Join implements QueryOperator
          * {@inheritDoc}
          */
         @Override
-        public Queryable next()
+        public Row next()
         {
-            Map<String, Queryable> tableQueryableMap = new HashMap<>();
+            Map<String, Row> tableQueryableMap = new HashMap<>();
             for (int tableIndex = 0; tableIndex < myTables.size(); tableIndex++)
             {
                 tableQueryableMap.put(myTables.get(tableIndex),
@@ -119,35 +119,33 @@ public class Join implements QueryOperator
                                                  .get(myIndex[tableIndex]));
             }
             
-            myHasData = false;
-            for (int i = 0; i < myIndex.length; i++) {
-                if (myIndex[i] < (mySizeArray[i])) {
-                    myHasData = true;
-                    break;
-                }
-            }
-            
-            if (myHasData) {
-                incrIndex();
-            }
-            
+            myHasData = incrIndex();
             return new TableIndexedQueryable(tableQueryableMap);
         }
         
-        private void incrIndex()
+        private boolean incrIndex()
         {
-            for (int tableIndex = myIndex.length -1; 
+            int indexToIncrement = -1;
+            for (int tableIndex = (myIndex.length - 1); 
                  tableIndex >= 0; 
                  tableIndex--)
             {
-                if (myIndex[tableIndex] == (mySizeArray[tableIndex] - 1)) {
-                    myIndex[tableIndex] = 0;
-                }
-                else {
-                    myIndex[tableIndex]++;
+                if (myIndex[tableIndex] < (mySizeArray[tableIndex] - 1)) {
+                    indexToIncrement = tableIndex;
                     break;
                 }
             }
+            if (indexToIncrement > -1) {
+                myIndex[indexToIncrement]++;
+                for (int i = (indexToIncrement + 1); 
+                     i < myIndex.length;
+                     i++)
+                {
+                    myIndex[i] = 0;
+                }
+                return true;
+            }
+            return false;
         }
 
         /**
@@ -186,19 +184,18 @@ public class Join implements QueryOperator
      * {@inheritDoc}
      */
     @Override
-    public Collection<Queryable> getResult(Database database)
+    public Collection<Row> getResult(Database database)
     {
-        Iterator<Queryable> itr = 
+        Iterator<Row> itr = 
             new MultiTableIterator(myJoinCondition.getFirst(),
                                    database);
-        
-        List<Queryable> result = new ArrayList<>();
+        List<Row> result = new ArrayList<>();
         while (itr.hasNext()) {
-            Queryable queryable = itr.next();
-            if (   myJoinCondition.getSecond().isValid(queryable)
-                && (myFilter == null || myFilter.isValid(queryable))) 
+            Row row = itr.next();
+            if (   myJoinCondition.getSecond().isValid(row)
+                && (myFilter == null || myFilter.isValid(row))) 
             {
-                result.add(queryable);
+                result.add(row);
             }
         }
         return result;

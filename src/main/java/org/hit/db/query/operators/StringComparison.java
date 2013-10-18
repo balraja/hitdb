@@ -25,7 +25,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.regex.Pattern;
 
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
  * Defines the contract for performing string comparision between 
@@ -61,7 +61,7 @@ public class StringComparison implements Condition
      * {@inheritDoc}
      */
     @Override
-    public boolean isValid(Queryable record)
+    public boolean isValid(Row record)
     {
         Object fieldValue = ColumnNameUtil.getValue(record, myColumnNames);
         return fieldValue != null ? myPattern.matcher(fieldValue.toString())

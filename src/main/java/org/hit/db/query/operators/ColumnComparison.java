@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
  * Defines the contract for comparing two columns.
@@ -64,7 +64,7 @@ public class ColumnComparison implements Condition
      * {@inheritDoc}
      */
     @Override
-    public boolean isValid(Queryable record)
+    public boolean isValid(Row record)
     {
         Object fieldValue1 = ColumnNameUtil.getValue(record, myColumnNames1);
         Object fieldValue2 = ColumnNameUtil.getValue(record, myColumnNames2);

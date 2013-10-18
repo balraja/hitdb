@@ -24,7 +24,7 @@ import java.io.Externalizable;
 import java.util.Collection;
 
 import org.hit.db.model.Database;
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
  * Defines the contract for the interface that can be used for performing
@@ -35,5 +35,5 @@ import org.hit.db.model.Queryable;
 public interface QueryOperator extends Externalizable
 {
     /** Returns the result of query */
-    public Collection<Queryable> getResult(Database database);
+    public Collection<Row> getResult(Database database);
 }

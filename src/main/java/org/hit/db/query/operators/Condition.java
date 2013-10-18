@@ -22,7 +22,7 @@ package org.hit.db.query.operators;
 
 import java.io.Externalizable;
 
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
  * Defines the contract for the condition used for matching against 
@@ -33,5 +33,5 @@ import org.hit.db.model.Queryable;
 public interface Condition extends Externalizable
 {
     /** Returns true if the condition holds on the given record */
-    boolean isValid(Queryable record);
+    boolean isValid(Row record);
 }

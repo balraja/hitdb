@@ -30,7 +30,7 @@ import java.util.Map;
 import org.hit.db.model.Database;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 import org.hit.db.model.Table;
 
 import com.google.common.base.Function;
@@ -70,7 +70,7 @@ public class Where implements QueryOperator
     /**
      * {@inheritDoc}
      */
-    public Collection<Queryable> getResult(Database database)
+    public Collection<Row> getResult(Database database)
     {
         Table<? extends Comparable<?>,
               ? extends Persistable<?>> table = 
@@ -82,17 +82,17 @@ public class Where implements QueryOperator
                     new PredicateAdapter(myFilteringCondition)
                     : new Predicate() {
                             @Override
-                            public boolean isInterested(Queryable queryable)
+                            public boolean isInterested(Row row)
                             {
                                 return true;
                             }
                         };
             return Collections2.transform(
                  table.findMatching(predicate),
-                 new Function<Persistable<?>, Queryable>() 
+                 new Function<Persistable<?>, Row>() 
                  {
-                     public Queryable apply(Persistable<?> persistable) {
-                         return (Queryable) persistable;
+                     public Row apply(Persistable<?> persistable) {
+                         return (Row) persistable;
                      }
                  });
         }

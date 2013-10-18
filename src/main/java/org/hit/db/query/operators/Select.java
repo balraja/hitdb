@@ -27,9 +27,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
-import javax.management.RuntimeErrorException;
-
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 import org.hit.db.query.operators.Aggregate.Aggregator;
 import org.hit.db.query.operators.Aggregate.ID;
 
@@ -66,22 +64,22 @@ public class Select extends Decorator
      * {@inheritDoc}
      */
     @Override
-    protected Collection<Queryable>
-        doPerformOperation(Collection<Queryable> toBeOperatedCollection)
+    protected Collection<Row>
+        doPerformOperation(Collection<Row> toBeOperatedCollection)
     {
         if (mySelectColumns.containsKey(ColumnNameUtil.ALL_COLUMNS)) {
             Aggregate.ID aggregatingFunctionID = 
                 mySelectColumns.get(ColumnNameUtil.ALL_COLUMNS);
             if (aggregatingFunctionID != null) {
                 if (aggregatingFunctionID == Aggregate.ID.CNT) {
-                    QueryableMap result = new QueryableMap();
-                    result.setFieldValue(ColumnNameUtil.ALL_COLUMNS, 
+                    RowMap result = new RowMap();
+                    result.setFieldValue(ColumnNameUtil.ALL_COLUMNS_SYMBOLIC, 
                                          Integer.valueOf(
                                              toBeOperatedCollection.size()));
-                    return Lists.<Queryable>newArrayList(result);
+                    return Lists.<Row>newArrayList(result);
                 }
                 else {
-                    return new ArrayList<Queryable>();
+                    return new ArrayList<Row>();
                 }
             }
             else {
@@ -92,7 +90,7 @@ public class Select extends Decorator
             boolean hasAggregation = 
                 mySelectColumns.values().iterator().next() != null;
             if (hasAggregation) {
-                QueryableMap result = new QueryableMap();
+                RowMap result = new RowMap();
                 for (Map.Entry<String, ID> selectedColumn : 
                          mySelectColumns.entrySet())
                 {
@@ -105,7 +103,7 @@ public class Select extends Decorator
                                          aggregator.apply(toBeOperatedCollection));
 
                 }
-                return Lists.<Queryable>newArrayList(result);
+                return Lists.<Row>newArrayList(result);
             }
             else {
                 return toBeOperatedCollection;

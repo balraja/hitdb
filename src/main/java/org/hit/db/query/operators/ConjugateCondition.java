@@ -25,7 +25,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.List;
 
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
  * Defines the contract for condition list, joined by conjunctive operators.
@@ -86,7 +86,7 @@ public class ConjugateCondition implements Condition
      * {@inheritDoc}
      */
     @Override
-    public boolean isValid(Queryable record)
+    public boolean isValid(Row record)
     {
         if (myConjunctive == Conjunctive.AND) {
             for (Condition condition : myConditions) {

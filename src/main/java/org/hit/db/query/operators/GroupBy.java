@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 import org.hit.db.query.operators.Aggregate.Aggregator;
 import org.hit.db.query.operators.Aggregate.ID;
 
@@ -73,20 +73,20 @@ public class GroupBy extends Decorator
      * {@inheritDoc}
      */
     @Override
-    protected Collection<Queryable>
-        doPerformOperation(Collection<Queryable> toBeOperatedCollection)
+    protected Collection<Row>
+        doPerformOperation(Collection<Row> toBeOperatedCollection)
     {
-        ListMultimap<GroupKey, Queryable> multimap = ArrayListMultimap.create();
-        for (Queryable queryable : toBeOperatedCollection) {
-            multimap.put(new GroupKey(myGroupingColumns, queryable),
-                         queryable);
+        ListMultimap<GroupKey, Row> multimap = ArrayListMultimap.create();
+        for (Row row : toBeOperatedCollection) {
+            multimap.put(new GroupKey(myGroupingColumns, row),
+                         row);
         }
         
-        List<Queryable> resultCollection = new ArrayList<>();
-        for (Map.Entry<GroupKey, Collection<Queryable>> entry :
+        List<Row> resultCollection = new ArrayList<>();
+        for (Map.Entry<GroupKey, Collection<Row>> entry :
                multimap.asMap().entrySet())
         {
-            QueryableMap result = new QueryableMap();
+            RowMap result = new RowMap();
             for (Map.Entry<String, Aggregate.ID> aggrEntry : 
                     myAggregatingColumns.entrySet())
             {

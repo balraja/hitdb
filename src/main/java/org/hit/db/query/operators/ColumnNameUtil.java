@@ -22,7 +22,7 @@ package org.hit.db.query.operators;
 
 import java.util.Arrays;
 
-import org.hit.db.model.Queryable;
+import org.hit.db.model.Row;
 
 /**
  * Defines an util class that can be used for querying column values.
@@ -40,11 +40,11 @@ public final class ColumnNameUtil
         return columnName.split("\\.");
     }
     
-    public static Object getValue(Queryable record, String[] columnNames)
+    public static Object getValue(Row record, String[] columnNames)
     {
         Object result = record;
         for (String nestedColumn : columnNames) {
-            result = ((Queryable) result).getFieldValue(nestedColumn);
+            result = ((Row) result).getFieldValue(nestedColumn);
         }
         return result;
     }
