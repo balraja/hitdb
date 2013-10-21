@@ -20,8 +20,6 @@
 
 package org.hit.db.engine;
 
-import gnu.trove.map.TLongObjectMap;
-import gnu.trove.map.hash.TLongObjectHashMap;
 import gnu.trove.set.TLongSet;
 
 import java.util.ArrayList;
@@ -51,7 +49,6 @@ import org.hit.db.transactions.PhasedTransactionExecutor;
 import org.hit.db.transactions.ReadTransaction;
 import org.hit.db.transactions.Registry;
 import org.hit.db.transactions.TransactableDatabase;
-import org.hit.db.transactions.Transaction;
 import org.hit.db.transactions.TransactionResult;
 import org.hit.db.transactions.WriteTransaction;
 import org.hit.db.transactions.journal.WAL;
@@ -209,10 +206,12 @@ public class TransactionManager
                 
                 @SuppressWarnings("unchecked")
                 Memento<Boolean> result = (Memento<Boolean>) event;
-                
                 if (result.getPhase().getResult()) {
                     myMemento = result;
-                    if (Registry.getPrecedencyFor(getTransactionID()).isEmpty())
+                    TLongSet precedentTransactions = 
+                        Registry.getPrecedencyFor(getTransactionID());
+                    if (   precedentTransactions == null
+                        || precedentTransactions.isEmpty())
                     {
                         // We can commit the changes
                         initiateCommit();
@@ -229,7 +228,6 @@ public class TransactionManager
                 @SuppressWarnings("unchecked")
                 Memento<TransactionResult> result = 
                     (Memento<TransactionResult>) event;
-
                 Message message =
                     result.getPhase().getResult().isCommitted() ?
                         new DBOperationSuccessMessage(
@@ -576,7 +574,6 @@ public class TransactionManager
         myWorkFlowMap.put(Long.valueOf(id), workFlow);
         
         if (myDatabase.canProcess(id)) {
-
             ListenableFuture<Memento<Boolean>> future =
                 myExecutor.submit(
                    new PhasedTransactionExecutor<Boolean>(

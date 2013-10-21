@@ -117,6 +117,45 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
                    + myValues
                    + "]";
         }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public int hashCode()
+        {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((myKey == null) ? 0 : myKey.hashCode());
+            result = prime * result + myLevel;
+            return result;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public boolean equals(Object obj)
+        {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            Node other = (Node) obj;
+            if (myKey == null) {
+                if (other.myKey != null)
+                    return false;
+            }
+            else if (!myKey.equals(other.myKey))
+                return false;
+            if (myLevel != other.myLevel)
+                return false;
+            return true;
+        }
+        
+        
     }
 
     /**
@@ -247,8 +286,11 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
      */
     public boolean add(K key, V value)
     {
-        List<Node<K,V>> preds = Lists.newArrayListWithExpectedSize(myListLevel);
-        List<Node<K,V>> succs = Lists.newArrayListWithExpectedSize(myListLevel);
+        
+        List<Node<K,V>> preds = 
+            Lists.newArrayListWithExpectedSize(myListLevel);
+        List<Node<K,V>> succs = 
+            Lists.newArrayListWithExpectedSize(myListLevel);
 
         for (int i = 0; i < myListLevel; i++) {
             preds.add(null);
@@ -261,25 +303,35 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
            return true;
         }
         else {
-            int nodeLevel = Math.abs(myLocalRandom.get().nextInt()) % myListLevel;
-            Node<K,V> newNode = new Node<>(key, value, nodeLevel, myListLevel);
-            for (int i = 0; i < nodeLevel; i++) {
-                newNode.getNext()
-                       .get(i)
-                       .compareAndSet(null, succs.get(i), false, false);
-            }
-
-            if (!preds.get(0)
-                      .getNext()
-                      .get(0)
-                      .compareAndSet(succs.get(0), newNode, false, false))
-            {
-                return false;
-            }
-            else {
-                for (int i = 1; i < nodeLevel; i++) {
-                    while (true) {
-                        if (preds.get(i)
+            
+            boolean myShouldFindAgain = false;
+            Node<K,V> newNode = null;
+            do {
+                if (myShouldFindAgain) {
+                    find(key, preds, succs);
+                    myShouldFindAgain = false;
+                    newNode = null;
+                }
+                
+                int nodeLevel = 
+                    Math.abs(myLocalRandom.get().nextInt()) % myListLevel;
+                newNode = new Node<>(key, value, nodeLevel, myListLevel);
+                for (int i = 0; i < nodeLevel; i++) {
+                    newNode.getNext()
+                           .get(i)
+                           .compareAndSet(null, succs.get(i), false, false);
+                }
+    
+                if (!preds.get(0)
+                          .getNext()
+                          .get(0)
+                          .compareAndSet(succs.get(0), newNode, false, false))
+                {
+                    myShouldFindAgain = true;
+                }
+                else {
+                    for (int i = 1; i < nodeLevel; i++) {
+                        if (!preds.get(i)
                                   .getNext()
                                   .get(i)
                                   .compareAndSet(succs.get(i),
@@ -287,14 +339,20 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
                                                  false,
                                                  false))
                         {
+                            for (int j = 1; j < i; j++) {
+                                preds.get(i).getNext().get(i).set(succs.get(i),
+                                                                  false);
+                            }
+                            myShouldFindAgain = true;
                             break;
                         }
                     }
                 }
-            }
-            myCount.incrementAndGet();
-            return true;
+            } while(myShouldFindAgain);
+            
         }
+        myCount.incrementAndGet();
+        return true;
     }
 
     /**

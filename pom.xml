@@ -80,9 +80,7 @@
                     </systemProperties>
                      <excludes>
                          <exclude>**/NIOCommunicatorTest.java</exclude>
-                         <exclude>**/LocklessSortedListTest.java</exclude>
-                         <exclude>**/SkipListTest.java</exclude>
-                         
+                         <exclude>**/LocklessSortedListTest.java</exclude>                         
                      </excludes>
 		        </configuration>
          </plugin>

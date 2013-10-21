@@ -76,10 +76,9 @@ public class SkipListTest extends
                 register(Boolean.valueOf(
                     getTestedStructure().add(Integer.valueOf(1),
                                              Integer.valueOf(1))));
-
                 register(Boolean.valueOf(
-                    getTestedStructure().add(Integer.valueOf(2),
-                                             Integer.valueOf(2))));
+                     getTestedStructure().add(Integer.valueOf(2),
+                                              Integer.valueOf(2))));
 
                 dataLoadPont.countDown();
                 try {
@@ -92,10 +91,10 @@ public class SkipListTest extends
                 register(
                     getTestedStructure().lookupValue(Integer.valueOf(3))
                                         .get(0));
-
                 register(
                      getTestedStructure().lookupValue(Integer.valueOf(4))
                                          .get(0));
+
             }
         };
     }
@@ -118,10 +117,9 @@ public class SkipListTest extends
                 register(Boolean.valueOf(
                     getTestedStructure().add(Integer.valueOf(3),
                                              Integer.valueOf(3))));
-
                 register(Boolean.valueOf(
-                    getTestedStructure().add(Integer.valueOf(4),
-                                             Integer.valueOf(4))));
+                     getTestedStructure().add(Integer.valueOf(4),
+                                              Integer.valueOf(4))));
 
                 dataLoadPoint.countDown();
                 try {
@@ -134,10 +132,9 @@ public class SkipListTest extends
                 register(
                     getTestedStructure().lookupValue(Integer.valueOf(1))
                                         .get(0));
-
                 register(
-                     getTestedStructure().lookupValue(Integer.valueOf(2))
-                                         .get(0));
+                         getTestedStructure().lookupValue(Integer.valueOf(2))
+                                             .get(0));
             }
         };
     }

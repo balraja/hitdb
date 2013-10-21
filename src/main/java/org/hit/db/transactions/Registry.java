@@ -160,12 +160,12 @@ public final class Registry
     }
     
     /** 
-     * Returns the list of trnsactions on which a given transaction 
+     * Returns the list of transactions on which a given transaction 
      * is dependent upon.
      */
     public static TLongSet getPrecedencyFor(long transactionID)
     {
-        try (CloseableRWLock l = ourLock.openWriteLock()) {
+        try (CloseableRWLock l = ourLock.openReadLock()) {
             return ourPrecedentTransactions.get(transactionID);
         }
     }

@@ -71,6 +71,7 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
         @Override
         public void execute()
         {
+            myTransaction.init();
             myTransaction.execute();
             myResult = Boolean.valueOf(myTransaction.validate());
         }
@@ -120,7 +121,9 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
         public void execute()
         {
             if (myTransaction.validate()) {
-                if (myTransaction instanceof WriteTransaction) {
+                if (   myTransaction instanceof WriteTransaction
+                    && myWriteAheadLog != null) 
+                {
                     myWriteAheadLog.addTransaction((WriteTransaction) myTransaction);
                 }
                 myTransaction.commit();

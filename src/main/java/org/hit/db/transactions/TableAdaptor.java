@@ -22,6 +22,7 @@ package org.hit.db.transactions;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
@@ -139,8 +140,14 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
     {
         Transactable<K, P> result =
             myTable.getRow(primarykey, myStartTime, myTransactionID);
-        myTableTrail.getReadSet().add(result);
-        return result.getPersistable();
+        
+        if (result != null) {
+            myTableTrail.getReadSet().add(result);
+            return result.getPersistable();
+        }
+        else {
+            return null;
+        }
     }
 
     /**

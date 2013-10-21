@@ -65,6 +65,7 @@ public class ReadTransaction extends AbstractTransaction
     protected void doExecute(Database database)
     {
         myResult = myQuery.query(database);
+        System.out.println("Executed query and got " + myResult);
     }
 
     /**
