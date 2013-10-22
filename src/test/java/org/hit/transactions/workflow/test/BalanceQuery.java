@@ -68,7 +68,7 @@ public class BalanceQuery implements Query
     @Override
     public Object query(Database database)
     {
-        System.out.println("Querying for " + myAccountID);
+        System.out.println("BALANCE QUERY Querying for " + myAccountID);
         Table<Long,Account> accountTable = 
             database.lookUpTable(Account.TABLE_NAME);
         Account account = 

@@ -138,6 +138,7 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
     @Override
     public P getRow(K primarykey)
     {
+        
         Transactable<K, P> result =
             myTable.getRow(primarykey, myStartTime, myTransactionID);
         
@@ -216,7 +217,7 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
             TransactionHelper.toVersionID(myTransactionID));
         updatedTransactable.setEnd(TransactionHelper.INFINITY);
 
-        myTableTrail.getWriteSet().add(updatedTransactable);
+        myTableTrail.getNewWriteSet().add(updatedTransactable);
         myTable.addToTable(updatedTransactable);
         return true;
     }

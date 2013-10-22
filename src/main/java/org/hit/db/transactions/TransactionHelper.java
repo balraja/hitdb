@@ -30,12 +30,14 @@ public final class TransactionHelper
     /** Defines the contract for an infinite time */
     public static final long INFINITY = Long.MAX_VALUE;
     
+    private static final long TRANSACTION_BOUNDARY = -1L;
+    
     /**
      * Returns true if the given version number corresponding to a transaction.
      */
     public static boolean isTransactionID(long version)
     {
-        return version < 0;
+        return version <= TRANSACTION_BOUNDARY;
     }
     
     /**

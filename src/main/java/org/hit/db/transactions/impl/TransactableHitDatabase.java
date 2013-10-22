@@ -92,10 +92,10 @@ public class TransactableHitDatabase implements TransactableDatabase
     {
         if (schema.getKeyspace() instanceof HashKeyspace)
         {
-            return new TransactablePartitionedTable<>(schema);
+            return new TransactableHashedTable<>(schema);
         }
         else {
-            return new TransactableHashedTable<>(schema);
+            return new TransactablePartitionedTable<>(schema);
         }
     }
 

@@ -30,14 +30,14 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class IDAssigner
 {
-    private final AtomicLong     myTransactionID;
+    private final AtomicLong myTransactionID;
 
     /**
      * CTOR
      */
     public IDAssigner()
     {
-        myTransactionID = new AtomicLong(0);
+        myTransactionID = new AtomicLong(1L);
     }
 
     /** Returns the latest unique transaction identifier for a transaction */

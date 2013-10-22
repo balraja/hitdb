@@ -284,9 +284,8 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
      * @param value The value to be added to the skip list
      * @return true if the addition is successful, false otherwise.
      */
-    public boolean add(K key, V value)
+    public void add(K key, V value)
     {
-        
         List<Node<K,V>> preds = 
             Lists.newArrayListWithExpectedSize(myListLevel);
         List<Node<K,V>> succs = 
@@ -300,7 +299,6 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
         if (isThere) {
            succs.get(0).getValues().add(value);
            myCount.incrementAndGet();
-           return true;
         }
         else {
             
@@ -352,7 +350,6 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
             
         }
         myCount.incrementAndGet();
-        return true;
     }
 
     /**
@@ -479,9 +476,6 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
     public List<V> lookupValue(K key)
     {
         Node<K,V> curr = lookupNode(key);
-       /* if (curr != null) {
-            System.out.println(Thread.currentThread().getName()  + " RECEIVED " + curr.getKey());
-        }*/
         return (curr != null && curr.getKey().compareTo(key) == 0) ?
                    curr.getValues() : null;
     }

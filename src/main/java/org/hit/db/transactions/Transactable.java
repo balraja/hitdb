@@ -72,6 +72,7 @@ public class Transactable<K extends Comparable<K>, P extends Persistable<K>>
     public ValidationResult 
         validate(long time, long transactionID)
     {
+        
         if (   !TransactionHelper.isTransactionID(myStart)
             && !TransactionHelper.isTransactionID(myEnd))
             

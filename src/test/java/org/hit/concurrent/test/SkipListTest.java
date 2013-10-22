@@ -36,14 +36,12 @@ public class SkipListTest extends
     AbstractConcurrentTest<LocklessSkipList<Integer, Integer>>
 {
     private static final List<Object> CONST_RESULT1 =
-        Lists.<Object>newArrayList(Boolean.TRUE,
-                                   Boolean.TRUE,
+        Lists.<Object>newArrayList(
                                    Integer.valueOf(3),
                                    Integer.valueOf(4));
 
     private static final List<Object> CONST_RESULT2 =
-        Lists.<Object>newArrayList(Boolean.TRUE,
-                                   Boolean.TRUE,
+        Lists.<Object>newArrayList(
                                    Integer.valueOf(1),
                                    Integer.valueOf(2));
 
@@ -73,12 +71,10 @@ public class SkipListTest extends
             public void doTest()
             {
 
-                register(Boolean.valueOf(
-                    getTestedStructure().add(Integer.valueOf(1),
-                                             Integer.valueOf(1))));
-                register(Boolean.valueOf(
-                     getTestedStructure().add(Integer.valueOf(2),
-                                              Integer.valueOf(2))));
+                getTestedStructure().add(Integer.valueOf(1),
+                                         Integer.valueOf(1));
+                getTestedStructure().add(Integer.valueOf(2),
+                                         Integer.valueOf(2));
 
                 dataLoadPont.countDown();
                 try {
@@ -114,12 +110,10 @@ public class SkipListTest extends
             @Override
             public void doTest()
             {
-                register(Boolean.valueOf(
                     getTestedStructure().add(Integer.valueOf(3),
-                                             Integer.valueOf(3))));
-                register(Boolean.valueOf(
+                                             Integer.valueOf(3));
                      getTestedStructure().add(Integer.valueOf(4),
-                                              Integer.valueOf(4))));
+                                              Integer.valueOf(4));
 
                 dataLoadPoint.countDown();
                 try {

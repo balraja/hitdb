@@ -80,6 +80,7 @@ public class SimpleWorkflowTest
                                 2L);
                         }
                         else {
+                            System.out.println("Received query result");
                             Assert.assertEquals(2L, success.getSequenceNumber());
                             Assert.assertEquals(100.0D, success.getResult());
                             myIsDone.compareAndSet(false, true);
