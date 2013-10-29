@@ -65,6 +65,7 @@ public abstract class AbstractTransaction implements Transaction
     public void abort()
     {
         updateState(TransactionState.ABORTED);
+        doAbort(myAdaptedDatabase);
     }
 
     /**
@@ -82,6 +83,12 @@ public abstract class AbstractTransaction implements Transaction
      * implementation of commit.
      */
     protected abstract void doCommit(DatabaseAdaptor adpator);
+
+    /**
+     * Subclasses should override this implementation to execute their
+     * implementation of abort.
+     */
+    protected abstract void doAbort(DatabaseAdaptor adpator);
 
     /**
      * Subclasses should override this method to execute their implementation

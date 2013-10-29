@@ -498,8 +498,16 @@ public class LocklessSkipList<K extends Comparable<? super K>,V>
      */
     public boolean remove(K key, V value)
     {
-        List<Node<K,V>> preds = new ArrayList<>(myListLevel);
-        List<Node<K,V>> succs = new ArrayList<>(myListLevel);
+        List<Node<K,V>> preds = 
+            Lists.newArrayListWithExpectedSize(myListLevel);
+        List<Node<K,V>> succs = 
+            Lists.newArrayListWithExpectedSize(myListLevel);
+
+        for (int i = 0; i < myListLevel; i++) {
+            preds.add(null);
+            succs.add(null);
+        }
+        
         boolean isThere = find(key, preds, succs);
         if (!isThere) {
             return false;

@@ -85,4 +85,14 @@ public class WriteTransaction extends AbstractTransaction
         return myMutation;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected
+        void doAbort(DatabaseAdaptor adpator)
+    {
+        adpator.abort();
+    }
+
 }

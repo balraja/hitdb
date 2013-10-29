@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.transactions.workflow.test;
+package org.hit.transactions.test;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -33,7 +33,7 @@ import org.hit.db.model.Table;
  * 
  * @author Balraja Subbiah
  */
-public class BalanceUpdateTransaction implements Mutation
+public class UpdateBalanceTransaction implements Mutation
 {
     private final long myAccountID;
     
@@ -42,7 +42,7 @@ public class BalanceUpdateTransaction implements Mutation
     /**
      * CTOR
      */
-    public BalanceUpdateTransaction(long accountID, double balance)
+    public UpdateBalanceTransaction(long accountID, double balance)
     {
         super();
         myAccountID = accountID;

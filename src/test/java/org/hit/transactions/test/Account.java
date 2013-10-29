@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.transactions.workflow.test;
+package org.hit.transactions.test;
 
 import java.util.ArrayList;
 

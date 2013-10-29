@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.transactions.workflow.test;
+package org.hit.transactions.test;
 
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -80,7 +80,6 @@ public class SimpleWorkflowTest
                                 2L);
                         }
                         else {
-                            System.out.println("Received query result");
                             Assert.assertEquals(2L, success.getSequenceNumber());
                             Assert.assertEquals(100.0D, success.getResult());
                             myIsDone.compareAndSet(false, true);
@@ -97,7 +96,7 @@ public class SimpleWorkflowTest
                 null);
         myTransactionManager.createTable(Account.SCHEMA);
         myTransactionManager.processOperation(TestID.CLIENT_NODE_ID, 
-                                 new BalanceUpdateTransaction(1L, 100.0D), 
+                                 new UpdateBalanceTransaction(1L, 100.0D), 
                                  1L);
         
         while (!myIsDone.get()) {

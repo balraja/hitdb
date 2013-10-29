@@ -64,6 +64,16 @@ public class DatabaseAdaptor implements Database
             adaptor.commit(commitTime);
         }
     }
+    
+    /**
+     * Removes the updates made on the database by the transaction.
+     */
+    public void abort()
+    {
+        for (TableAdaptor<?, ?> adaptor : myCachedTables.values()) {
+            adaptor.abort();
+        }
+    }
 
     /**
      * {@inheritDoc}

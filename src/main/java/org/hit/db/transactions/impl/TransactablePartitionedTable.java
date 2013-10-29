@@ -203,4 +203,14 @@ public class TransactablePartitionedTable<K extends Comparable<K>, P extends Per
         }
         return result;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void deleteVersion(Transactable<K, P> deletedVersion)
+    {
+        myIndex.remove(deletedVersion.getPersistable().primaryKey(), 
+                       deletedVersion);
+    }
 }

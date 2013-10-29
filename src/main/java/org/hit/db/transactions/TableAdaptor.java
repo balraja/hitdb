@@ -22,7 +22,6 @@ package org.hit.db.transactions;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
@@ -98,6 +97,30 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
             transactable.setStart(commitTime);
         }
     }
+    
+    /**
+     * A helper method to undo the updates made by the transaction.
+     *
+     * @param commitTime The time to which end time of a record is set to.
+     */
+    public void abort()
+    {
+        // Close the old version.
+        for (Transactable<K,P> transactable : myTableTrail.getWriteSet()) {
+            if (   TransactionHelper.isTransactionID(transactable.getEnd())
+                && TransactionHelper.toTransactionID(transactable.getEnd()) == 
+                       myTransactionID)
+            {
+                transactable.setEnd(TransactionHelper.INFINITY);
+            }
+        }
+        
+        // Delete the new versions added to the database.
+        for (Transactable<K,P> transactable : myTableTrail.getNewWriteSet()) {
+            myTable.remove(transactable);
+        }
+    }
+
 
     /**
      * {@inheritDoc}

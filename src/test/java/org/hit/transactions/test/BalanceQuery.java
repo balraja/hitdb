@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.transactions.workflow.test;
+package org.hit.transactions.test;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -68,14 +68,12 @@ public class BalanceQuery implements Query
     @Override
     public Object query(Database database)
     {
-        System.out.println("BALANCE QUERY Querying for " + myAccountID);
         Table<Long,Account> accountTable = 
             database.lookUpTable(Account.TABLE_NAME);
         Account account = 
             accountTable != null ? 
                 accountTable.getRow(Long.valueOf(myAccountID)) : null;
         Double result = account != null ? account.getBalance() : Double.NaN;
-        System.out.println("ACCOUNT Query result " + result);
         return result;
     }
 }

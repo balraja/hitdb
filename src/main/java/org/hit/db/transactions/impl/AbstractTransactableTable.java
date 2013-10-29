@@ -96,13 +96,24 @@ public abstract class AbstractTransactableTable<K extends Comparable<K>,
     {
         return mySchema;
     }
-    
+
     /**
      * A helper method to get the latest version of a row for a key.
      */
     public Transactable<K, P> doGetRow(List<Transactable<K, P>> result, 
                                        long time, 
                                        long transactionID)
+    {
+        return doGetRow(result, time, transactionID, false);
+    }
+    
+    /**
+     * A helper method to get the latest version of a row for a key.
+     */
+    public Transactable<K, P> doGetRow(List<Transactable<K, P>> result, 
+                                       long time, 
+                                       long transactionID,
+                                       boolean speculativeRead)
     {
         if (result != null) {
             for (int i = result.size() - 1; i >= 0; i--) {
@@ -112,7 +123,9 @@ public abstract class AbstractTransactableTable<K extends Comparable<K>,
                 if (validationResult.isValid()) {
                     return transactable;
                 }
-                else if (validationResult.isSpeculativelyValid()) {
+                else if (   speculativeRead
+                         && validationResult.isSpeculativelyValid()) 
+                {
                     Registry.addDependency(validationResult.getTransactionId(),
                                            transactionID);
                     return transactable;

@@ -62,6 +62,9 @@ public interface TransactableTable<K extends Comparable<K>, P extends Persistabl
     public Transactable<K,P> getRow(K key, long time, long transactionID);
     
     /** Deletes row corresponding to a primary key */
+    public void deleteVersion(Transactable<K,P> deletedVersion);
+    
+    /** Deletes row corresponding to a primary key */
     public Transactable<K,P> deleteRow(K key, long time, long transactionID);
     
     /** Deletes rows that falls between the given key range */

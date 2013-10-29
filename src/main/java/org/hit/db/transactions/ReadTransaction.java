@@ -87,4 +87,13 @@ public class ReadTransaction extends AbstractTransaction
     {
         return myResult;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void doAbort(DatabaseAdaptor adpator)
+    {
+        // Ignore as there is nothing to abort.
+    }
 }

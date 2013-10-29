@@ -259,4 +259,18 @@ public class TransactableHashedTable <K extends Comparable<K>,
         return result;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public
+        void
+        deleteVersion(
+                      Transactable<K, P> deletedVersion)
+    {
+        myIndex.remove(deletedVersion.getPersistable().primaryKey(), 
+                       deletedVersion);
+        
+    }
+
 }
