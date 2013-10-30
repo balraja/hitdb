@@ -107,7 +107,7 @@ public class PaxosAcceptor extends ConsensusAcceptor
                 myProposalToSeqNumMap.put(pcr.getProposal(), 
                                           pcr.getSequenceID());
                 getEventBus().publish(
-                    new ProposalNotificationEvent(pcr.getProposal(), true)
+                    new ProposalNotificationEvent(pcr.getProposal(), true, true)
                 );
             }
             else {
