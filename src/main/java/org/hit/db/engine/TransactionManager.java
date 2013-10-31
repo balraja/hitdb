@@ -602,7 +602,7 @@ public class TransactionManager
         Set<NodeID> acceptors =
             Sets.difference(operations.keySet(),
                             Collections.singleton(myServerID));
-        UnitID unitID = new DistributedTrnConsensusID(clientID);
+        UnitID unitID = new DistributedTrnID(clientID);
         myEventBus.publish(new CreateConsensusLeaderEvent(unitID, 
                                                           acceptors));
 

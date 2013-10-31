@@ -41,7 +41,8 @@ public interface ConsensusProtocolProvider
     public ConsensusAcceptor makeAcceptor(
         UnitID unitID,
         NodeID leader,
-        NodeID ourNodeID);
+        NodeID ourNodeID,
+        EventBus eventBus);
     
     /**
      * Generates the {@link ConsensusLeader} that participates in a

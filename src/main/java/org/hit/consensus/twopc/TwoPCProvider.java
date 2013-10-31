@@ -19,8 +19,6 @@
 */
 package org.hit.consensus.twopc;
 
-import com.google.inject.Inject;
-
 import java.util.Set;
 
 import org.hit.actors.EventBus;
@@ -38,16 +36,6 @@ import org.hit.consensus.UnitID;
  */
 public class TwoPCProvider implements ConsensusProtocolProvider
 {
-    private final EventBus myEventBus;
-    
-    /**
-     * CTOR
-     */
-    @Inject
-    public TwoPCProvider(EventBus eventBus)
-    {
-        myEventBus = eventBus;
-    }
 
     /**
      * {@inheritDoc}
@@ -55,9 +43,10 @@ public class TwoPCProvider implements ConsensusProtocolProvider
     @Override
     public ConsensusAcceptor makeAcceptor(UnitID unitID, 
                                           NodeID leader,
-                                          NodeID ourNodeID)
+                                          NodeID ourNodeID,
+                                          EventBus eventBus)
     {
-        return new TwoPCAcceptor(unitID, leader, myEventBus, ourNodeID);
+        return new TwoPCAcceptor(unitID, leader, eventBus, ourNodeID);
     }
 
     /**

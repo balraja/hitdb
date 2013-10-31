@@ -40,27 +40,17 @@ import com.google.inject.Inject;
  */
 public class PaxosProvider implements ConsensusProtocolProvider
 {
-    private final EventBus myEventBus;
-    
-    /**
-     * CTOR
-     */
-    @Inject
-    public PaxosProvider(EventBus eventBus)
-    {
-        myEventBus = eventBus;
-    }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ConsensusAcceptor makeAcceptor(
-                                          UnitID unitID,
+    public ConsensusAcceptor makeAcceptor(UnitID unitID,
                                           NodeID leader,
-                                          NodeID ourNodeID)
+                                          NodeID ourNodeID,
+                                          EventBus eventBus)
     {
-        return new PaxosAcceptor(unitID, leader, myEventBus, ourNodeID);
+        return new PaxosAcceptor(unitID, leader, eventBus, ourNodeID);
     }
 
     /**

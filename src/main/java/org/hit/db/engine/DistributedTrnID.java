@@ -26,20 +26,21 @@ import java.io.ObjectOutput;
 import java.util.Date;
 
 import org.hit.communicator.NodeID;
+import org.hit.consensus.ConsensusType;
 import org.hit.consensus.UnitID;
 
 /**
  * Defines the class that can be used for uniquely identifying the 
  * consensus.
  */
-class DistributedTrnConsensusID implements UnitID
+class DistributedTrnID extends UnitID
 {
     private String myConsensusID;
     
     /**
      * CTOR
      */
-    public DistributedTrnConsensusID()
+    public DistributedTrnID()
     {
         myConsensusID = null;
     }
@@ -47,18 +48,32 @@ class DistributedTrnConsensusID implements UnitID
     /**
      * CTOR
      */
-    public DistributedTrnConsensusID(NodeID clientId)
+    public DistributedTrnID(NodeID clientId, long sequenceNo)
     {
+        super(ConsensusType.TW0_PC);
         myConsensusID = 
-            clientId.toString() + new Date().toString();
+            clientId.toString() + sequenceNo + new Date().toString();
     }
 
     /**
-     * Returns the value of consensusID
+     * {@inheritDoc}
      */
-    public String getConsensusID()
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
     {
-        return myConsensusID;
+        super.writeExternal(out);
+        out.writeObject(myConsensusID);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readExternal(ObjectInput in)
+        throws IOException, ClassNotFoundException
+    {
+        super.readExternal(in);
+        myConsensusID = (String) in.readObject();
     }
 
     /**
@@ -68,9 +83,9 @@ class DistributedTrnConsensusID implements UnitID
     public int hashCode()
     {
         final int prime = 31;
-        int result = 1;
+        int result = super.hashCode();
         result = prime * result
-                 + ((myConsensusID == null) ? 0 : myConsensusID.hashCode());
+            + ((myConsensusID == null) ? 0 : myConsensusID.hashCode());
         return result;
     }
 
@@ -78,15 +93,16 @@ class DistributedTrnConsensusID implements UnitID
      * {@inheritDoc}
      */
     @Override
-    public boolean equals(Object obj)
+    public
+        boolean equals(Object obj)
     {
         if (this == obj)
             return true;
-        if (obj == null)
+        if (!super.equals(obj))
             return false;
         if (getClass() != obj.getClass())
             return false;
-        DistributedTrnConsensusID other = (DistributedTrnConsensusID) obj;
+        DistributedTrnID other = (DistributedTrnID) obj;
         if (myConsensusID == null) {
             if (other.myConsensusID != null)
                 return false;
@@ -100,28 +116,12 @@ class DistributedTrnConsensusID implements UnitID
      * {@inheritDoc}
      */
     @Override
-    public String toString()
+    public
+        String toString()
     {
-        return "TransactionConsensusID [myConsensusID=" + myConsensusID
-               + "]";
+        return "DistributedTrnID [myConsensusID=" + myConsensusID
+            + ", getConsensusType()=" + getConsensusType() + "]";
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException
-    {
-        out.writeObject(myConsensusID);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void readExternal(ObjectInput in)
-        throws IOException, ClassNotFoundException
-    {
-        myConsensusID = (String) in.readObject();
-    }
+    
+    
 }

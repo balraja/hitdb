@@ -21,6 +21,9 @@
 package org.hit.consensus;
 
 import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * Defines the contract for uniquely identifying the unit which is guarded by
@@ -28,6 +31,84 @@ import java.io.Externalizable;
  * 
  * @author Balraja Subbiah
  */
-public interface UnitID extends Externalizable
+public abstract class UnitID implements Externalizable
 {
+    private ConsensusType myConsensusType;
+
+    /**
+     * CTOR
+     */
+    public UnitID()
+    {
+        this(null);
+    }
+    
+    /**
+     * CTOR
+     */
+    public UnitID(ConsensusType type)
+    {
+        super();
+        myConsensusType = type;
+    }
+
+    /**
+     * Returns the value of consensusType
+     */
+    public ConsensusType getConsensusType()
+    {
+        return myConsensusType;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeUTF(myConsensusType.name());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readExternal(ObjectInput in)
+        throws IOException, ClassNotFoundException
+    {
+        myConsensusType = ConsensusType.valueOf(in.readUTF());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public
+        int hashCode()
+    {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result
+            + ((myConsensusType == null) ? 0 : myConsensusType.hashCode());
+        return result;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public
+        boolean equals(Object obj)
+    {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        UnitID other = (UnitID) obj;
+        if (myConsensusType != other.myConsensusType)
+            return false;
+        return true;
+    }
 }

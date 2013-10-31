@@ -46,8 +46,6 @@ public class ConsensusManager extends Actor
 {
     private final Map<UnitID, ConsensusProtocol> myUnitToConsensusProtocolMap;
     
-    private final ConsensusProtocolProvider      myProvider;
-    
     private final NodeID                         myNodeID;
     
     /**
@@ -55,13 +53,16 @@ public class ConsensusManager extends Actor
      */
     @Inject
     public ConsensusManager(EventBus                  eventBus,
-                            ConsensusProtocolProvider provider,
                             NodeID                    myID)
     {
         super(eventBus, new ActorID(ConsensusManager.class.getName()));
         myUnitToConsensusProtocolMap = new HashMap<>();
-        myProvider                   = provider;
         myNodeID                     = myID;
+    }
+    
+    private ConsensusProtocolProvider makeProvider(UnitID unitID)
+    {
+        return unitID.getConsensusType().makeProvider();
     }
 
     /**
@@ -75,19 +76,23 @@ public class ConsensusManager extends Actor
                 (CreateConsensusLeaderEvent) event;
             myUnitToConsensusProtocolMap.put(
                 ccle.getUnitID(),
-                myProvider.makeLeader(ccle.getUnitID(),
-                                      ccle.getAcceptors(),
-                                      getEventBus(),
-                                      myNodeID));
+                makeProvider(ccle.getUnitID()).makeLeader(
+                    ccle.getUnitID(),
+                    ccle.getAcceptors(),
+                    getEventBus(),
+                    myNodeID));
         }
         else if (event instanceof CreateConsensusAcceptorEvent) {
             CreateConsensusAcceptorEvent ccae =
                 (CreateConsensusAcceptorEvent) event;
+            
             myUnitToConsensusProtocolMap.put(
                 ccae.getUnitID(),
-                myProvider.makeAcceptor(ccae.getUnitID(),
-                                        ccae.getLeader(),
-                                        myNodeID));
+                makeProvider(ccae.getUnitID()).makeAcceptor(
+                    ccae.getUnitID(),
+                    ccae.getLeader(),
+                    myNodeID,
+                    getEventBus()));
         }
         else if (event instanceof ConsensusRequestEvent) {
             ConsensusRequestEvent cre = (ConsensusRequestEvent) event;
@@ -117,9 +122,11 @@ public class ConsensusManager extends Actor
                 // acceptors and an acceptor for this consensus unit 
                 // is not present. So we create one here.
                 consensusProtocol = 
-                    myProvider.makeAcceptor(message.getUnitID(),
-                                            message.getSenderId(),
-                                                        myNodeID);
+                    makeProvider(message.getUnitID()).makeAcceptor(
+                        message.getUnitID(),
+                        message.getSenderId(),
+                        myNodeID,
+                        getEventBus());
                 
                 myUnitToConsensusProtocolMap.put(message.getUnitID(),
                                                  consensusProtocol);
