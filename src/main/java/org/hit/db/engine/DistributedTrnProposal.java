@@ -37,15 +37,13 @@ import org.hit.db.model.DBOperation;
  * 
  * @author Balraja Subbiah
  */
-public class DistributedTrnProposal implements PaxosProposal
+public class DistributedTrnProposal implements Proposal
 {
-    private long mySequenceNumber;
+    private long myTransactionNumber;
     
     private UnitID myUnitID;
     
     private Map<NodeID, DBOperation> myNodeToDBOperationMap;
-    
-    private NodeID myClientID;
     
     /**
      * CTOR
@@ -53,24 +51,22 @@ public class DistributedTrnProposal implements PaxosProposal
     public DistributedTrnProposal()
     {
         super();
-        mySequenceNumber = -1;
         myUnitID = null;
         myNodeToDBOperationMap = null;
-        myClientID = null;
+        myTransactionNumber = -1L;
     }
 
     /**
      * CTOR
      */
-    public DistributedTrnProposal(long sequenceNumber, 
-                                  UnitID unitID,
+    public DistributedTrnProposal(UnitID unitID,
                                   Map<NodeID, DBOperation> nodeToDBOperationMap, 
-                                  NodeID clientId)
+                                  long transactionNumber)
     {
         super();
-        mySequenceNumber = sequenceNumber;
         myUnitID = unitID;
         myNodeToDBOperationMap = nodeToDBOperationMap;
+        myTransactionNumber = transactionNumber;
     }
 
     /**
@@ -80,7 +76,8 @@ public class DistributedTrnProposal implements PaxosProposal
     public boolean contains(Proposal proposal)
     {
         return proposal instanceof DistributedTrnProposal
-             && ((DistributedTrnProposal) proposal).getSequenceNumber() < mySequenceNumber;
+             && ((DistributedTrnProposal) proposal).getTransactionNumber() 
+                 < myTransactionNumber;
     }
 
     /**
@@ -92,13 +89,9 @@ public class DistributedTrnProposal implements PaxosProposal
         return myUnitID;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public long getSequenceNumber()
+    public long getTransactionNumber()
     {
-        return mySequenceNumber;
+        return myTransactionNumber;
     }
     
     /**
@@ -108,14 +101,6 @@ public class DistributedTrnProposal implements PaxosProposal
     {
         return myNodeToDBOperationMap;
     }
-    
-    /**
-     * Returns the value of clientID
-     */
-    public NodeID getClientID()
-    {
-        return myClientID;
-    }
 
     /**
      * {@inheritDoc}
@@ -123,7 +108,7 @@ public class DistributedTrnProposal implements PaxosProposal
     @Override
     public void writeExternal(ObjectOutput out) throws IOException
     {
-        out.writeLong(mySequenceNumber);
+        out.writeLong(myTransactionNumber);
         out.writeObject(myUnitID);
         out.writeObject(myNodeToDBOperationMap);
     }
@@ -136,7 +121,7 @@ public class DistributedTrnProposal implements PaxosProposal
     public void readExternal(ObjectInput in)
         throws IOException, ClassNotFoundException
     {
-        mySequenceNumber = in.readLong();
+        myTransactionNumber = in.readLong();
         myUnitID = (UnitID) in.readObject();
         myNodeToDBOperationMap = (Map<NodeID, DBOperation>) in.readObject();
         

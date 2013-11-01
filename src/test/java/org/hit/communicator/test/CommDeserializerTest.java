@@ -31,7 +31,7 @@ import org.hit.communicator.MessageSerializer;
 import org.hit.communicator.NodeID;
 import org.hit.communicator.ObjectStreamSerializer;
 import org.hit.communicator.nio.IPNodeID;
-import org.hit.db.model.mutations.BatchMutation;
+import org.hit.db.model.mutations.BatchAddMutation;
 import org.hit.example.Airport;
 import org.hit.example.AirportDataLoader;
 import org.hit.messages.DBOperationMessage;
@@ -51,8 +51,8 @@ public class CommDeserializerTest
     {
         NodeID nodeID = new IPNodeID(10000);
         List<Airport> airportList = new AirportDataLoader().loadTestData();
-        BatchMutation<Long, Airport> batchMutation = 
-            new BatchMutation<>("Airport", airportList);
+        BatchAddMutation<Long, Airport> batchMutation = 
+            new BatchAddMutation<>("Airport", airportList);
         DBOperationMessage message = 
             new DBOperationMessage(nodeID, 1L, batchMutation);
         

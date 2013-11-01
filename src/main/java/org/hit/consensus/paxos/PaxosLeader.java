@@ -256,7 +256,8 @@ public class PaxosLeader extends ConsensusLeader
             
             if (record.canInitiateCommit()) {
                 getEventBus().publish(
-                    new ProposalNotificationEvent(record.getProposal(), true)
+                    new ProposalNotificationEvent(
+                        record.getProposal(), true, true)
                 );
                 
                 sendMessage(

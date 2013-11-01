@@ -30,7 +30,7 @@ import java.util.logging.Logger;
 import org.hit.client.DBClient;
 import org.hit.db.model.Column;
 import org.hit.db.model.Schema;
-import org.hit.db.model.mutations.BatchMutation;
+import org.hit.db.model.mutations.BatchAddMutation;
 import org.hit.facade.DBOperationResponse;
 import org.hit.facade.TableCreationResponse;
 import org.hit.key.LinearKeyspace;
@@ -115,7 +115,7 @@ public class HitDbTest extends DBClient
             batchedData.addAll(myTestData);
             myTestData.clear();
         }
-        BatchMutation<Long, Airport> mutation = new BatchMutation<>(
+        BatchAddMutation<Long, Airport> mutation = new BatchAddMutation<>(
                 TABLE_NAME, batchedData);
 
         ListenableFuture<DBOperationResponse> futureResponse =

@@ -41,6 +41,7 @@ import org.hit.communicator.Message;
 import org.hit.communicator.MessageHandler;
 import org.hit.communicator.NodeID;
 import org.hit.db.model.DBOperation;
+import org.hit.db.model.Mutation;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Query;
 import org.hit.db.model.Row;
@@ -60,6 +61,7 @@ import org.hit.messages.CreateTableResponseMessage;
 import org.hit.messages.DBOperationFailureMessage;
 import org.hit.messages.DBOperationMessage;
 import org.hit.messages.DBOperationSuccessMessage;
+import org.hit.messages.DistributedDBOperationMessage;
 import org.hit.messages.FacadeInitRequest;
 import org.hit.messages.FacadeInitResponse;
 import org.hit.partitioner.Partitioner;
@@ -299,6 +301,59 @@ public class HitDBFacade
             }
         }
     }
+    
+    /**
+     * A helper class that wraps the task of sending mutation to the
+     * server.
+     */
+    private class SubmitDistributedTransactionTask implements Runnable
+    {
+        private final NodeID myNodeID;
+
+        private final Map<NodeID, DBOperation> myOperations;
+
+        private final long mySequenceNumber;
+
+        private final SettableFuture<DBOperationResponse> mySettableFuture;
+
+        /**
+         * CTOR
+         */
+        public SubmitDistributedTransactionTask(
+            NodeID                              nodeId,
+            Map<NodeID, DBOperation>            operations,
+            SettableFuture<DBOperationResponse> future,
+            long                                seqNumber)
+        {
+            myNodeID = nodeId;
+            myOperations = operations;
+            mySettableFuture = future;
+            mySequenceNumber = seqNumber;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void run()
+        {
+            LOG.info("Processing request for performing the db operation " +
+                            myOperations);
+
+            myMutationIDToFutureMap.put(mySequenceNumber, mySettableFuture);
+
+            try {
+                myCommunicator.sendTo(myNodeID,
+                                      new DistributedDBOperationMessage(
+                                          myClientID, 
+                                          mySequenceNumber, 
+                                          myOperations));
+            }
+            catch (CommunicatorException e) {
+                mySettableFuture.setException(e);
+            }
+        }
+    }
 
     private class SubmitQueryTask implements Runnable
     {
@@ -520,18 +575,34 @@ public class HitDBFacade
         final Map<NodeID, Range<K>> split =
             partitions.lookupNodes(mutation.getKeyRange());
 
-        if (split.size() > 1) {
-            return null;
-        }
         final SettableFuture<DBOperationResponse> futureResponse =
             SettableFuture.create();
         final long id = myOperationsCount.getAndIncrement();
 
-        myExecutorService.submit(new SubmitDBOperationTask(
-            split.keySet().iterator().next(),
-            mutation,
-            futureResponse,
-            id));
+        if (split.size() == 1) {
+            // The range falls within an ambit of single server
+            // Hence send it to that directly.
+            myExecutorService.submit(new SubmitDBOperationTask(
+                split.keySet().iterator().next(),
+                mutation,
+                futureResponse,
+                id));
+        }
+        else {
+            // For now we assume that executing the same query across
+            // multiple servers will have the same result as executing
+            // the query on a single node within that node's key range.
+            Map<NodeID, DBOperation> nodeToOperationMap = new HashMap<>();
+            for (NodeID key : split.keySet()) {
+                nodeToOperationMap.put(key, mutation);
+            }
+            
+            myExecutorService.submit(new SubmitDistributedTransactionTask(
+                split.keySet().iterator().next(),
+                nodeToOperationMap,
+                futureResponse,
+                id));
+        }
 
         return futureResponse;
     }
@@ -541,7 +612,7 @@ public class HitDBFacade
      */
     public <K extends Comparable<K>>
         ListenableFuture<DBOperationResponse> apply(
-            SingleKeyMutation<K> mutation)
+        SingleKeyMutation<K> mutation)
     {
         @SuppressWarnings("unchecked")
         Partitioner<K,?> partitions =

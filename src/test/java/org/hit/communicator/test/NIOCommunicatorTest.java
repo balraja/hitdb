@@ -34,7 +34,7 @@ import org.hit.communicator.NodeID;
 import org.hit.communicator.ObjectStreamSerializerFactory;
 import org.hit.communicator.nio.IPNodeID;
 import org.hit.communicator.nio.NIOCommunicator;
-import org.hit.db.model.mutations.BatchMutation;
+import org.hit.db.model.mutations.BatchAddMutation;
 import org.hit.example.Airport;
 import org.hit.example.AirportDataLoader;
 import org.hit.messages.DBOperationMessage;
@@ -188,8 +188,8 @@ public class NIOCommunicatorTest
         NodeID senderID = new IPNodeID(25000);
         NodeID receiverID = new IPNodeID(25001);
         List<Airport> airportList = new AirportDataLoader().loadTestData();
-        BatchMutation<Long, Airport> batchMutation =
-            new BatchMutation<>("Airport", new ArrayList<>(airportList.subList(0, 5)));
+        BatchAddMutation<Long, Airport> batchMutation =
+            new BatchAddMutation<>("Airport", new ArrayList<>(airportList.subList(0, 5)));
         DBOperationMessage message =
             new DBOperationMessage(senderID, 1L, batchMutation);
 

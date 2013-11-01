@@ -38,7 +38,7 @@ import org.hit.util.Range;
  *
  * @author Balraja Subbiah
  */
-public class BatchMutation<K extends Comparable<K>, P extends Persistable<K>>
+public class BatchAddMutation<K extends Comparable<K>, P extends Persistable<K>>
     implements RangeMutation<K,P>
 {
     private class PersistableComparator implements Comparator<P>
@@ -61,7 +61,7 @@ public class BatchMutation<K extends Comparable<K>, P extends Persistable<K>>
     /**
      * CTOR
      */
-    public BatchMutation()
+    public BatchAddMutation()
     {
         super();
     }
@@ -69,7 +69,7 @@ public class BatchMutation<K extends Comparable<K>, P extends Persistable<K>>
     /**
      * CTOR
      */
-    public BatchMutation(String tableName, List<P> data)
+    public BatchAddMutation(String tableName, List<P> data)
     {
         super();
         myTableName = tableName;
@@ -136,6 +136,5 @@ public class BatchMutation<K extends Comparable<K>, P extends Persistable<K>>
     {
         out.writeUTF(myTableName);
         out.writeObject(myData);
-
     }
 }

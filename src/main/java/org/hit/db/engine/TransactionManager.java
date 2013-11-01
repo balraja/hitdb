@@ -52,6 +52,7 @@ import org.hit.db.transactions.TransactableDatabase;
 import org.hit.db.transactions.TransactionResult;
 import org.hit.db.transactions.WriteTransaction;
 import org.hit.db.transactions.journal.WAL;
+import org.hit.event.ConsensusResponseEvent;
 import org.hit.event.CreateConsensusLeaderEvent;
 import org.hit.event.ProposalNotificationEvent;
 import org.hit.event.ProposalNotificationResponse;
@@ -97,7 +98,29 @@ public class TransactionManager
         public void respondTO(Object event);
     }
     
-    private class SimpleWorkflow implements WorkFlow
+    private abstract class AbstractWokflow implements WorkFlow
+    {
+        /**
+         * Schedules the next set of transactions which are dependent
+         * on this transaction.
+         */
+        protected void scheduleNextTransactions(long transactionID)
+        {
+            TLongSet toBeProcessedTransactions = 
+                Registry.freeDependentTransactionsOn(transactionID);
+            
+            if (!toBeProcessedTransactions.isEmpty()) {
+                myExecutor.submit(new ScheduleTransactionCommitTask(
+                    toBeProcessedTransactions));
+            }
+        }
+    }
+    
+    /**
+     * Defines a workflow where the transaction is performed only 
+     * on the data present in this server.
+     */
+    private class SimpleWorkflow extends AbstractWokflow
     {
         private final ClientInfo myClientInfo;
         
@@ -140,21 +163,6 @@ public class TransactionManager
                            myClientInfo.getClientSequenceNumber(),
                            exception.getMessage(),
                            exception)));
-            }
-        }
-        
-        /**
-         * Schedules the next set of transactions which are dependent
-         * on this transaction.
-         */
-        private void scheduleNextTransactions()
-        {
-            TLongSet toBeProcessedTransactions = 
-                Registry.freeDependentTransactionsOn(
-                    myTransaction.getTransactionID());
-            if (!toBeProcessedTransactions.isEmpty()) {
-                myExecutor.submit(new ScheduleTransactionCommitTask(
-                    toBeProcessedTransactions));
             }
         }
         
@@ -244,7 +252,7 @@ public class TransactionManager
                        Collections.singleton(myClientInfo.getClientID()),
                        message));
                 
-                scheduleNextTransactions();
+                scheduleNextTransactions(myTransaction.getTransactionID());
             }
             else if (event instanceof Exception) {
                 Exception exception = (Exception) event;
@@ -255,9 +263,11 @@ public class TransactionManager
         }
     }
     
-    private class DistributedWorkflow implements WorkFlow
+    private class DistributedWorkflow extends AbstractWokflow
     {
         private final AbstractTransaction myTransaction;
+        
+        private final ClientInfo myClientInfo;
         
         private final ProposalNotificationEvent myPne;
         
@@ -269,10 +279,12 @@ public class TransactionManager
          * CTOR
          */
         public DistributedWorkflow(AbstractTransaction transaction,
+                                   ClientInfo clientInfo,
                                    ProposalNotificationEvent pne)
         {
             super();
             myTransaction = transaction;
+            myClientInfo = clientInfo;
             myPne = pne;
             myExecutionPhase = true;
         }
@@ -325,7 +337,6 @@ public class TransactionManager
                             result.getPhase().getResult()));
                 }
                 myMemento = result;
-                myExecutionPhase = false;
             }
             else if (event instanceof Memento && myExecutionPhase) {
                 myEventBus.publish(
@@ -335,7 +346,12 @@ public class TransactionManager
                      && ((ProposalNotificationEvent) event).isCommitNotification()
                      && myMemento != null) 
             {
-
+                myExecutionPhase = false;
+                initiateCommit();
+            }
+            else if ( event instanceof ConsensusResponseEvent) {
+                myExecutionPhase = false;
+                initiateCommit();
             }
             else if (   !myExecutionPhase 
                      && event instanceof Memento)
@@ -343,8 +359,27 @@ public class TransactionManager
                 @SuppressWarnings("unchecked")
                 Memento<TransactionResult> result = 
                     (Memento<TransactionResult>) event;
-                // XXX Make changes to send the result to the client.
-                List<WorkFlow> queued = 
+                myEventBus.publish(myDatabase.getStatistics());
+                if (myClientInfo != null) {
+                    Message message =
+                        result.getPhase().getResult().isCommitted() ?
+                            new DBOperationSuccessMessage(
+                                myServerID,
+                                myClientInfo.getClientSequenceNumber(), 
+                                result.getPhase().getResult().getResult())
+                            : new DBOperationFailureMessage(
+                                  myServerID,
+                                  myClientInfo.getClientSequenceNumber(),
+                                  "Failed to apply the transaction on db");
+    
+                    myEventBus.publish(
+                       new SendMessageEvent(
+                           Collections.singleton(myClientInfo.getClientID()),
+                           message));
+                }
+                
+                // scheduleNextTransactions(myTransaction.getTransactionID());
+                List<WorkFlow> queued =
                     new ArrayList<>(myQueuedWorkFlows);
                 myQueuedWorkFlows.clear();
                 myExecutor.submit(new ScheduleTransactionExecutionTask(queued));
@@ -363,8 +398,6 @@ public class TransactionManager
                        new PhasedTransactionExecutor<TransactionResult>(
                            myMemento));
 
-                // TODO Fix this, we are assuming client will take care
-                // of merging the commits.
                 Futures.addCallback(future,
                                     new WorkflowProcessor<>(
                                         DistributedWorkflow.this));
@@ -594,15 +627,13 @@ public class TransactionManager
      * queries to be performed on multitude of nodes of the database.
      */
     public void processOperation(NodeID                   clientID,
+                                 long                     sequenceNumber,
                                  Map<NodeID, DBOperation> operations)
     {
-        // XXX Send proper seq number from the client side and create
-        // appropriate ClientInfo
-        
         Set<NodeID> acceptors =
             Sets.difference(operations.keySet(),
                             Collections.singleton(myServerID));
-        UnitID unitID = new DistributedTrnID(clientID);
+        UnitID unitID = new DistributedTrnID(clientID, sequenceNumber);
         myEventBus.publish(new CreateConsensusLeaderEvent(unitID, 
                                                           acceptors));
 
@@ -616,7 +647,9 @@ public class TransactionManager
                 : new ReadTransaction(
                     id, myDatabase, myClock, (Query) operation);
         
-        WorkFlow workFlow = new DistributedWorkflow(transaction, null);
+        ClientInfo clientInfo = new ClientInfo(clientID, sequenceNumber);
+        WorkFlow workFlow = 
+            new DistributedWorkflow(transaction, clientInfo, null);
         myWorkFlowMap.put(Long.valueOf(id), workFlow);
         myConsensusToWorkFlowMap.put(unitID, workFlow);
         
@@ -626,6 +659,13 @@ public class TransactionManager
             Registry.addDependencyToAll(id);
         }
     }
+    
+    public void processOperation(ConsensusResponseEvent response)
+    {
+        WorkFlow workflow = 
+            myConsensusToWorkFlowMap.get(response.getProposal().getUnitID());
+        workflow.respondTO(response);
+    }
 
     /**
      * Creates appropriate <code>Transaction<code>s to process the mutations/
@@ -633,7 +673,6 @@ public class TransactionManager
      */
     public void processOperation(ProposalNotificationEvent pne)
     {
-
        if (pne.isCommitNotification()) {
            WorkFlow workFlow = 
                myConsensusToWorkFlowMap.get(pne.getProposal().getUnitID());
@@ -658,7 +697,7 @@ public class TransactionManager
                        id, myDatabase, myClock, (Query) operation);
                        
            WorkFlow workFlow = 
-               new DistributedWorkflow(transaction, pne);
+               new DistributedWorkflow(transaction, null, pne);
            myWorkFlowMap.put(Long.valueOf(id), workFlow);
            myConsensusToWorkFlowMap.put(pne.getProposal().getUnitID(), 
                                         workFlow);

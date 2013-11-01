@@ -29,7 +29,9 @@ import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
 import org.hit.db.model.DBOperation;
+import org.hit.event.ConsensusResponseEvent;
 import org.hit.event.Event;
+import org.hit.event.ProposalNotificationEvent;
 import org.hit.event.SendMessageEvent;
 import org.hit.messages.DBOperationFailureMessage;
 import org.hit.messages.DBOperationMessage;
@@ -156,7 +158,18 @@ public abstract class AbstractWarden implements EngineWarden
 
             myTransactionManager.processOperation(
                 ddbMessage.getSenderId(),
+                ddbMessage.getSequenceNumber(),
                 ddbMessage.getNodeToOperationMap());
+        }
+        else if (event instanceof ProposalNotificationEvent) {
+            ProposalNotificationEvent pne = 
+                (ProposalNotificationEvent) event;
+            myTransactionManager.processOperation(pne);
+        }
+        else if (event instanceof ConsensusResponseEvent) {
+            ConsensusResponseEvent cre = 
+                (ConsensusResponseEvent) event;
+            myTransactionManager.processOperation(cre);
         }
     }
 
@@ -166,7 +179,8 @@ public abstract class AbstractWarden implements EngineWarden
     @Override
     public void register(ActorID actorID)
     {
-        myEventBus.registerForEvent(DBOperationMessage.class,
-                                    actorID);
+        myEventBus.registerForEvent(DBOperationMessage.class, actorID);
+        myEventBus.registerForEvent(ProposalNotificationEvent.class, actorID);
+        myEventBus.registerForEvent(ConsensusResponseEvent.class, actorID);
     }
 }

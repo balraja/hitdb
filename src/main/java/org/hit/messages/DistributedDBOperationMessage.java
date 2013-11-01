@@ -39,6 +39,8 @@ import org.hit.db.model.DBOperation;
  */
 public class DistributedDBOperationMessage extends Message
 {
+    private long                     mySequenceNumber;
+    
     private Map<NodeID, DBOperation> myNodeToOperationMap;
     
     /**
@@ -53,10 +55,12 @@ public class DistributedDBOperationMessage extends Message
      * CTOR
      */
     public DistributedDBOperationMessage(
-        NodeID clientId,
+        NodeID                   clientId,
+        long                     sequenceNumber,
         Map<NodeID, DBOperation> nodeToOperationMap)
     {
         super(clientId);
+        mySequenceNumber     = sequenceNumber;
         myNodeToOperationMap = nodeToOperationMap;
     }
 
@@ -69,6 +73,15 @@ public class DistributedDBOperationMessage extends Message
     }
     
     /**
+     * Returns the value of sequenceNumber
+     */
+    public
+        long getSequenceNumber()
+    {
+        return mySequenceNumber;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @SuppressWarnings("unchecked")
@@ -77,6 +90,7 @@ public class DistributedDBOperationMessage extends Message
         throws IOException, ClassNotFoundException
     {
         super.readExternal(in);
+        mySequenceNumber     = in.readLong();
         myNodeToOperationMap = (Map<NodeID, DBOperation>) in.readObject();
     }
     
@@ -87,6 +101,7 @@ public class DistributedDBOperationMessage extends Message
     public void writeExternal(ObjectOutput out) throws IOException
     {
         super.writeExternal(out);
+        out.writeLong(mySequenceNumber);
         out.writeObject(myNodeToOperationMap);
     }
 }
