@@ -22,7 +22,10 @@ package org.hit.zookeeper;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,8 +42,8 @@ import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
 import org.hit.communicator.nio.IPNodeID;
 import org.hit.event.MasterDownEvent;
-import org.hit.registry.RegistryService;
 import org.hit.util.LogFactory;
+import org.hit.util.Pair;
 
 import com.google.inject.Inject;
 
@@ -49,8 +52,19 @@ import com.google.inject.Inject;
  *
  * @author Balraja Subbiah
  */
-public class ZooKeeperClient implements RegistryService
+public class ZooKeeperClient
 {
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(ZooKeeperClient.class);
+
+    private static final String PATH_SEPARATOR = "/";
+    
+    private static final String LOCK_NODE = "lock";
+
+    private final AtomicBoolean myIsReadyFlag;
+
+    private final ZooKeeper myZooKeeper;
+    
     /**
      * Simple watcher service for listening to updates from zookeeper.
      */
@@ -91,19 +105,22 @@ public class ZooKeeperClient implements RegistryService
             }
         }
     }
+    
+    private static class SeqNodeComparator 
+        implements Comparator<Pair<String,Long>> 
+    {
 
-    private static final Logger LOG =
-        LogFactory.getInstance().getLogger(ZooKeeperClient.class);
-
-    private static final String PATH_SEPARATOR = "/";
-
-    private static final String ZK_HIT_HOSTS_MASTER = "master";
-
-    private static final String ZK_HIT_HOSTS_ROOT = "/hit_hosts";
-
-    private final AtomicBoolean myIsReadyFlag;
-
-    private final ZooKeeper myZooKeeper;
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public
+            int compare(Pair<String, Long> o1, Pair<String, Long> o2)
+        {
+            return o1.getSecond().intValue() - o2.getSecond().intValue();
+        }
+        
+    }
 
     /**
      * CTOR
@@ -121,16 +138,39 @@ public class ZooKeeperClient implements RegistryService
             throw new RuntimeException(e);
         }
     }
+    
+    /**
+     * Creates a given path under root.
+     */
+    public boolean createPersistentPath(String path)
+    {
+        if (!isUp()) {
+            return false;
+        }
+        try {
+            if (myZooKeeper.exists(path, false) == null) {
+                LOG.info("Adding node under path " + path + "to zoo keeper");
+                myZooKeeper.create(path,
+                                   null,
+                                   Ids.OPEN_ACL_UNSAFE,
+                                   CreateMode.PERSISTENT);
+            }
+            return true;
+        }
+        catch (KeeperException | InterruptedException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
+    }
 
     /**
-     * Adds a server node under root that captures the liveliness of node.
-     * Clients also access these nodes to determine which servers are alive.
+     * Adds a node under the given path
      */
-    public void addHostNode(NodeID nodeID)
+    public void addNode(String treePath, NodeID nodeID)
     {
         try {
             String path =
-                ZK_HIT_HOSTS_ROOT + PATH_SEPARATOR + nodeID.toString();
+                treePath + PATH_SEPARATOR + nodeID.toString();
 
             if (myZooKeeper.exists(path, false) == null) {
                 LOG.info("Adding node under path " + path + "to zoo keeper");
@@ -145,100 +185,69 @@ public class ZooKeeperClient implements RegistryService
             throw new RuntimeException(e);
         }
     }
-
-
+    
     /**
-     * Creates a root node for all hit servers.
+     * A helper method to acquire lock under a given path using 
+     * zookeeper's sequential nodes.
      */
-    public boolean checkAndCreateRootNode()
-    {
-        if (!isUp()) {
-            return false;
-        }
-        try {
-            if (myZooKeeper.exists(ZK_HIT_HOSTS_ROOT, false) == null) {
-
-                LOG.info("Created path "
-                          + ZK_HIT_HOSTS_ROOT
-                          + " in the zookeeper");
-
-                myZooKeeper.create(ZK_HIT_HOSTS_ROOT,
-                                   null,
-                                   Ids.OPEN_ACL_UNSAFE,
-                                   CreateMode.PERSISTENT);
-            }
-            return true;
-        }
-        catch (KeeperException | InterruptedException e) {
-           LOG.log(Level.SEVERE, e.getMessage(), e);
-           return false;
-        }
-    }
-
-    /**
-     * Creates a master node under hosts and marks the given node
-     * as master
-     */
-    public boolean claimMasterNode(NodeID nodeID)
-    {
-        if (!isUp()) {
-            return false;
-        }
-
-        try {
-
-            if (!checkAndCreateRootNode()) {
-                return false;
-            }
-
-            String masterPath =
-                ZK_HIT_HOSTS_ROOT + PATH_SEPARATOR + ZK_HIT_HOSTS_MASTER;
-
-            if (myZooKeeper.exists(masterPath, false) == null) {
-
-                LOG.info("Created path " + masterPath + " in the zookeeper");
-
-                myZooKeeper.create(masterPath,
-                                   null,
-                                   Ids.OPEN_ACL_UNSAFE,
-                                   CreateMode.PERSISTENT);
-
-                String nodePath =
-                    ZK_HIT_HOSTS_ROOT
-                    + PATH_SEPARATOR
-                    + ZK_HIT_HOSTS_MASTER
-                    + PATH_SEPARATOR
-                    + nodeID.toString();
-
-                myZooKeeper.create(nodePath,
-                                   null,
-                                   Ids.OPEN_ACL_UNSAFE,
-                                   CreateMode.EPHEMERAL);
-                return true;
-            }
-        }
-        catch (KeeperException | InterruptedException e) {
-            LOG.log(Level.SEVERE, e.toString(), e);
-        }
-        return false;
-    }
-
-    /**
-     * A helper method to return the node that's master.
-     */
-    @Override
-    public NodeID getMasterNode()
+    public boolean acquireLockUnder(String treePath, NodeID nodeID)
     {
         try {
-            String masterNodePath =
-                ZK_HIT_HOSTS_ROOT + PATH_SEPARATOR + ZK_HIT_HOSTS_MASTER;
-
-            for (String child : myZooKeeper.getChildren(masterNodePath, false))
-            {
-                if (child != null) {
-                    return IPNodeID.parseString(child);
+            String path =
+                treePath + PATH_SEPARATOR + LOCK_NODE;
+            createPersistentPath(path);
+            String createdPath = null;
+            Stat stat = new Stat();
+            
+            for (String child : myZooKeeper.getChildren(path, false)) {
+                String childPath = path + PATH_SEPARATOR + child;
+                byte[] data = myZooKeeper.getData(childPath, null, stat);
+                NodeID childId = IPNodeID.parseString(new String(data));
+                if (childId.equals(nodeID)) {
+                    createdPath = child;
                 }
             }
+            
+            if (createdPath == null) {
+                createdPath = 
+                    myZooKeeper.create(
+                        path,
+                        nodeID.toString().getBytes(),
+                        Ids.OPEN_ACL_UNSAFE,
+                        CreateMode.EPHEMERAL_SEQUENTIAL);
+            }
+            
+            Long id = Long.valueOf(createdPath);
+            SortedSet<Long> sequenceNumbers = new TreeSet<>();
+            for (String child : myZooKeeper.getChildren(path, false)) {
+                sequenceNumbers.add(Long.valueOf(child));
+            }
+            return (sequenceNumbers.first() == id);
+        }
+        catch (KeeperException | InterruptedException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * A helper method to return the node that holds a lock under a 
+     * path.
+     */
+    public NodeID getLeader(String path)
+    {
+        try {
+            String lockPath = path + PATH_SEPARATOR + LOCK_NODE;
+            SortedSet<Pair<String,Long>> sequenceNumbers = 
+                new TreeSet<>(new SeqNodeComparator());
+            for (String child : myZooKeeper.getChildren(lockPath, false))
+            {
+                sequenceNumbers.add(new Pair<>(child, Long.valueOf(child)));
+            }
+            String childPath = 
+                path + PATH_SEPARATOR + sequenceNumbers.first().getFirst();
+            byte[] data = myZooKeeper.getData(childPath, null, new Stat());
+            return IPNodeID.parseString(new String(data));
         }
         catch (KeeperException | InterruptedException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
@@ -247,18 +256,16 @@ public class ZooKeeperClient implements RegistryService
     }
 
     /**
-     * {@inheritDoc}
+     * Returns a list of {@link NodeID}s under a path
      */
-    @Override
-    public List<NodeID> getServerNodes()
+    public List<NodeID> getNodes(String path)
     {
         try {
             List<NodeID> servers = new ArrayList<>();
-            Stat rootStat = myZooKeeper.exists(ZK_HIT_HOSTS_ROOT, false);
+            Stat rootStat = myZooKeeper.exists(path, false);
             if (rootStat != null) {
                 for (String child :
-                        myZooKeeper.getChildren(ZK_HIT_HOSTS_ROOT,
-                                                false))
+                        myZooKeeper.getChildren(path, false))
                 {
                     servers.add(IPNodeID.parseString(child));
                 }
@@ -273,14 +280,12 @@ public class ZooKeeperClient implements RegistryService
 
 
     /**
-     * {@inheritDoc}
+     * Returns true if we have connected successfully with the zookeeper.
      */
-    @Override
     public boolean isUp()
     {
         return myIsReadyFlag.get();
     }
-
 
     /**
      * Stops the zookeeper client and closes the session with the zookeeper.
@@ -295,22 +300,4 @@ public class ZooKeeperClient implements RegistryService
             throw new RuntimeException(e);
         }
     }
-
-    /**
-     * A helper method to register for the watcher service.
-     */
-    public void watchMaster(EventBus eventBus)
-    {
-        String masterNodePath =
-            ZK_HIT_HOSTS_ROOT + PATH_SEPARATOR + ZK_HIT_HOSTS_MASTER;
-
-        try {
-            myZooKeeper.exists(masterNodePath,
-                               new MasterWatcher(eventBus));
-        }
-        catch (KeeperException | InterruptedException e) {
-            LOG.log(Level.SEVERE, e.getMessage(), e);
-        }
-    }
-
 }
