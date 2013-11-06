@@ -93,7 +93,12 @@ public abstract class ConsensusMessage extends Message
     {
         super.readExternal(in);
         myUnitID = (UnitID) in.readObject();
-        myProposal = (Proposal) in.readObject();
+        if (in.readBoolean()) {
+            myProposal = (Proposal) in.readObject();
+        }
+        else {
+            myProposal = null;
+        }
     }
 
     /**
@@ -104,6 +109,12 @@ public abstract class ConsensusMessage extends Message
     {
         super.writeExternal(out);
         out.writeObject(myUnitID);
-        out.writeObject(myProposal);
+        if (myProposal == null) {
+            out.writeBoolean(false);
+        }
+        else {
+            out.writeBoolean(true);
+            out.writeObject(myProposal);
+        }
     }
 }
