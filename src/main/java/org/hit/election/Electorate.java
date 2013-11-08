@@ -19,8 +19,9 @@
 */
 package org.hit.election;
 
-import java.util.HashSet;
-import java.util.Set;
+import com.google.common.eventbus.EventBus;
+
+import java.util.List;
 
 import org.hit.communicator.NodeID;
 import org.hit.zookeeper.ZooKeeperClient;
@@ -32,50 +33,51 @@ import org.hit.zookeeper.ZooKeeperClient;
  */
 public class Electorate
 {
-    private final ElectorateID myID;
+    /**
+     * A listener to be used for notifying about events
+     * of interest wrt the electorate.
+     */
+    public static interface Listener
+    {
+        /**
+         * Notifies that leader is down.
+         */
+        public void notifyLeaderDown(ElectorateID electorateID);
+    }
     
-    private final Set<NodeID> myNodes;
+    private final ElectorateID myID;
     
     private final long myTerm;
     
     private final ZooKeeperClient myZKClient;
+    
+    private final String myZKPath;
 
     /**
      * CTOR
      */
-    public Electorate(ElectorateID id, ZooKeeperClient zc)
+    public Electorate(ElectorateID id, ZooKeeperClient zc, EventBus eventBus)
     {
         myID    = id;
-        myNodes = new HashSet<>();
         myTerm  = 0L;
         myZKClient = zc;
+        myZKPath = ZooKeeperClient.PATH_SEPARATOR + id.toString();
     }
     
     /**
-     * CTOR
+     * Adds a node to the electorate.
      */
-    public Electorate(ElectorateID    id, 
-                      ZooKeeperClient zc, 
-                      NodeID          node, 
-                      long            term)
+    public void add(NodeID node, boolean isLeader)
     {
-        myID    = id;
-        myNodes = new HashSet<>();
-        myNodes.add(node);
-        myTerm = term;
-        myZKClient = zc;
-    }
-    
-    /**
-     * Adds a node to the electorate
-     */
-    public void add(NodeID node)
-    {
-        myNodes.add(node);
+        myZKClient.addNode(myID.toString(), node);
+        if (isLeader) {
+            myZKClient.acquireLockUnder(myZKPath, 
+                                        node);
+        }
     }
 
     /**
-     * Returns the value of iD
+     * Returns the {@link ElectorateID} for this electorate.
      */
     public ElectorateID getID()
     {
@@ -85,9 +87,9 @@ public class Electorate
     /**
      * Returns the value of nodes
      */
-    public Set<NodeID> getNodes()
+    public List<NodeID> getNodes()
     {
-        return myNodes;
+        return myZKClient.getNodes(myZKPath);
     }
 
     /**

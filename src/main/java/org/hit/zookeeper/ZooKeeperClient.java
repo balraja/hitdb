@@ -54,10 +54,10 @@ import com.google.inject.Inject;
  */
 public class ZooKeeperClient
 {
+    public static final String PATH_SEPARATOR = "/";
+    
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(ZooKeeperClient.class);
-
-    private static final String PATH_SEPARATOR = "/";
     
     private static final String LOCK_NODE = "lock";
 
@@ -78,30 +78,6 @@ public class ZooKeeperClient
         {
             if (watchedEvent.getState() == KeeperState.SyncConnected) {
                 myIsReadyFlag.set(true);
-            }
-        }
-    }
-
-    private class MasterWatcher implements Watcher
-    {
-        private final EventBus myEventBus;
-
-        /**
-         * CTOR
-         */
-        public MasterWatcher(EventBus eventBus)
-        {
-            myEventBus = eventBus;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void process(WatchedEvent event)
-        {
-            if (event.getState() == KeeperState.Disconnected) {
-                myEventBus.publish(new MasterDownEvent());
             }
         }
     }
@@ -187,6 +163,21 @@ public class ZooKeeperClient
     }
     
     /**
+     *  A helper method to add {@link Watcher} to the zkNode at 
+     *  the specified path.
+     */
+    public boolean addWatcher(String path, Watcher watcher)
+    {
+        try {
+            myZooKeeper.exists(path, watcher);
+            return true;
+        }
+        catch (KeeperException | InterruptedException e) {
+            return false;
+        }
+    }
+    
+    /**
      * A helper method to acquire lock under a given path using 
      * zookeeper's sequential nodes.
      */
@@ -218,11 +209,13 @@ public class ZooKeeperClient
             }
             
             Long id = Long.valueOf(createdPath);
-            SortedSet<Long> sequenceNumbers = new TreeSet<>();
-            for (String child : myZooKeeper.getChildren(path, false)) {
-                sequenceNumbers.add(Long.valueOf(child));
+            SortedSet<Pair<String,Long>> sequenceNumbers = 
+                new TreeSet<>(new SeqNodeComparator());
+            for (String child : myZooKeeper.getChildren(path, false))
+            {
+                sequenceNumbers.add(new Pair<>(child, Long.valueOf(child)));
             }
-            return (sequenceNumbers.first() == id);
+            return (sequenceNumbers.first().getSecond() == id);
         }
         catch (KeeperException | InterruptedException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
@@ -234,7 +227,7 @@ public class ZooKeeperClient
      * A helper method to return the node that holds a lock under a 
      * path.
      */
-    public NodeID getLeader(String path)
+    public NodeID getLockHolder(String path)
     {
         try {
             String lockPath = path + PATH_SEPARATOR + LOCK_NODE;
@@ -277,7 +270,6 @@ public class ZooKeeperClient
             throw new RuntimeException(e);
         }
     }
-
 
     /**
      * Returns true if we have connected successfully with the zookeeper.

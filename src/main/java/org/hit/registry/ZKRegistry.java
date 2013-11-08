@@ -65,7 +65,7 @@ public class ZKRegistry implements RegistryService
     @Override
     public NodeID getMasterNode()
     {
-        return myZKClient.getLeader(myElectorateID.toString());
+        return myZKClient.getLockHolder(myElectorateID.toString());
     }
 
     /**

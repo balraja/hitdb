@@ -31,6 +31,8 @@ import org.hit.communicator.NodeID;
 import org.hit.consensus.ConsensusLeader;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
+import org.hit.consensus.raft.log.WAL;
+import org.hit.consensus.raft.log.WALPropertyConfig;
 import org.hit.event.ConsensusResponseEvent;
 import org.hit.event.SendMessageEvent;
 
@@ -42,7 +44,7 @@ import org.hit.event.SendMessageEvent;
 public class RaftLeader extends ConsensusLeader 
     implements RaftProtocol
 {
-    private class Supervisor
+    private class Trace
     {
         private final Set<NodeID> myLogAcceptors;
         
@@ -59,7 +61,7 @@ public class RaftLeader extends ConsensusLeader
         /**
          * CTOR
          */
-        public Supervisor(Proposal proposal, 
+        public Trace(Proposal proposal, 
                           long     termID,
                           long     sequenceNO,
                           long     lcTermID,
@@ -78,6 +80,7 @@ public class RaftLeader extends ConsensusLeader
          */
         public void start()
         {
+            myWAL.addProposal(myTermID, mySequenceNO, myProposal);
             getEventBus().publish(
                 new SendMessageEvent(
                     myLogAcceptors,
@@ -102,9 +105,9 @@ public class RaftLeader extends ConsensusLeader
         }
     }
     
-    private static class RecordInfo
+    private static class State
     {
-        private final TLongObjectMap<TLongObjectMap<Supervisor>> myProposalLog;
+        private final TLongObjectMap<TLongObjectMap<Trace>> myProposalLog;
         
         private long myTermNo;
         
@@ -117,7 +120,7 @@ public class RaftLeader extends ConsensusLeader
         /**
          * CTOR
          */
-        public RecordInfo(long termNo)
+        public State(long termNo)
         {
             myProposalLog = new TLongObjectHashMap<>();
             myTermNo      = termNo;
@@ -166,18 +169,18 @@ public class RaftLeader extends ConsensusLeader
             return myLastCommittedSeqNo;
         }
 
-        public Supervisor getSuperVisor(long termID, long sequenceNo)
+        public Trace getSuperVisor(long termID, long sequenceNo)
         {
-            TLongObjectMap<Supervisor> seqMap =
+            TLongObjectMap<Trace> seqMap =
                 myProposalLog.get(termID);
             return seqMap != null ? seqMap.get(sequenceNo) : null;
         }
         
         public void setSupervisor(long termID, 
                                   long sequenceNo, 
-                                  Supervisor supervisor)
+                                  Trace supervisor)
         {
-            TLongObjectMap<Supervisor> seqMap =
+            TLongObjectMap<Trace> seqMap =
                 myProposalLog.get(termID);
             if (seqMap == null) {
                 seqMap = new TLongObjectHashMap<>();
@@ -188,7 +191,7 @@ public class RaftLeader extends ConsensusLeader
         
         public void deleteSupervisor(long termID, long sequenceNo)
         {
-            TLongObjectMap<Supervisor> seqMap =
+            TLongObjectMap<Trace> seqMap =
                 myProposalLog.get(termID);
             if (seqMap != null) {
                 seqMap.remove(sequenceNo);
@@ -202,7 +205,9 @@ public class RaftLeader extends ConsensusLeader
         }
     }
     
-    private final RecordInfo myProtocolState;
+    private final State myProtocolState;
+    
+    private final WAL myWAL;
     
     /**
      * CTOR
@@ -215,7 +220,8 @@ public class RaftLeader extends ConsensusLeader
         long termID)
     {
         super(consensusUnitID, acceptors, eventBus, myID);
-        myProtocolState = new RecordInfo(termID);
+        myProtocolState = new State(termID);
+        myWAL = new WAL(new WALPropertyConfig(consensusUnitID.toString()));
     }
 
     /**
@@ -227,7 +233,7 @@ public class RaftLeader extends ConsensusLeader
         if (message instanceof RaftReplicationResponse) {
             RaftReplicationResponse response = 
                 (RaftReplicationResponse) message;
-            Supervisor supervisor = 
+            Trace supervisor = 
                 myProtocolState.getSuperVisor(
                     response.getAcceptedTermID(),
                     response.getAcceptedSeqNo());
@@ -243,19 +249,19 @@ public class RaftLeader extends ConsensusLeader
     @Override
     public void getConsensus(Proposal proposal)
     {
-        Supervisor supervisor = 
-            new Supervisor(proposal,
-                           myProtocolState.getTermNo(),
-                           myProtocolState.incAndGetSeqNum(),
-                           myProtocolState.getLastCommittedTermNo(),
-                           myProtocolState.getLastCommittedSeqNo());
+        Trace trace = 
+            new Trace(proposal,
+                       myProtocolState.getTermNo(),
+                       myProtocolState.incAndGetSeqNum(),
+                       myProtocolState.getLastCommittedTermNo(),
+                       myProtocolState.getLastCommittedSeqNo());
         
         myProtocolState.setSupervisor(
-            supervisor.myTermID,
-            supervisor.mySequenceNO,
-            supervisor);
+            trace.myTermID,
+            trace.mySequenceNO,
+            trace);
         
-        supervisor.start();
+        trace.start();
     }
 
     /**

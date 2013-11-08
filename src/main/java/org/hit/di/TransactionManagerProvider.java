@@ -22,9 +22,9 @@ package org.hit.di;
 
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
+import org.hit.consensus.raft.log.WAL;
 import org.hit.db.engine.TransactionManager;
 import org.hit.db.transactions.TransactableDatabase;
-import org.hit.db.transactions.journal.WAL;
 import org.hit.time.Clock;
 
 import com.google.inject.Inject;

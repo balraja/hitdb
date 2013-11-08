@@ -18,31 +18,27 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.db.transactions.journal;
-
-import java.io.DataOutputStream;
+package org.hit.consensus.raft.log;
 
 /**
- * Defines the facade that can be used for accessing the file system.
- * The main advantage of this approach is that we can easily plugin
- * different types of file system under which we wish to store the
- * transactions.
+ * Defines the configuration file for write ahead loggging.
  * 
  * @author Balraja Subbiah
  */
-public interface FileSystemFacacde
+public interface WALConfig
 {
     /**
-     * Creates file in append/write modes. Returns null if file creation is
-     * unsuccessful.
+     * Returns the name of log file.
      */
-    public DataOutputStream createFile(String path, boolean append);
+    public String getLogName();
     
     /**
-     * Returns true if the call to create a directory with the given path is
-     * successful. The call to create a directory my fail if there already
-     * exists a directory with the same name.
+     * Returns the directory path under which file is to be created.
      */
-    public boolean makeDirectory(String path);
+    public String getBaseDirectoryPath();
     
+    /**
+     * Returns the number of transactions per file.
+     */
+    public int getTransactionsPerFile();
 }

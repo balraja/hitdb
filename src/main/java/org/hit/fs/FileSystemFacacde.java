@@ -18,22 +18,31 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.db.transactions.journal;
+package org.hit.fs;
+
+import java.io.DataOutputStream;
 
 /**
- * Defines the configuration file for write ahead loggging.
+ * Defines the facade that can be used for accessing the file system.
+ * The main advantage of this approach is that we can easily plugin
+ * different types of file system under which we wish to store the
+ * transactions.
  * 
  * @author Balraja Subbiah
  */
-public interface WALConfig
+public interface FileSystemFacacde
 {
     /**
-     * Returns the directory path under which file is to be created.
+     * Creates file in append/write modes. Returns null if file creation is
+     * unsuccessful.
      */
-    public String getBaseDirectoryPath();
+    public DataOutputStream createFile(String path, boolean append);
     
     /**
-     * Returns the number of transactions per file.
+     * Returns true if the call to create a directory with the given path is
+     * successful. The call to create a directory my fail if there already
+     * exists a directory with the same name.
      */
-    public int getTransactionsPerFile();
+    public boolean makeDirectory(String path);
+    
 }

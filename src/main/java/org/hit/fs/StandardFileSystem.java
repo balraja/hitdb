@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.db.transactions.journal;
+package org.hit.fs;
 
 import java.io.DataOutputStream;
 import java.io.File;

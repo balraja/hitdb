@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.db.transactions.journal;
+package org.hit.consensus.raft.log;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -34,11 +34,16 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.hit.consensus.Proposal;
 import org.hit.db.model.Mutation;
 import org.hit.db.transactions.WriteTransaction;
+import org.hit.di.HitServerModule;
+import org.hit.fs.FileSystemFacacde;
 import org.hit.util.LogFactory;
 
+import com.google.inject.Guice;
 import com.google.inject.Inject;
+import com.google.inject.Injector;
 
 /**
  * Defines the contract for the write ahead logs to which mutations are
@@ -50,32 +55,43 @@ import com.google.inject.Inject;
  */
 public class WAL
 {
+    private static final Logger LOG = 
+        LogFactory.getInstance().getLogger(WAL.class);
+
+    private static final double RECORD_DELIMITER = Double.NaN;
+    
+    private static final char HYPHEN = '_';
+    
+    private static final String TRANSACTION_LOG_SUFFIX = ".transactionLog";
+
     /**
      * Type for capturing the necessary information to be written into a
      * write ahead log.
      */
     public static class WALRecord implements Externalizable
     {
-        private Mutation myMutation;
+        private Proposal myProposal;
 
-        private long myTransactionId;
+        private long myTermID;
+        
+        private long mySequenceNo;
 
         /**
          * CTOR
          */
         public WALRecord()
         {
-            this(Long.MIN_VALUE, null);
+            this(Long.MIN_VALUE, Long.MIN_VALUE, null);
         }
 
         /**
          * CTOR
          */
-        public WALRecord(long transactionID, Mutation mutation)
+        public WALRecord(long termID, long sequenceNo, Proposal proposal)
         {
             super();
-            myTransactionId = transactionID;
-            myMutation = mutation;
+            myTermID = termID;
+            mySequenceNo = sequenceNo;
         }
 
         /**
@@ -85,8 +101,9 @@ public class WAL
         public void readExternal(ObjectInput in)
             throws IOException, ClassNotFoundException
         {
-            myTransactionId = in.readLong();
-            myMutation = (Mutation) in.readObject();
+            myTermID = in.readLong();
+            mySequenceNo = in.readLong();
+            myProposal = (Proposal) in.readObject();
         }
 
         /**
@@ -95,17 +112,11 @@ public class WAL
         @Override
         public void writeExternal(ObjectOutput out) throws IOException
         {
-            out.writeLong(myTransactionId);
-            out.writeObject(myMutation);
+            out.writeLong(myTermID);
+            out.writeLong(mySequenceNo);
+            out.writeObject(myProposal);
         }
     }
-
-    private static final Logger LOG = LogFactory.getInstance()
-                                                .getLogger(WAL.class);
-
-    private static final double RECORD_DELIMITER = Double.NaN;
-
-    private static final String TRANSACTION_LOG_SUFFIX = ".transactionLog";
 
     private final WALConfig myConfig;
 
@@ -120,10 +131,10 @@ public class WAL
     /**
      * CTOR
      */
-    @Inject
-    public WAL(FileSystemFacacde facade, WALConfig config)
+    public WAL(WALConfig config)
     {
-        myFacacde = facade;
+        Injector injector = Guice.createInjector(new HitServerModule());
+        myFacacde = injector.getInstance(FileSystemFacacde.class);
         myLock = new ReentrantLock();
         myConfig = config;
         myPersistedTransactionCount = new AtomicInteger(0);
@@ -135,12 +146,10 @@ public class WAL
     }
 
     /**
-     * Perists the given mutation to a file system. So that it can be
+     * Persists the given mutation to a file system. So that it can be
      * replayed in the future.
-     *
-     * @param transaction The transaction to be written to the journal.
      */
-    public void addTransaction(WriteTransaction transaction)
+    public void addProposal(long termID, long sequenceNO, Proposal proposal)
     {
         try {
             myLock.lock();
@@ -157,8 +166,7 @@ public class WAL
             ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
             ObjectOutputStream ooStream = new ObjectOutputStream(byteStream);
             ooStream.writeObject(
-                new WALRecord(transaction.getTransactionID(),
-                              transaction.getMutation()));
+                new WALRecord(termID, sequenceNO, proposal));
 
             myLogStream.writeDouble(RECORD_DELIMITER);
             myLogStream.writeInt(byteStream.size());
@@ -179,6 +187,8 @@ public class WAL
     {
         return myConfig.getBaseDirectoryPath()
                + File.separator
+               + myConfig.getLogName()
+               + HYPHEN
                + Integer.toString(transactionCount)
                + TRANSACTION_LOG_SUFFIX;
     }

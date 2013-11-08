@@ -22,7 +22,7 @@ package org.hit.db.transactions;
 
 import java.util.concurrent.Callable;
 
-import org.hit.db.transactions.journal.WAL;
+import org.hit.consensus.raft.log.WAL;
 
 /**
  * Defines the contract for the interface that perfoms two phased execution 
@@ -91,8 +91,7 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
         @Override
         public Phase<?> nextPhase(Memento<?> memento)
         {
-            return new CommitPhase(memento.getTransaction(), 
-                                   memento.getWriteAheadLog());
+            return new CommitPhase(memento.getTransaction());
         }
     }
     
@@ -102,16 +101,13 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
         
         private final AbstractTransaction myTransaction;
         
-        private final WAL myWriteAheadLog;
-        
         /**
          * CTOR
          */
-        public CommitPhase(AbstractTransaction transaction, WAL wal)
+        public CommitPhase(AbstractTransaction transaction)
         {
             super();
             myTransaction = transaction;
-            myWriteAheadLog = wal;
         }
 
         /**
@@ -121,11 +117,6 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
         public void execute()
         {
             if (myTransaction.validate()) {
-                if (   myTransaction instanceof WriteTransaction
-                    && myWriteAheadLog != null) 
-                {
-                    myWriteAheadLog.addTransaction((WriteTransaction) myTransaction);
-                }
                 myTransaction.commit();
             }
             else {
@@ -168,19 +159,15 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
     
     private final AbstractTransaction myTransaction;
     
-    private final WAL myWriteAheadLog;
-    
     private Phase<T> myPhase;
     
     /**
      * CTOR
      */
     public PhasedTransactionExecutor(AbstractTransaction transaction,
-                                     WAL                 writeAheadLog,
                                      Phase<T>            phase)
     {
         myTransaction = transaction;
-        myWriteAheadLog = writeAheadLog;
         myPhase = phase;
     }
     
@@ -191,7 +178,6 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
     public PhasedTransactionExecutor(Memento<?> memento)
     {
         myTransaction = memento.getTransaction();
-        myWriteAheadLog = memento.getWriteAheadLog();
         myPhase = (Phase<T>) memento.getPhase().nextPhase(memento);
     }
 
@@ -204,7 +190,6 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
         if (myPhase != null) {
             myPhase.execute();
             return new Memento<>(myTransaction, 
-                                 myWriteAheadLog, 
                                  myPhase);
         }
         else {

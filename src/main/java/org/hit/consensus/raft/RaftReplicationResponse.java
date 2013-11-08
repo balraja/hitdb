@@ -35,6 +35,8 @@ import org.hit.messages.ConsensusMessage;
  */
 public class RaftReplicationResponse extends ConsensusMessage
 {
+    private boolean myAccepted;
+    
     private long myAcceptedTermID;
     
     private long myAcceptedSeqNo;
@@ -46,6 +48,16 @@ public class RaftReplicationResponse extends ConsensusMessage
     {
         super();
     }
+    
+    /**
+     * CTOR
+     */
+    public RaftReplicationResponse(
+        NodeID nodeId,
+        UnitID unitID)
+    {
+        this(nodeId, unitID, false, -1L, -1L);
+    }
 
     /**
      * CTOR
@@ -53,6 +65,7 @@ public class RaftReplicationResponse extends ConsensusMessage
     public RaftReplicationResponse(
         NodeID nodeId,
         UnitID unitID,
+        boolean accepted,
         long acceptedTermID,
         long acceptedSeqNO)
     {
@@ -85,6 +98,7 @@ public class RaftReplicationResponse extends ConsensusMessage
         throws IOException, ClassNotFoundException
     {
         super.readExternal(in);
+        myAccepted       = in.readBoolean();
         myAcceptedTermID = in.readLong();
         myAcceptedSeqNo  = in.readLong();
     }
@@ -96,6 +110,7 @@ public class RaftReplicationResponse extends ConsensusMessage
     public void writeExternal(ObjectOutput out) throws IOException
     {
         super.writeExternal(out);
+        out.writeBoolean(myAccepted);
         out.writeLong(myAcceptedTermID);
         out.writeLong(myAcceptedSeqNo);
     }

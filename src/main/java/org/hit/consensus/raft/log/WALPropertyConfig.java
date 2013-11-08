@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.db.transactions.journal;
+package org.hit.consensus.raft.log;
 
 import java.io.File;
 
@@ -38,6 +38,17 @@ public class WALPropertyConfig implements WALConfig
     
     private static final String WAL_TRANCTIONS_PER_FILE = 
         "org.hit.wal.transactionsPerFile";
+    
+    private final String myLogName;
+    
+    /**
+     * CTOR
+     */
+    public WALPropertyConfig(String logName)
+    {
+        super();
+        myLogName = logName;
+    }
 
     /**
      * {@inheritDoc}
@@ -67,5 +78,14 @@ public class WALPropertyConfig implements WALConfig
             ApplicationProperties.getProperty(WAL_TRANCTIONS_PER_FILE);
         return transactionsPerFile != null ? Integer.valueOf(transactionsPerFile)
                                            : -1;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getLogName()
+    {
+        return myLogName;
     }
 }

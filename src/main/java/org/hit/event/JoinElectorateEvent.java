@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -17,46 +17,44 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+package org.hit.event;
 
-package org.hit.db.transactions;
+import org.hit.election.ElectorateID;
 
-import org.hit.communicator.NodeID;
-import org.hit.consensus.raft.log.WAL;
-import org.hit.db.transactions.PhasedTransactionExecutor.Phase;
-
-/** 
- * The class that stores the intermediate state between phases 
+/**
+ * An event to join the {@link Electorate}. 
+ * 
+ * @author Balraja Subbiah
  */
-public class Memento<T>
+public class JoinElectorateEvent implements Event
 {
-    private final AbstractTransaction myTransaction;
+    private final boolean myLeader;
     
-    private final Phase<T> myPhase;
-    
+    private final ElectorateID myElectorateID;
+
     /**
      * CTOR
      */
-    public Memento(AbstractTransaction transaction, 
-                   Phase<T> phase)
+    public JoinElectorateEvent(boolean leader, ElectorateID electorateID)
     {
         super();
-        myTransaction = transaction;
-        myPhase = phase;
+        myLeader = leader;
+        myElectorateID = electorateID;
     }
 
     /**
-     * Returns the value of transaction
+     * Returns the value of leader
      */
-    public AbstractTransaction getTransaction()
+    public boolean isLeader()
     {
-        return myTransaction;
+        return myLeader;
     }
 
     /**
-     * Returns the value of phase
+     * Returns the value of electorateID
      */
-    public PhasedTransactionExecutor.Phase<T> getPhase()
+    public ElectorateID getElectorateID()
     {
-        return myPhase;
+        return myElectorateID;
     }
 }

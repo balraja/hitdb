@@ -37,6 +37,7 @@ import org.hit.actors.EventBus;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.UnitID;
+import org.hit.consensus.raft.log.WAL;
 import org.hit.db.model.DBOperation;
 import org.hit.db.model.DatabaseException;
 import org.hit.db.model.Mutation;
@@ -51,7 +52,6 @@ import org.hit.db.transactions.Registry;
 import org.hit.db.transactions.TransactableDatabase;
 import org.hit.db.transactions.TransactionResult;
 import org.hit.db.transactions.WriteTransaction;
-import org.hit.db.transactions.journal.WAL;
 import org.hit.event.ConsensusResponseEvent;
 import org.hit.event.CreateConsensusLeaderEvent;
 import org.hit.event.ProposalNotificationEvent;
@@ -190,7 +190,6 @@ public class TransactionManager
                     myExecutor.submit(
                        new PhasedTransactionExecutor<Boolean>(
                            myTransaction,
-                           myWriteAheadLog,
                            new PhasedTransactionExecutor.ExecutionPhase(
                                myTransaction)));
                     
@@ -311,7 +310,6 @@ public class TransactionManager
                     myExecutor.submit(
                        new PhasedTransactionExecutor<Boolean>(
                            myTransaction,
-                           myWriteAheadLog,
                            new PhasedTransactionExecutor.ExecutionPhase(
                                myTransaction)));
                     
@@ -512,8 +510,6 @@ public class TransactionManager
 
     private final NodeID myServerID;
 
-    private final WAL    myWriteAheadLog;
-    
     private final List<WorkFlow> myQueuedWorkFlows; 
     
     private final Map<Long, WorkFlow> myWorkFlowMap;
@@ -527,15 +523,13 @@ public class TransactionManager
     public TransactionManager(TransactableDatabase database,
                               Clock                clock,
                               EventBus             eventBus,
-                              NodeID               serverID,
-                              WAL                  writeAheadLog)
+                              NodeID               serverID)
     {
         myDatabase = database;
         myClock = clock;
         myIdAssigner = new IDAssigner();
         myServerID = serverID;
         myEventBus = eventBus;
-        myWriteAheadLog = writeAheadLog;
         myQueuedWorkFlows = new CopyOnWriteArrayList<>();
         myWorkFlowMap = new ConcurrentHashMap<>();
         myConsensusToWorkFlowMap = new ConcurrentHashMap<>();
@@ -611,7 +605,6 @@ public class TransactionManager
                 myExecutor.submit(
                    new PhasedTransactionExecutor<Boolean>(
                        transaction,
-                       myWriteAheadLog,
                        new PhasedTransactionExecutor.ExecutionPhase(transaction)));
     
             Futures.addCallback(future, 
