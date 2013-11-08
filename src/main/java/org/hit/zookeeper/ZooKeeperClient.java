@@ -20,8 +20,12 @@
 
 package org.hit.zookeeper;
 
+import gnu.trove.set.TLongSet;
+import gnu.trove.set.hash.TLongHashSet;
+
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.SortedSet;
@@ -178,6 +182,35 @@ public class ZooKeeperClient
     }
     
     /**
+     *  A helper method to add {@link Watcher} to the zkNode at 
+     *  the specified path.
+     */
+    public boolean addWatcherToLockHolder(String path, Watcher watcher)
+    {
+        try {
+            myZooKeeper.exists(path, watcher);
+            return true;
+        }
+        catch (KeeperException | InterruptedException e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Returns true if the LOCK node is available under the specified path
+     */
+    public boolean isLockNodeAvailable(String treePath)
+    {
+        String lockPath = treePath + PATH_SEPARATOR + LOCK_NODE;
+        try {
+            return (myZooKeeper.exists(lockPath, true) != null);
+        }
+        catch (KeeperException | InterruptedException e) {
+            return false;
+        }
+    }
+    
+    /**
      * A helper method to acquire lock under a given path using 
      * zookeeper's sequential nodes.
      */
@@ -211,8 +244,7 @@ public class ZooKeeperClient
             Long id = Long.valueOf(createdPath);
             SortedSet<Pair<String,Long>> sequenceNumbers = 
                 new TreeSet<>(new SeqNodeComparator());
-            for (String child : myZooKeeper.getChildren(path, false))
-            {
+            for (String child : myZooKeeper.getChildren(path, false)) {
                 sequenceNumbers.add(new Pair<>(child, Long.valueOf(child)));
             }
             return (sequenceNumbers.first().getSecond() == id);
@@ -220,6 +252,28 @@ public class ZooKeeperClient
         catch (KeeperException | InterruptedException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
             throw new RuntimeException(e);
+        }
+    }
+    
+    /**
+     * Returns the sequence number under which lock is hold for a given path.
+     */
+    public long getLockSequenceNO(String path)
+    {
+        String lockPath = path + PATH_SEPARATOR + LOCK_NODE;
+     
+        try {
+            TLongSet sequenceNumbers = new TLongHashSet();
+            for (String child : myZooKeeper.getChildren(lockPath, false)) {
+                sequenceNumbers.add(Long.parseLong(child));
+            }
+            long[] sequenceArray = sequenceNumbers.toArray();
+            Arrays.sort(sequenceArray);
+            return sequenceArray[0];
+        }
+        catch (NumberFormatException | KeeperException | InterruptedException e) 
+        {
+            return -1L;
         }
     }
 

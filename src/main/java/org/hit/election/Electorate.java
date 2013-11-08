@@ -23,7 +23,11 @@ import com.google.common.eventbus.EventBus;
 
 import java.util.List;
 
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.hit.communicator.NodeID;
+import org.hit.util.Pair;
 import org.hit.zookeeper.ZooKeeperClient;
 
 /**
@@ -43,36 +47,81 @@ public class Electorate
          * Notifies that leader is down.
          */
         public void notifyLeaderDown(ElectorateID electorateID);
+        
+        /**
+         * Notifies that leader is available now.
+         */
+        public void notifyLeaderAvailability(ElectorateID electorateID);
+    }
+    
+    private class LeaderWatch implements Watcher
+    {
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void process(WatchedEvent event)
+        {
+            if (event.getState() == KeeperState.Disconnected) {
+                myListener.notifyLeaderDown(getID());
+            }
+        }
     }
     
     private final ElectorateID myID;
     
-    private final long myTerm;
-    
     private final ZooKeeperClient myZKClient;
     
     private final String myZKPath;
+    
+    private final Listener myListener;
 
     /**
      * CTOR
      */
-    public Electorate(ElectorateID id, ZooKeeperClient zc, EventBus eventBus)
+    public Electorate(ElectorateID id, 
+                      ZooKeeperClient zc,
+                      Listener listener)
     {
         myID    = id;
-        myTerm  = 0L;
         myZKClient = zc;
+        myListener = listener;
         myZKPath = ZooKeeperClient.PATH_SEPARATOR + id.toString();
     }
     
     /**
-     * Adds a node to the electorate.
+     * Adds a node to the electorate. If the node is addeed as a leader 
+     * it will acquire the lock. Else it will just add the node and add a 
+     * watcher to the lock node.
      */
     public void add(NodeID node, boolean isLeader)
     {
         myZKClient.addNode(myID.toString(), node);
         if (isLeader) {
-            myZKClient.acquireLockUnder(myZKPath, 
-                                        node);
+            myZKClient.acquireLockUnder(myZKPath, node);
+        }
+        else {
+            if (myZKClient.isLockNodeAvailable(myZKPath)) {
+                myZKClient.addWatcherToLockHolder(
+                    myZKPath, new LeaderWatch());
+            }
+            else {
+                myZKClient.addWatcherToLockHolder(
+                    myZKPath,
+                    new Watcher() {
+                        
+                        @Override
+                        public void process(WatchedEvent event)
+                        {
+                            if (event.getState() == KeeperState.SyncConnected) 
+                            {
+                                myListener.notifyLeaderAvailability(getID());
+                                myZKClient.addWatcherToLockHolder(
+                                    myZKPath, new LeaderWatch());
+                            }
+                        }
+                    });
+            }
         }
     }
 
@@ -91,12 +140,12 @@ public class Electorate
     {
         return myZKClient.getNodes(myZKPath);
     }
-
+    
     /**
-     * Returns the value of term
+     * Returns the leader node and it's term id.
      */
-    public long getTerm()
+    public Pair<NodeID,Long> getLeaderAndTermID()
     {
-        return myTerm;
+        
     }
 }
