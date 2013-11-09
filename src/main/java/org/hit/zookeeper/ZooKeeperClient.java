@@ -170,7 +170,7 @@ public class ZooKeeperClient
      *  A helper method to add {@link Watcher} to the zkNode at 
      *  the specified path.
      */
-    public boolean addWatcher(String path, Watcher watcher)
+    public boolean addWatch(String path, Watcher watcher)
     {
         try {
             myZooKeeper.exists(path, watcher);
@@ -185,10 +185,27 @@ public class ZooKeeperClient
      *  A helper method to add {@link Watcher} to the zkNode at 
      *  the specified path.
      */
-    public boolean addWatcherToLockHolder(String path, Watcher watcher)
+    public boolean addChildWatchToLockNode(String path, Watcher watcher)
     {
         try {
-            myZooKeeper.exists(path, watcher);
+            String lockPath = path + PATH_SEPARATOR + LOCK_NODE;
+            myZooKeeper.getChildren(lockPath, watcher);
+            return true;
+        }
+        catch (KeeperException | InterruptedException e) {
+            return false;
+        }
+    }
+    
+    /**
+     *  A helper method to add {@link Watcher} to the zkNode at 
+     *  the specified path.
+     */
+    public boolean addWatchToLockHolder(String path, Watcher watcher)
+    {
+        try {
+            String lockPath = path + PATH_SEPARATOR + LOCK_NODE;
+            myZooKeeper.getChildren(lockPath, watcher);
             return true;
         }
         catch (KeeperException | InterruptedException e) {
@@ -204,6 +221,26 @@ public class ZooKeeperClient
         String lockPath = treePath + PATH_SEPARATOR + LOCK_NODE;
         try {
             return (myZooKeeper.exists(lockPath, true) != null);
+        }
+        catch (KeeperException | InterruptedException e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Returns true if the children under a group matches the specified 
+     * count.
+     */
+    public boolean checkChildrenCount(String treePath, 
+                                      int count,
+                                      boolean excludeLock)
+    {
+        try {
+            String lockPath = treePath + PATH_SEPARATOR + LOCK_NODE;
+            Stat stat = myZooKeeper.exists(lockPath, false);
+            int childCount = excludeLock ? stat.getNumChildren() - 1
+                                         : stat.getNumChildren();
+            return childCount == count;
         }
         catch (KeeperException | InterruptedException e) {
             return false;
@@ -254,34 +291,12 @@ public class ZooKeeperClient
             throw new RuntimeException(e);
         }
     }
-    
-    /**
-     * Returns the sequence number under which lock is hold for a given path.
-     */
-    public long getLockSequenceNO(String path)
-    {
-        String lockPath = path + PATH_SEPARATOR + LOCK_NODE;
-     
-        try {
-            TLongSet sequenceNumbers = new TLongHashSet();
-            for (String child : myZooKeeper.getChildren(lockPath, false)) {
-                sequenceNumbers.add(Long.parseLong(child));
-            }
-            long[] sequenceArray = sequenceNumbers.toArray();
-            Arrays.sort(sequenceArray);
-            return sequenceArray[0];
-        }
-        catch (NumberFormatException | KeeperException | InterruptedException e) 
-        {
-            return -1L;
-        }
-    }
 
     /**
      * A helper method to return the node that holds a lock under a 
      * path.
      */
-    public NodeID getLockHolder(String path)
+    public Pair<NodeID,Long> getLockHolder(String path)
     {
         try {
             String lockPath = path + PATH_SEPARATOR + LOCK_NODE;
@@ -291,10 +306,15 @@ public class ZooKeeperClient
             {
                 sequenceNumbers.add(new Pair<>(child, Long.valueOf(child)));
             }
+            
+            Pair<String,Long> lockNodePath = sequenceNumbers.first();
             String childPath = 
-                path + PATH_SEPARATOR + sequenceNumbers.first().getFirst();
+                path + PATH_SEPARATOR + lockNodePath.getFirst();
             byte[] data = myZooKeeper.getData(childPath, null, new Stat());
-            return IPNodeID.parseString(new String(data));
+            
+            return new Pair<NodeID,Long>(
+                IPNodeID.parseString(new String(data)),
+                lockNodePath.getSecond());
         }
         catch (KeeperException | InterruptedException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);

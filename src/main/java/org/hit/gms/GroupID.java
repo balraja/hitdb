@@ -17,7 +17,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package org.hit.election;
+package org.hit.gms;
 
 import java.io.Externalizable;
 
@@ -27,6 +27,6 @@ import java.io.Externalizable;
  * 
  * @author Balraja Subbiah
  */
-public interface ElectorateID extends Externalizable
+public interface GroupID extends Externalizable
 {
 }

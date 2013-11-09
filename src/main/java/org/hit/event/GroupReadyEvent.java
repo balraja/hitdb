@@ -19,42 +19,71 @@
 */
 package org.hit.event;
 
-import org.hit.election.ElectorateID;
+import java.util.Set;
+
+import org.hit.communicator.NodeID;
+import org.hit.gms.GroupID;
 
 /**
- * An event to join the {@link Electorate}. 
+ * An {@link Event} to notify that a group is ready. 
  * 
  * @author Balraja Subbiah
  */
-public class JoinElectorateEvent implements Event
+public class GroupReadyEvent implements Event
 {
-    private final boolean myLeader;
+    private final GroupID myGroupID;
     
-    private final ElectorateID myElectorateID;
+    private final long myTerm;
+    
+    private final NodeID myLeader;
+    
+    private final Set<NodeID> myFollowers;
 
     /**
      * CTOR
      */
-    public JoinElectorateEvent(boolean leader, ElectorateID electorateID)
+    public GroupReadyEvent(
+        GroupID groupID,
+        long term,
+        NodeID leader,
+        Set<NodeID> followers)
     {
         super();
+        myGroupID = groupID;
+        myTerm = term;
         myLeader = leader;
-        myElectorateID = electorateID;
+        myFollowers = followers;
+    }
+
+    /**
+     * Returns the value of groupID
+     */
+    public GroupID getGroupID()
+    {
+        return myGroupID;
+    }
+
+    /**
+     * Returns the value of term
+     */
+    public long getTerm()
+    {
+        return myTerm;
     }
 
     /**
      * Returns the value of leader
      */
-    public boolean isLeader()
+    public NodeID getLeader()
     {
         return myLeader;
     }
 
     /**
-     * Returns the value of electorateID
+     * Returns the value of followers
      */
-    public ElectorateID getElectorateID()
+    public Set<NodeID> getFollowers()
     {
-        return myElectorateID;
+        return myFollowers;
     }
 }

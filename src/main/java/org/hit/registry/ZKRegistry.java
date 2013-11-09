@@ -24,7 +24,7 @@ import com.google.inject.Inject;
 import java.util.List;
 
 import org.hit.communicator.NodeID;
-import org.hit.election.ElectorateID;
+import org.hit.gms.GroupID;
 import org.hit.zookeeper.ZooKeeperClient;
 
 /**
@@ -36,14 +36,14 @@ public class ZKRegistry implements RegistryService
 {
     private final ZooKeeperClient myZKClient;
     
-    private final ElectorateID    myElectorateID;
+    private final GroupID    myElectorateID;
 
     /**
      * CTOR
      */
     @Inject
     public ZKRegistry(ZooKeeperClient zKClient, 
-                      ElectorateID electorateID)
+                      GroupID electorateID)
     {
         super();
         myZKClient = zKClient;

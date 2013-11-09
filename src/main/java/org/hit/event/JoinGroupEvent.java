@@ -19,18 +19,53 @@
 */
 package org.hit.event;
 
+import org.hit.gms.GroupID;
+
 /**
+ * An event to join the {@link Group}. 
+ * 
  * @author Balraja Subbiah
  */
-public class JoinElectoralGroupEvent
+public class JoinGroupEvent implements Event
 {
+    private final GroupID myID;
+    
+    private final boolean myLeader;
+    
+    private final int myExpectedSize;
 
     /**
      * CTOR
      */
-    public JoinElectoralGroupEvent()
+    public JoinGroupEvent(GroupID iD, boolean leader, int expectedSize)
     {
-        // TODO Auto-generated constructor stub
+        super();
+        myID = iD;
+        myLeader = leader;
+        myExpectedSize = expectedSize;
     }
 
+    /**
+     * Returns the value of iD
+     */
+    public GroupID getID()
+    {
+        return myID;
+    }
+
+    /**
+     * Returns the value of leader
+     */
+    public boolean isLeader()
+    {
+        return myLeader;
+    }
+
+    /**
+     * Returns the value of expectedSize
+     */
+    public int getExpectedSize()
+    {
+        return myExpectedSize;
+    }
 }
