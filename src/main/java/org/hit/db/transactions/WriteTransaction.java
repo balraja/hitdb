@@ -30,7 +30,7 @@ import org.hit.time.Clock;
  *
  * @author Balraja Subbiah
  */
-public class WriteTransaction extends AbstractTransaction
+public class WriteTransaction extends ActiveTransaction
 {
     private final Mutation myMutation;
 

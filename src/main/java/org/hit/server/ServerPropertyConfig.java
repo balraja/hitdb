@@ -2,7 +2,7 @@
     Hit is a high speed transactional database for handling millions
     of updates with comfort and ease.
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,47 +17,46 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-package org.hit.di;
-
-import com.google.inject.Provides;
-import com.google.inject.name.Named;
-
-import org.hit.communicator.NodeID;
-import org.hit.communicator.nio.IPNodeID;
-import org.hit.registry.RegistryService;
-import org.hit.zookeeper.ZooKeeperClient;
+package org.hit.server;
 
 /**
- * Extends <code>HitModule</code> to support adding bindings for the
- * client side.
+ * Implements {@link ServerConfig} by extracting out the values from property.
  * 
  * @author Balraja Subbiah
  */
-public class HitFacadeModule extends HitModule
+public class ServerPropertyConfig implements ServerConfig
 {
+    public static final String SERVER_NAME_PROPERTY = "org.hit.server.name";
+    
+    public static final String SERVER_REPLICATION_PROPERTY = "org.hit.server.replication";
+    
+    public static final String SERVER_COUNT_PROPERTY = "org.hit.server.count";
+
     /**
      * {@inheritDoc}
      */
     @Override
-    protected void configure()
+    public String getServerName()
     {
-        super.configure();
-        bind(RegistryService.class).to(ZooKeeperClient.class);
+        return System.getProperty(SERVER_NAME_PROPERTY);
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
-    protected Integer getDefaultBoundPort()
+    public int getInitialServerCount()
     {
-        return Integer.valueOf(16000);
+        return Integer.parseInt(System.getProperty(SERVER_COUNT_PROPERTY));
     }
-    
-    @Provides
-    protected NodeID provideNodeID(@Named("PreferredPort") Integer port)
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getReplicationFactor()
     {
-        return new IPNodeID(port);
+        return Integer.parseInt(System.getProperty(SERVER_REPLICATION_PROPERTY));
     }
+
 }

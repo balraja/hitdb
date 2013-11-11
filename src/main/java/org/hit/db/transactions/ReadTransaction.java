@@ -30,7 +30,7 @@ import org.hit.time.Clock;
  * 
  * @author Balraja Subbiah
  */
-public class ReadTransaction extends AbstractTransaction
+public class ReadTransaction extends ActiveTransaction
 {
     private final Query myQuery;
     

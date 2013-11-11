@@ -2,7 +2,7 @@
     Hit is a high speed transactional database for handling millions
     of updates with comfort and ease.
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,47 +17,39 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+package org.hit.consensus.raft;
 
-package org.hit.di;
+import java.util.Set;
 
-import com.google.inject.Provides;
-import com.google.inject.name.Named;
-
+import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
-import org.hit.communicator.nio.IPNodeID;
-import org.hit.registry.RegistryService;
-import org.hit.zookeeper.ZooKeeperClient;
+import org.hit.consensus.ConsensusAcceptor;
+import org.hit.consensus.ConsensusLeader;
+import org.hit.consensus.ConsensusProtocolProvider;
+import org.hit.consensus.UnitID;
 
 /**
- * Extends <code>HitModule</code> to support adding bindings for the
- * client side.
- * 
  * @author Balraja Subbiah
  */
-public class HitFacadeModule extends HitModule
+public class RaftProvider implements ConsensusProtocolProvider
 {
+
     /**
      * {@inheritDoc}
      */
     @Override
-    protected void configure()
+    public ConsensusAcceptor makeAcceptor(UnitID unitID, NodeID leader, NodeID ourNodeID, EventBus eventBus)
     {
-        super.configure();
-        bind(RegistryService.class).to(ZooKeeperClient.class);
+        return new RaftAcceptor(unitID, leader, eventBus, myID, termID;)
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
-    protected Integer getDefaultBoundPort()
+    public ConsensusLeader makeLeader(UnitID unitId, Set<NodeID> acceptors, EventBus eventBus, NodeID ourNodeID)
     {
-        return Integer.valueOf(16000);
+        return null;
     }
-    
-    @Provides
-    protected NodeID provideNodeID(@Named("PreferredPort") Integer port)
-    {
-        return new IPNodeID(port);
-    }
+
 }

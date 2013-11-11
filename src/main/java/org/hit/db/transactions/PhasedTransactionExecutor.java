@@ -22,8 +22,6 @@ package org.hit.db.transactions;
 
 import java.util.concurrent.Callable;
 
-import org.hit.consensus.raft.log.WAL;
-
 /**
  * Defines the contract for the interface that perfoms two phased execution 
  * of transactions. In the first phase, it executes the transaction and 

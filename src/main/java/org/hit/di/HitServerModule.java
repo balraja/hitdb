@@ -21,6 +21,7 @@
 package org.hit.di;
 
 import org.hit.actors.EventBus;
+import org.hit.communicator.NodeID;
 import org.hit.consensus.ConsensusProtocolProvider;
 import org.hit.consensus.paxos.PaxosProvider;
 import org.hit.consensus.raft.log.WALConfig;
@@ -75,6 +76,7 @@ public class HitServerModule extends HitModule
         bind(TransactionManager.class).toProvider(
             TransactionManagerProvider.class);
         bind(EngineWarden.class).toProvider(EngineWardenProvider.class);
+        bind(NodeID.class).toProvider(ServerIDProvider.class);
     }
 
     /**

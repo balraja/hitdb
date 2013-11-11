@@ -34,8 +34,6 @@ public abstract class AbstractTransaction implements Transaction
 {
     private final DatabaseAdaptor myAdaptedDatabase;
 
-    private final Clock myClock;
-
     private long myEndTime;
 
     private long myStartTime;
@@ -48,68 +46,12 @@ public abstract class AbstractTransaction implements Transaction
      * CTOR
      */
     public AbstractTransaction(long transactionId,
-                               TransactableDatabase database,
-                               Clock clock)
+                               TransactableDatabase database)
     {
         myState = TransactionState.NOT_STARTED;
         myTransactionID = transactionId;
         myAdaptedDatabase =
             new DatabaseAdaptor(database, myTransactionID);
-        myClock = clock;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void abort()
-    {
-        updateState(TransactionState.ABORTED);
-        doAbort(myAdaptedDatabase);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void commit()
-    {
-        doCommit(myAdaptedDatabase);
-        updateState(TransactionState.COMMITTED);
-    }
-
-    /**
-     * Subclasses should override this implementation to execute their
-     * implementation of commit.
-     */
-    protected abstract void doCommit(DatabaseAdaptor adpator);
-
-    /**
-     * Subclasses should override this implementation to execute their
-     * implementation of abort.
-     */
-    protected abstract void doAbort(DatabaseAdaptor adpator);
-
-    /**
-     * Subclasses should override this method to execute their implementation
-     * of <code>Transaction</code>
-     */
-    protected abstract void doExecute(Database database);
-
-    /**
-     * Subclasses should override this method to execute their implementation
-     * of validating a transaction.
-     */
-    protected abstract boolean doValidation(DatabaseAdaptor adaptor);
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void execute()
-    {
-        updateState(TransactionState.ACTIVE);
-        doExecute(myAdaptedDatabase);
     }
 
     /**
@@ -146,6 +88,37 @@ public abstract class AbstractTransaction implements Transaction
     {
         return myTransactionID;
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void abort()
+    {
+        updateState(TransactionState.ABORTED);
+        doAbort(myAdaptedDatabase);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void commit()
+    {
+        doCommit(myAdaptedDatabase);
+        updateState(TransactionState.COMMITTED);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void execute()
+    {
+        updateState(TransactionState.ACTIVE);
+        doExecute(myAdaptedDatabase);
+    }
+
 
     /**
      * {@inheritDoc}
@@ -153,7 +126,7 @@ public abstract class AbstractTransaction implements Transaction
     @Override
     public void init()
     {
-        myStartTime = myClock.currentTime();
+        myStartTime = makeStartTime();
         myAdaptedDatabase.setTransactionTime(myStartTime);
     }
 
@@ -163,7 +136,7 @@ public abstract class AbstractTransaction implements Transaction
     @Override
     public boolean validate()
     {
-        myEndTime = myClock.currentTime();
+        myEndTime = makeEndTime();
         updateState(TransactionState.VALIDATE);
         return doValidation(myAdaptedDatabase);
     }
@@ -173,4 +146,40 @@ public abstract class AbstractTransaction implements Transaction
         myState = state;
         Registry.updateTransactionState(myTransactionID, myState);
     }
+
+    /**
+     * Subclasses should override this implementation to execute their
+     * implementation of commit.
+     */
+    protected abstract void doCommit(DatabaseAdaptor adpator);
+
+    /**
+     * Subclasses should override this implementation to execute their
+     * implementation of abort.
+     */
+    protected abstract void doAbort(DatabaseAdaptor adpator);
+
+    /**
+     * Subclasses should override this method to execute their implementation
+     * of <code>Transaction</code>
+     */
+    protected abstract void doExecute(Database database);
+
+    /**
+     * Subclasses should override this method to execute their implementation
+     * of validating a transaction.
+     */
+    protected abstract boolean doValidation(DatabaseAdaptor adaptor);
+    
+    /**
+     * Subclasses should override this method to provide start time for 
+     * a transaction.
+     */
+    protected abstract long makeStartTime();
+    
+    /**
+     * Subclasses should override this method to provide end time for 
+     * a transaction.
+     */
+    protected abstract long makeEndTime();
 }

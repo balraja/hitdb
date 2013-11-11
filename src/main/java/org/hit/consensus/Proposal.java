@@ -32,12 +32,6 @@ import org.hit.event.Event;
  */
 public interface Proposal extends Event, Externalizable
 {
-    /**
-     * Returns true if the given {@link Proposal} is contained in this
-     * proposal, false otherwise.
-     */
-    public boolean contains(Proposal proposal);
-    
     /** Returns an unique identifier for an unit guarded by the consensus */
     public UnitID getUnitID();
 }

@@ -37,7 +37,6 @@ import org.hit.actors.EventBus;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.UnitID;
-import org.hit.consensus.raft.log.WAL;
 import org.hit.db.model.DBOperation;
 import org.hit.db.model.DatabaseException;
 import org.hit.db.model.Mutation;

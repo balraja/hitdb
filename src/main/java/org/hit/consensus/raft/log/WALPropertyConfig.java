@@ -34,7 +34,7 @@ public class WALPropertyConfig implements WALConfig
 {
     private static final String LOCAL_WAL_DIRECTORY = "hitdb_wal";
     
-    private static final String WAL_BASE_DIRECTORY = "org.hit.wal.basePath";
+    public static final String WAL_BASE_DIRECTORY = "org.hit.wal.basePath";
     
     private static final String WAL_TRANCTIONS_PER_FILE = 
         "org.hit.wal.transactionsPerFile";

@@ -30,6 +30,7 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.hit.consensus.raft.log.WALPropertyConfig;
 import org.hit.db.engine.EnginePropertyConfig;
 import org.hit.di.HitModule;
 import org.hit.util.AbstractLauncher;
@@ -48,8 +49,10 @@ public class HitServerLauncher extends AbstractLauncher
     private static final String TRANSACTION_LOG_DIR = "transaction_log_dir";
     
     private static final String SERVER_PORT = "server_port";
-
-    private static final String WAL_BASE_DIR_PROPERTY = "org.hit.wal.basePath";
+    
+    private static final String SERVER_NAME = "server_name";
+    
+    private static final String SERVER_COUNT = "server_count";
 
     public static void main (String[] args)
     {
@@ -89,7 +92,19 @@ public class HitServerLauncher extends AbstractLauncher
              SERVER_PORT,
              SERVER_PORT,
              true,
-             "Option to determine whether this server is marked as master");
+             "The port to which server bounds itself");
+        
+        myServerCommandLineOptions.addOption(
+            SERVER_NAME,
+            SERVER_NAME,
+            true,
+            "The name of server in the topology");
+        
+        myServerCommandLineOptions.addOption(
+            SERVER_COUNT,
+            SERVER_COUNT,
+            true,
+            "The number of servers launched under a topology");
 
         myServerCommandLineOptions.addOption(
              HELP,
@@ -129,7 +144,7 @@ public class HitServerLauncher extends AbstractLauncher
 
             if (cmdLine.hasOption(TRANSACTION_LOG_DIR)) {
                 optsBuilder.append(addProperty(
-                    WAL_BASE_DIR_PROPERTY,
+                    WALPropertyConfig.WAL_BASE_DIRECTORY,
                     cmdLine.getOptionValue(TRANSACTION_LOG_DIR)));
             }
 
@@ -143,6 +158,18 @@ public class HitServerLauncher extends AbstractLauncher
                 optsBuilder.append(addProperty(
                     HitModule.HIT_COMM_PORT_PROPERTY, 
                     cmdLine.getOptionValue(SERVER_PORT)));
+            }
+            
+            if (cmdLine.hasOption(SERVER_NAME)) {
+                optsBuilder.append(addProperty(
+                    ServerPropertyConfig.SERVER_NAME_PROPERTY, 
+                    cmdLine.getOptionValue(SERVER_NAME)));
+            }
+            
+            if (cmdLine.hasOption(SERVER_COUNT)) {
+                optsBuilder.append(addProperty(
+                    ServerPropertyConfig.SERVER_COUNT_PROPERTY, 
+                    cmdLine.getOptionValue(SERVER_COUNT)));
             }
 
             ProcessBuilder bldr = null;

@@ -25,8 +25,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
 
 import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
@@ -36,8 +34,6 @@ import org.hit.event.Event;
 import org.hit.event.GroupReadyEvent;
 import org.hit.event.JoinGroupEvent;
 import org.hit.zookeeper.ZooKeeperClient;
-
-import sun.print.resources.serviceui;
 
 /**
  * Defines the contract for ElectionManager that helps in selecting a 
