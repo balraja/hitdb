@@ -48,6 +48,8 @@ import org.hit.db.transactions.Memento;
 import org.hit.db.transactions.PhasedTransactionExecutor;
 import org.hit.db.transactions.ReadTransaction;
 import org.hit.db.transactions.Registry;
+import org.hit.db.transactions.ReplicatedWriteTransaction;
+import org.hit.db.transactions.ReplicationExecutor;
 import org.hit.db.transactions.TransactableDatabase;
 import org.hit.db.transactions.TransactionResult;
 import org.hit.db.transactions.WriteTransaction;
@@ -70,6 +72,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 
 /**
  * Class for managing the execution of transactions.
@@ -231,6 +234,15 @@ public class TransactionManager
             }
             else if (event instanceof Memento && !myExecutionPahse) {
                 myEventBus.publish(myDatabase.getStatistics());
+                if (myTransaction instanceof WriteTransaction) {
+                    myEventBus.publish(
+                        new ReplicationProposal(
+                            myReplicationUnitID,
+                            ((WriteTransaction) myTransaction).getMutation(),
+                            myTransaction.getStartTime(),
+                            myTransaction.getEndTime()));
+                }
+                
                 @SuppressWarnings("unchecked")
                 Memento<TransactionResult> result = 
                     (Memento<TransactionResult>) event;
@@ -357,6 +369,14 @@ public class TransactionManager
                 Memento<TransactionResult> result = 
                     (Memento<TransactionResult>) event;
                 myEventBus.publish(myDatabase.getStatistics());
+                if (myTransaction instanceof WriteTransaction) {
+                    myEventBus.publish(
+                        new ReplicationProposal(
+                            myReplicationUnitID,
+                            ((WriteTransaction) myTransaction).getMutation(),
+                            myTransaction.getStartTime(),
+                            myTransaction.getEndTime()));
+                }
                 if (myClientInfo != null) {
                     Message message =
                         result.getPhase().getResult().isCommitted() ?
@@ -515,6 +535,8 @@ public class TransactionManager
     
     private final Map<UnitID, WorkFlow> myConsensusToWorkFlowMap;
     
+    private final UnitID myReplicationUnitID;
+    
     /**
      * CTOR
      */
@@ -522,7 +544,9 @@ public class TransactionManager
     public TransactionManager(TransactableDatabase database,
                               Clock                clock,
                               EventBus             eventBus,
-                              NodeID               serverID)
+                              NodeID               serverID,
+                              @Named("ReplicationUnitID")
+                              UnitID               replicationID)
     {
         myDatabase = database;
         myClock = clock;
@@ -532,14 +556,14 @@ public class TransactionManager
         myQueuedWorkFlows = new CopyOnWriteArrayList<>();
         myWorkFlowMap = new ConcurrentHashMap<>();
         myConsensusToWorkFlowMap = new ConcurrentHashMap<>();
-        
+        myReplicationUnitID = replicationID;
         myExecutor =
             MoreExecutors.listeningDecorator(
                 Executors.newFixedThreadPool(
                     20,
                     new NamedThreadFactory(TransactionManager.class)));
     }
-
+    
     /**
      * Creates a table with the given <code>Schema</code>
      */
@@ -665,7 +689,21 @@ public class TransactionManager
      */
     public void processOperation(ProposalNotificationEvent pne)
     {
-       if (pne.isCommitNotification()) {
+        if (pne.getProposal() instanceof ReplicationProposal) {
+            ReplicationProposal replicationProposal = 
+                (ReplicationProposal) pne.getProposal();
+            long id = myIdAssigner.getTransactionID();
+            ReplicatedWriteTransaction transaction =
+                new ReplicatedWriteTransaction(
+                    id, 
+                    myDatabase,
+                    myClock,
+                    replicationProposal.getMutation(),
+                    replicationProposal.getStart(),
+                    replicationProposal.getEndTime());
+            myExecutor.submit(new ReplicationExecutor(transaction));
+        }
+        else if (pne.isCommitNotification()) {
            WorkFlow workFlow = 
                myConsensusToWorkFlowMap.get(pne.getProposal().getUnitID());
            if (workFlow != null) {

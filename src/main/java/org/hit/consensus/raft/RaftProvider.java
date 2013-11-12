@@ -19,16 +19,20 @@
 */
 package org.hit.consensus.raft;
 
-import java.util.Set;
-
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.ConsensusAcceptor;
 import org.hit.consensus.ConsensusLeader;
 import org.hit.consensus.ConsensusProtocolProvider;
-import org.hit.consensus.UnitID;
+import org.hit.event.CreateConsensusAcceptorEvent;
+import org.hit.event.CreateConsensusLeaderEvent;
+import org.hit.event.CreateRaftAcceptorEvent;
+import org.hit.event.CreateRaftLeaderEvent;
 
 /**
+ * Extends {@link ConsensusProtocolProvider} to support creating 
+ * {@link RaftLeader}s and {@link RaftAcceptor}s.
+ * 
  * @author Balraja Subbiah
  */
 public class RaftProvider implements ConsensusProtocolProvider
@@ -38,18 +42,32 @@ public class RaftProvider implements ConsensusProtocolProvider
      * {@inheritDoc}
      */
     @Override
-    public ConsensusAcceptor makeAcceptor(UnitID unitID, NodeID leader, NodeID ourNodeID, EventBus eventBus)
+    public ConsensusAcceptor makeAcceptor(
+        CreateConsensusAcceptorEvent cae, EventBus eventBus, NodeID ourNodeID)
     {
-        return new RaftAcceptor(unitID, leader, eventBus, myID, termID;)
+        CreateRaftAcceptorEvent crae = (CreateRaftAcceptorEvent) cae;
+        return new RaftAcceptor(
+            crae.getUnitID(),
+            crae.getLeader(),
+            eventBus,
+            ourNodeID,
+            crae.getTermID());
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ConsensusLeader makeLeader(UnitID unitId, Set<NodeID> acceptors, EventBus eventBus, NodeID ourNodeID)
+    public ConsensusLeader makeLeader(
+        CreateConsensusLeaderEvent cle, EventBus eventBus, NodeID ourNodeID)
     {
-        return null;
+        CreateRaftLeaderEvent crle = (CreateRaftLeaderEvent) cle;
+        return new RaftLeader(
+            crle.getUnitID(),
+            crle.getAcceptors(),
+            eventBus,
+            ourNodeID,
+            crle.getTermID());
     }
 
 }

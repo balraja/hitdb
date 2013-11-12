@@ -55,33 +55,20 @@ public class HitServer implements Application
         launcher.launch();
     }
 
-    private final CommunicatingActor myCommunicatingActor;
-
-    private final EngineConfig         myConfig;
-
-    private final ConsensusManager   myConsensusManager;
-
-    private final DBEngine           myDBEngine;
-
-    private final Disseminator       myDisseminator;
-
-    private final NodeID             myServerNodeID;
-
-    private final ZooKeeperClient    myZooKeeperClient;
-
+    private final ServerComponentManager myServerComponentManager;
+    
+    private final ZooKeeperClient   myZooKeeperClient;
+    
     /**
      * CTOR
      */
     public HitServer()
     {
         Injector injector = Guice.createInjector(new HitServerModule());
-        myServerNodeID = injector.getInstance(NodeID.class);
-        myCommunicatingActor = injector.getInstance(CommunicatingActor.class);
-        myConsensusManager = injector.getInstance(ConsensusManager.class);
-        myDisseminator = injector.getInstance(Disseminator.class);
-        myDBEngine      = injector.getInstance(DBEngine.class);
-        myZooKeeperClient = injector.getInstance(ZooKeeperClient.class);
-        myConfig = injector.getInstance(EngineConfig.class);
+        myServerComponentManager = 
+            injector.getInstance(ServerComponentManager.class);
+        myZooKeeperClient = 
+            injector.getInstance(ZooKeeperClient.class);
     }
 
     /**
@@ -95,33 +82,8 @@ public class HitServer implements Application
             //Wait till zookeeper client becomes ready.
         }
         LOG.info("Connected to zookeeper");
+        myServerComponentManager.start();
 
-        myZooKeeperClient.checkAndCreateRootNode();
-        myZooKeeperClient.addHostNode(myServerNodeID);
-        LOG.info("Node registered with the zookeeper");
-
-        if (myConfig.isMaster()) {
-            while(!myZooKeeperClient.claimMasterNode(myServerNodeID)) {
-            }
-            LOG.info("Master node claimed in zookeeper");
-        }
-        else {
-           NodeID masterNode = myZooKeeperClient.getMasterNode();
-           while (masterNode == null) {
-               // Spin till the master is started
-               masterNode = myZooKeeperClient.getMasterNode();
-           }
-           myDBEngine.init(masterNode);
-        }
-
-        myCommunicatingActor.start();
-        LOG.info("Communicator started");
-        myConsensusManager.start();
-        LOG.info("Consensus manager started");
-        myDisseminator.start();
-        LOG.info("Gossiper started");
-        myDBEngine.start();
-        LOG.info("Database engine started");
     }
 
     /**
@@ -130,10 +92,6 @@ public class HitServer implements Application
     @Override
     public void stop()
     {
-        myCommunicatingActor.stop();
-        myConsensusManager.stop();
-        myDisseminator.stop();
-        myDBEngine.stop();
-        myDisseminator.stop();
+       myServerComponentManager.stop();
     }
 }

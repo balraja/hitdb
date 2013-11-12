@@ -40,9 +40,13 @@ public class ReplicatedWriteTransaction extends WriteTransaction
         long transactionId,
         TransactableDatabase database,
         Clock clock,
-        Mutation mutation)
+        Mutation mutation,
+        long startTime,
+        long endTime)
     {
         super(transactionId, database, clock, mutation);
+        myStartTime = startTime;
+        myEndTime   = endTime;
     }
     
     /**

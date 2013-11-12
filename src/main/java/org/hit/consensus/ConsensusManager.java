@@ -27,6 +27,7 @@ import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
+import org.hit.event.ChangeAcceptorToLeaderEvent;
 import org.hit.event.ConsensusRequestEvent;
 import org.hit.event.CreateConsensusAcceptorEvent;
 import org.hit.event.CreateConsensusLeaderEvent;
@@ -77,8 +78,7 @@ public class ConsensusManager extends Actor
             myUnitToConsensusProtocolMap.put(
                 ccle.getUnitID(),
                 makeProvider(ccle.getUnitID()).makeLeader(
-                    ccle.getUnitID(),
-                    ccle.getAcceptors(),
+                    ccle,
                     getEventBus(),
                     myNodeID));
         }
@@ -89,10 +89,9 @@ public class ConsensusManager extends Actor
             myUnitToConsensusProtocolMap.put(
                 ccae.getUnitID(),
                 makeProvider(ccae.getUnitID()).makeAcceptor(
-                    ccae.getUnitID(),
-                    ccae.getLeader(),
-                    myNodeID,
-                    getEventBus()));
+                    ccae,
+                    getEventBus(),
+                    myNodeID));
         }
         else if (event instanceof ConsensusRequestEvent) {
             ConsensusRequestEvent cre = (ConsensusRequestEvent) event;
@@ -123,15 +122,29 @@ public class ConsensusManager extends Actor
                 // is not present. So we create one here.
                 consensusProtocol = 
                     makeProvider(message.getUnitID()).makeAcceptor(
-                        message.getUnitID(),
-                        message.getSenderId(),
-                        myNodeID,
-                        getEventBus());
+                        new CreateConsensusAcceptorEvent(
+                            message.getUnitID(), 
+                            message.getSenderId()),
+                        getEventBus(),
+                        myNodeID);
                 
                 myUnitToConsensusProtocolMap.put(message.getUnitID(),
                                                  consensusProtocol);
             }
             consensusProtocol.handle(message);
+        }
+        else if (event instanceof ChangeAcceptorToLeaderEvent) {
+            ChangeAcceptorToLeaderEvent cale = 
+                (ChangeAcceptorToLeaderEvent) event;
+            myUnitToConsensusProtocolMap.remove(
+                cale.getNewCreateLeaderEvent().getUnitID());
+            myUnitToConsensusProtocolMap.put(
+                cale.getNewCreateLeaderEvent().getUnitID(),
+                makeProvider(cale.getNewCreateLeaderEvent().getUnitID())
+                .makeLeader(
+                    cale.getNewCreateLeaderEvent(),
+                    getEventBus(),
+                    myNodeID));
         }
     }
 

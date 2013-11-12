@@ -97,4 +97,29 @@ public class ReplicationProposal implements Proposal
         return myUnitID;
     }
 
+    /**
+     * Returns the value of mutation
+     */
+    public Mutation getMutation()
+    {
+        return myMutation;
+    }
+
+    /**
+     * Returns the value of start
+     */
+    public long getStart()
+    {
+        return myStart;
+    }
+
+    /**
+     * Returns the value of endTime
+     */
+    public long getEndTime()
+    {
+        return myEndTime;
+    }
+
+    
 }

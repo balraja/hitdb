@@ -41,7 +41,7 @@ import org.hit.zookeeper.ZooKeeperClient;
  * 
  * @author Balraja Subbiah
  */
-public class GMManager extends Actor
+public class GroupManager extends Actor
     implements Group.Listener
 {
     private final Map<GroupID, Group> myGroupMap;
@@ -54,9 +54,9 @@ public class GMManager extends Actor
      * CTOR
      */
     @Inject
-    public GMManager(EventBus eventBus, ZooKeeperClient zc, NodeID serverID)
+    public GroupManager(EventBus eventBus, ZooKeeperClient zc, NodeID serverID)
     {
-        super(eventBus, new ActorID(GMManager.class.getSimpleName()));
+        super(eventBus, new ActorID(GroupManager.class.getSimpleName()));
         myGroupMap = new HashMap<>();
         myZKClient = zc;
         myServerID = serverID;
@@ -100,7 +100,8 @@ public class GMManager extends Actor
     @Override
     public void notifyLeaderDown(GroupID groupID)
     {
-        
+        Group group = myGroupMap.get(groupID);
+        group.
     }
 
     /**

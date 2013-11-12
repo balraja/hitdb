@@ -20,6 +20,7 @@
 package org.hit.consensus;
 
 import org.hit.consensus.paxos.PaxosProvider;
+import org.hit.consensus.raft.RaftProvider;
 import org.hit.consensus.twopc.TwoPCProvider;
 
 /**
@@ -48,6 +49,15 @@ public enum ConsensusType
             return new TwoPCProvider();
         }
         
+    },
+    
+    RAFT {
+
+        @Override
+        public ConsensusProtocolProvider makeProvider()
+        {
+            return new RaftProvider();
+        }
     };
     
     public abstract ConsensusProtocolProvider makeProvider();

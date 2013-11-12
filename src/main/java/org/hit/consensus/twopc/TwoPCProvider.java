@@ -19,14 +19,13 @@
 */
 package org.hit.consensus.twopc;
 
-import java.util.Set;
-
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.ConsensusAcceptor;
 import org.hit.consensus.ConsensusLeader;
 import org.hit.consensus.ConsensusProtocolProvider;
-import org.hit.consensus.UnitID;
+import org.hit.event.CreateConsensusAcceptorEvent;
+import org.hit.event.CreateConsensusLeaderEvent;
 
 /**
  * Extends <code>ConsensusProtocolProvider</code> to support creating
@@ -41,12 +40,15 @@ public class TwoPCProvider implements ConsensusProtocolProvider
      * {@inheritDoc}
      */
     @Override
-    public ConsensusAcceptor makeAcceptor(UnitID unitID, 
-                                          NodeID leader,
-                                          NodeID ourNodeID,
-                                          EventBus eventBus)
+    public ConsensusAcceptor makeAcceptor(CreateConsensusAcceptorEvent cae,
+                                          EventBus eventBus,
+                                          NodeID ourNodeID)
     {
-        return new TwoPCAcceptor(unitID, leader, eventBus, ourNodeID);
+        return new TwoPCAcceptor(
+            cae.getUnitID(), 
+            cae.getLeader(), 
+            eventBus, 
+            ourNodeID);
     }
 
     /**
@@ -54,12 +56,14 @@ public class TwoPCProvider implements ConsensusProtocolProvider
      */
     @Override
     public
-        ConsensusLeader makeLeader(UnitID unitId, 
-                                   Set<NodeID> acceptors,
+        ConsensusLeader makeLeader(CreateConsensusLeaderEvent cle,
                                    EventBus eventBus, 
                                    NodeID ourNodeID)
     {
-        return new TwoPCLeader(unitId, acceptors, eventBus, ourNodeID);
+        return new TwoPCLeader(cle.getUnitID(),
+                               cle.getAcceptors(), 
+                               eventBus, 
+                               ourNodeID);
     }
 
 }

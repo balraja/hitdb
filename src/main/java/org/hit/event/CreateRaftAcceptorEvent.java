@@ -2,7 +2,7 @@
     Hit is a high speed transactional database for handling millions
     of updates with comfort and ease.
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,47 +17,36 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-package org.hit.di;
-
-import com.google.inject.Provides;
-import com.google.inject.name.Named;
+package org.hit.event;
 
 import org.hit.communicator.NodeID;
-import org.hit.communicator.nio.IPNodeID;
-import org.hit.registry.RegistryService;
-import org.hit.registry.ZKRegistry;
+import org.hit.consensus.UnitID;
 
 /**
- * Extends <code>HitModule</code> to support adding bindings for the
- * client side.
+ * Extends {@link CreateConsensusAcceptorEvent} to support adding information
+ * about the term number.
  * 
  * @author Balraja Subbiah
  */
-public class HitFacadeModule extends HitModule
+public class CreateRaftAcceptorEvent extends CreateConsensusAcceptorEvent
 {
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void configure()
-    {
-        super.configure();
-        bind(RegistryService.class).to(ZKRegistry.class);
-    }
+    private final long myTermID;
     
     /**
-     * {@inheritDoc}
+     * CTOR
      */
-    @Override
-    protected Integer getDefaultBoundPort()
+    public CreateRaftAcceptorEvent(UnitID unitID, NodeID leader, long termID)
     {
-        return Integer.valueOf(16000);
+        super(unitID, leader);
+        myTermID = termID;
     }
-    
-    @Provides
-    protected NodeID provideNodeID(@Named("PreferredPort") Integer port)
+
+    /**
+     * Returns the value of termID
+     */
+    public long getTermID()
     {
-        return new IPNodeID(port);
+        return myTermID;
     }
+
 }

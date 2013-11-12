@@ -26,9 +26,30 @@ package org.hit.server;
  */
 public interface ServerConfig
 {
+    /**
+     * The name of this server.
+     */
     public String getServerName();
     
+    /**
+     * Returns the number of servers that get's started initially.
+     */
     public int getInitialServerCount();
     
+    /**
+     * Returns the number of servers to which current server's data
+     * has to be replicated.
+     */
     public int getReplicationFactor();
+    
+    /**
+     * Returns the name of server whose data is replicated by this
+     * server.
+     */
+    public String getReplicationGroup();
+    
+    /**
+     * Returns true if the server is marked as master initially.
+     */
+    public boolean isMaster();
 }

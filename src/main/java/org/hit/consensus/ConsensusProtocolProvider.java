@@ -24,6 +24,8 @@ import java.util.Set;
 
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
+import org.hit.event.CreateConsensusAcceptorEvent;
+import org.hit.event.CreateConsensusLeaderEvent;
 
 /**
  * Defines the contract for <code>ConsensusProtocolProvider</code> that
@@ -38,19 +40,15 @@ public interface ConsensusProtocolProvider
      * Generates the {@link ConsensusAcceptor} that participates in a
      * consensus protocol.
      */
-    public ConsensusAcceptor makeAcceptor(
-        UnitID unitID,
-        NodeID leader,
-        NodeID ourNodeID,
-        EventBus eventBus);
+    public ConsensusAcceptor makeAcceptor(CreateConsensusAcceptorEvent cae,
+                                          EventBus eventBus,
+                                          NodeID   ourNodeID);
     
     /**
      * Generates the {@link ConsensusLeader} that participates in a
      * consensus protocol.
      */
-    public ConsensusLeader makeLeader(
-       UnitID      unitId,
-       Set<NodeID> acceptors,
-       EventBus    eventBus,
-       NodeID      ourNodeID);
+    public ConsensusLeader makeLeader(CreateConsensusLeaderEvent cle,
+                                      EventBus eventBus,
+                                      NodeID ourNodeID);
 }

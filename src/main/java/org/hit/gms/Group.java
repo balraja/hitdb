@@ -158,8 +158,8 @@ public class Group
      * CTOR
      */
     public Group(GroupID id, 
-                      ZooKeeperClient zc,
-                      Listener listener)
+                 ZooKeeperClient zc,
+                 Listener listener)
     {
         myID    = id;
         myZKClient = zc;
@@ -205,6 +205,11 @@ public class Group
                     myZKPath, new LeaderWatch());
             }
         }
+    }
+    
+    public void selectLeader(NodeID thisServerID)
+    {
+        myZKClient.acquireLockUnder(myZKPath, thisServerID);
     }
 
     /**

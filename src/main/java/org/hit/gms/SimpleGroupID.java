@@ -17,47 +17,43 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package org.hit.db.engine;
+package org.hit.gms;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import org.hit.consensus.ConsensusType;
-import org.hit.consensus.UnitID;
-
 /**
- * Extends {@link UnitID} to create an unique id for replication.
+ * Implements {@link GroupID} as a wrapper over the group name.
  * 
  * @author Balraja Subbiah
  */
-public class ReplicationID extends UnitID
+public class SimpleGroupID implements GroupID
 {
-    private String myServerName;
-
+    private String myGroupName;
+    
     /**
      * CTOR
      */
-    public ReplicationID()
+    public SimpleGroupID()
     {
-        super();
+       this(null);
     }
 
     /**
      * CTOR
      */
-    public ReplicationID(String serverName)
+    public SimpleGroupID(String groupName)
     {
-        super(ConsensusType.RAFT);
-        myServerName = serverName;
+        myGroupName = groupName;
     }
 
     /**
-     * Returns the value of serverName
+     * Returns the value of groupName
      */
-    public String getServerName()
+    public String getGroupName()
     {
-        return myServerName;
+        return myGroupName;
     }
 
     /**
@@ -67,9 +63,9 @@ public class ReplicationID extends UnitID
     public int hashCode()
     {
         final int prime = 31;
-        int result = super.hashCode();
+        int result = 1;
         result = prime * result
-            + ((myServerName == null) ? 0 : myServerName.hashCode());
+            + ((myGroupName == null) ? 0 : myGroupName.hashCode());
         return result;
     }
 
@@ -81,38 +77,18 @@ public class ReplicationID extends UnitID
     {
         if (this == obj)
             return true;
-        if (!super.equals(obj))
+        if (obj == null)
             return false;
         if (getClass() != obj.getClass())
             return false;
-        ReplicationID other = (ReplicationID) obj;
-        if (myServerName == null) {
-            if (other.myServerName != null)
+        SimpleGroupID other = (SimpleGroupID) obj;
+        if (myGroupName == null) {
+            if (other.myGroupName != null)
                 return false;
         }
-        else if (!myServerName.equals(other.myServerName))
+        else if (!myGroupName.equals(other.myGroupName))
             return false;
         return true;
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
-    {
-        super.readExternal(in);
-        myServerName = in.readUTF();
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException
-    {
-        super.writeExternal(out);
-        out.writeUTF(myServerName);
     }
 
     /**
@@ -121,7 +97,26 @@ public class ReplicationID extends UnitID
     @Override
     public String toString()
     {
-        return "ReplicationID [myServerName=" + myServerName + ", UnitID ="
-            + super.toString() + "]";
+        return "SimpleGroupID [myGroupName=" + myGroupName + "]";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeUTF(myGroupName);
+        
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readExternal(ObjectInput in) 
+        throws IOException, ClassNotFoundException
+    {
+        myGroupName = in.readUTF();
     }
 }

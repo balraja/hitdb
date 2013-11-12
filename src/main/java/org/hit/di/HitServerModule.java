@@ -23,6 +23,7 @@ package org.hit.di;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.ConsensusProtocolProvider;
+import org.hit.consensus.UnitID;
 import org.hit.consensus.paxos.PaxosProvider;
 import org.hit.consensus.raft.log.WALConfig;
 import org.hit.consensus.raft.log.WALPropertyConfig;
@@ -30,16 +31,24 @@ import org.hit.db.engine.Allocator;
 import org.hit.db.engine.EngineConfig;
 import org.hit.db.engine.EnginePropertyConfig;
 import org.hit.db.engine.EngineWarden;
+import org.hit.db.engine.ReplicationID;
 import org.hit.db.engine.StandardAllocator;
 import org.hit.db.engine.TransactionManager;
 import org.hit.db.transactions.TransactableDatabase;
 import org.hit.db.transactions.impl.TransactableHitDatabase;
 import org.hit.fs.FileSystemFacacde;
 import org.hit.fs.StandardFileSystem;
+import org.hit.gms.GroupID;
+import org.hit.gms.SimpleGroupID;
+import org.hit.server.ServerConfig;
+import org.hit.server.ServerPropertyConfig;
 import org.hit.time.Clock;
 import org.hit.time.SimpleSystemClock;
 
+import com.google.inject.Inject;
 import com.google.inject.Provides;
+import com.google.inject.name.Named;
+import com.google.inject.name.Names;
 
 /**
  * Extends <code>HitModule</code> to support adding bindings for the server
@@ -76,7 +85,10 @@ public class HitServerModule extends HitModule
         bind(TransactionManager.class).toProvider(
             TransactionManagerProvider.class);
         bind(EngineWarden.class).toProvider(EngineWardenProvider.class);
+        bind(ServerConfig.class).to(ServerPropertyConfig.class);
         bind(NodeID.class).toProvider(ServerIDProvider.class);
+        bind(String.class).annotatedWith(Names.named("ServerGroupName"))
+                          .toInstance("HitServers");
     }
 
     /**
@@ -92,5 +104,40 @@ public class HitServerModule extends HitModule
     protected EventBus getEventBus()
     {
         return myEventBus;
+    }
+    
+    @Named("ReplicationUnitID")
+    @Provides
+    UnitID makeReplicationUnitID(ServerConfig config)
+    {
+        return new ReplicationID(config.getServerName());
+    }
+    
+    @Named("ReplicationSlaveUnitID")
+    @Provides
+    UnitID makeReplicationSlaveUnitID(ServerConfig config)
+    {
+        return new ReplicationID(config.getReplicationGroup());
+    }
+    
+    @Named("ServerGroupID")
+    @Provides
+    GroupID makeServerGroupID(@Named("ServerGroupName") String serverGroupName)
+    {
+        return new SimpleGroupID(serverGroupName);
+    }
+    
+    @Named("ReplicationSlaveGroupID")
+    @Provides
+    GroupID makeReplicatingGroupClientID(ServerConfig config)
+    {
+        return new SimpleGroupID(config.getReplicationGroup());
+    }
+    
+    @Named("ReplicationGroupID")
+    @Provides
+    GroupID makeReplicatingGroupID(ServerConfig config)
+    {
+        return new SimpleGroupID(config.getServerName());
     }
 }

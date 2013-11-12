@@ -28,6 +28,8 @@ import org.hit.consensus.ConsensusAcceptor;
 import org.hit.consensus.ConsensusLeader;
 import org.hit.consensus.ConsensusProtocolProvider;
 import org.hit.consensus.UnitID;
+import org.hit.event.CreateConsensusAcceptorEvent;
+import org.hit.event.CreateConsensusLeaderEvent;
 
 import com.google.inject.Inject;
 
@@ -45,24 +47,27 @@ public class PaxosProvider implements ConsensusProtocolProvider
      * {@inheritDoc}
      */
     @Override
-    public ConsensusAcceptor makeAcceptor(UnitID unitID,
-                                          NodeID leader,
-                                          NodeID ourNodeID,
-                                          EventBus eventBus)
+    public ConsensusAcceptor makeAcceptor(CreateConsensusAcceptorEvent cae,
+                                          EventBus eventBus,
+                                          NodeID ourNodeID)
     {
-        return new PaxosAcceptor(unitID, leader, eventBus, ourNodeID);
+        return new PaxosAcceptor(cae.getUnitID(), 
+                                 cae.getLeader(), 
+                                 eventBus, 
+                                 ourNodeID);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ConsensusLeader makeLeader(
-                                      UnitID unitId,
-                                      Set<NodeID> acceptors,
+    public ConsensusLeader makeLeader(CreateConsensusLeaderEvent cle,
                                       EventBus eventBus,
                                       NodeID ourNodeID)
     {
-        return new PaxosLeader(unitId, acceptors, eventBus, ourNodeID);
+        return new PaxosLeader(cle.getUnitID(), 
+                               cle.getAcceptors(),
+                               eventBus, 
+                               ourNodeID);
     }
 }
