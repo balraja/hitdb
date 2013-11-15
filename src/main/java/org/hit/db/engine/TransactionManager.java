@@ -100,6 +100,9 @@ public class TransactionManager
         public void respondTO(Object event);
     }
     
+    /**
+     * Defines an abstract implementation of {@link WorkFlow}.
+     */
     private abstract class AbstractWokflow implements WorkFlow
     {
         /**
@@ -153,6 +156,9 @@ public class TransactionManager
             return myTransaction.getTransactionID();
         }
 
+        /**
+         * Sends error notification to the client.
+         */
         private void sendErrorToClient(Exception exception)
         {
             if (myClientInfo != null) {
@@ -168,6 +174,9 @@ public class TransactionManager
             }
         }
         
+        /**
+         * {@inheritDoc}
+         */
         public void initiateCommit()
         {
             if (myMemento != null) {

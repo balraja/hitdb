@@ -23,6 +23,8 @@ package org.hit.query.test;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.hit.db.keyspace.LinearKeyspace;
+import org.hit.db.keyspace.domain.LongDomain;
 import org.hit.db.model.Database;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Schema;
@@ -34,8 +36,6 @@ import org.hit.example.AirportDataLoader;
 import org.hit.example.HitDbTest;
 import org.hit.example.Route;
 import org.hit.example.RouteDataLoader;
-import org.hit.key.LinearKeyspace;
-import org.hit.key.domain.LongDomain;
 
 /**
  * Extends <code>Database</code> to support loading table data from the 

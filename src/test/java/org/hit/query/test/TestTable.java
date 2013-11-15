@@ -25,6 +25,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.TreeMap;
 
+import org.hit.db.keyspace.LinearKeyspace;
+import org.hit.db.keyspace.domain.LongDomain;
 import org.hit.db.model.Column;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
@@ -34,8 +36,6 @@ import org.hit.example.Airport;
 import org.hit.example.AirportDataLoader;
 import org.hit.example.DataLoader;
 import org.hit.example.HitDbTest;
-import org.hit.key.LinearKeyspace;
-import org.hit.key.domain.LongDomain;
 
 /**
  * A test table that can be used for verifying query execution.

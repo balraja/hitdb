@@ -29,7 +29,7 @@ import java.util.Map;
 
 import org.hit.communicator.NodeID;
 import org.hit.db.model.Schema;
-import org.hit.partitioner.Partitioner;
+import org.hit.db.partitioner.Partitioner;
 
 /**
  * Defines the allocation of points on key space corresponding to the

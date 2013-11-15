@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -17,37 +17,25 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+package org.hit.db.model.query;
 
-package org.hit.key;
-
-import java.io.Externalizable;
-
-import org.hit.key.domain.DiscreteDomain;
-import org.hit.partitioner.Partitioner;
+import org.hit.db.model.Query;
+import org.hit.util.Range;
 
 /**
- * Defines the type that defines key space for a table. A key space can be 
- * as simple as enumeration of all the keys possible or it can be the hash
- * range to which the keys are mapped by a hash function.
+ * Defines a query that queries data over a particular range.
  * 
  * @author Balraja Subbiah
  */
-public interface Keyspace<S extends Comparable<S>, T extends Comparable<T>>
-    extends Externalizable
+public interface RangeQuery extends Query
 {
     /**
-     * Returns the <code>DiscreteDomain</code> that defines the key space.
+     * Returns the {@link Range} supposed to be queried.
      */
-    public DiscreteDomain<T> getDomain();
+    public <K extends Comparable<K>> Range<K> getRange();
     
     /**
-     * Maps the key to target key space.
+     * Returns the name of table.
      */
-    public T map(S key);
-    
-    /**
-     * A factory method for generating the {@link Partitioner} for this 
-     * key space.
-     */
-    public Partitioner<S,T> makePartitioner(String tableName);
+    public String getTableName();
 }

@@ -24,11 +24,11 @@ import java.util.Map;
 
 import org.hit.communicator.NodeID;
 import org.hit.db.model.Schema;
+import org.hit.db.partitioner.Partitioner;
 import org.hit.event.DBStatEvent;
 import org.hit.event.GossipUpdateEvent;
 import org.hit.messages.Allocation;
 import org.hit.messages.Heartbeat;
-import org.hit.partitioner.Partitioner;
 
 /**
  * Defines an interface that can be used for allocating the keyspace to

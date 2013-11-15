@@ -28,13 +28,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.client.DBClient;
+import org.hit.db.keyspace.LinearKeyspace;
+import org.hit.db.keyspace.domain.LongDomain;
 import org.hit.db.model.Column;
 import org.hit.db.model.Schema;
 import org.hit.db.model.mutations.BatchAddMutation;
 import org.hit.facade.DBOperationResponse;
 import org.hit.facade.TableCreationResponse;
-import org.hit.key.LinearKeyspace;
-import org.hit.key.domain.LongDomain;
 import org.hit.util.LogFactory;
 
 import com.google.common.util.concurrent.ListenableFuture;

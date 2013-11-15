@@ -26,7 +26,7 @@ import java.io.ObjectOutput;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
-import org.hit.partitioner.Partitioner;
+import org.hit.db.partitioner.Partitioner;
 
 /**
  * Defines the response from the batabase server to the client for later's

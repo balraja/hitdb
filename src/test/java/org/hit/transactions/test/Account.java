@@ -22,12 +22,12 @@ package org.hit.transactions.test;
 
 import java.util.ArrayList;
 
+import org.hit.db.keyspace.LinearKeyspace;
+import org.hit.db.keyspace.domain.LongDomain;
 import org.hit.db.model.Column;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Row;
 import org.hit.db.model.Schema;
-import org.hit.key.LinearKeyspace;
-import org.hit.key.domain.LongDomain;
 
 /**
  * Defines type that defines the contract for an account.

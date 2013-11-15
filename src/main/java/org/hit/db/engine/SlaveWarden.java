@@ -33,6 +33,7 @@ import java.util.logging.Logger;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
+import org.hit.db.partitioner.Partitioner;
 import org.hit.event.DBStatEvent;
 import org.hit.event.Event;
 import org.hit.event.GossipNotificationEvent;
@@ -44,7 +45,6 @@ import org.hit.messages.DataLoadResponse;
 import org.hit.messages.Heartbeat;
 import org.hit.messages.NodeAdvertisement;
 import org.hit.messages.NodeAdvertisementResponse;
-import org.hit.partitioner.Partitioner;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
 

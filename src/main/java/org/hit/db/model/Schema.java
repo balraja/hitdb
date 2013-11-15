@@ -26,7 +26,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.List;
 
-import org.hit.key.Keyspace;
+import org.hit.db.keyspace.Keyspace;
 
 /**
  * Defines the contract for schema of a table.

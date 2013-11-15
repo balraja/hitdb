@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -17,18 +17,18 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+package org.hit.db.model.query;
 
-package org.hit.key.domain;
-
-import java.util.List;
+import org.hit.db.model.Query;
 
 /**
- * Defines the contract for an interface that defines the composed elements.
+ * Defines the contract for a {@link Query} to queries a single key.
  * 
  * @author Balraja Subbiah
  */
-public interface Composed<T> extends Comparable<T>
+public interface PointQuery extends Query
 {
-    /** Returns the list of objects composed from this element */
-    public List<Object> getComposedValues();
+    public <K extends Comparable<K>> K getQueriedKey();
+    
+    public String getTableName();
 }

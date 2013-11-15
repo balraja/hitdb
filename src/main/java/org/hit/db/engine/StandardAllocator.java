@@ -35,12 +35,12 @@ import java.util.logging.Logger;
 
 import org.hit.communicator.NodeID;
 import org.hit.db.model.Schema;
+import org.hit.db.partitioner.Partitioner;
 import org.hit.event.DBStatEvent;
 import org.hit.event.GossipUpdateEvent;
 import org.hit.gossip.Gossip;
 import org.hit.messages.Allocation;
 import org.hit.messages.Heartbeat;
-import org.hit.partitioner.Partitioner;
 import org.hit.util.LogFactory;
 import org.hit.util.Pair;
 import org.hit.util.Range;

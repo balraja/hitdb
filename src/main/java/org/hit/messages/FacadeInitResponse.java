@@ -28,7 +28,8 @@ import java.util.Map;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
-import org.hit.partitioner.Partitioner;
+import org.hit.db.partitioner.Partitioner;
+import org.hit.db.partitioner.TablePartitionInfo;
 
 /**
  * Defines the contract for {@link Message} that's sent in response to 
@@ -38,7 +39,7 @@ import org.hit.partitioner.Partitioner;
  */
 public class FacadeInitResponse extends Message
 {
-    private Map<String, Partitioner<?,?>> myPartitions;
+    private TablePartitionInfo myPartitionInfo;
 
     /**
      * CTOR
@@ -51,32 +52,29 @@ public class FacadeInitResponse extends Message
     /**
      * CTOR
      */
-    public FacadeInitResponse(NodeID nodeId, 
-                              Map<String, Partitioner<?,?>> table)
+    public FacadeInitResponse(NodeID nodeId, TablePartitionInfo partitionInfo)
     {
         super(nodeId);
-        myPartitions = new HashMap<>(table);
+        myPartitionInfo = partitionInfo;
     }
 
     /**
      * Returns the value of partitions
      */
-    public Map<String, Partitioner<?, ?>> getPartitions()
+    public TablePartitionInfo getPartitionInfo()
     {
-        return myPartitions;
+        return myPartitionInfo;
     }
 
     /**
      * {@inheritDoc}
      */
-    @SuppressWarnings("unchecked")
     @Override
     public void readExternal(ObjectInput in)
-        throws IOException,
-            ClassNotFoundException
+        throws IOException, ClassNotFoundException
     {
         super.readExternal(in);
-        myPartitions = (Map<String, Partitioner<?, ?>>) in.readObject();
+        myPartitionInfo = (TablePartitionInfo) in.readObject();
     }
 
     /**
@@ -86,6 +84,6 @@ public class FacadeInitResponse extends Message
     public void writeExternal(ObjectOutput out) throws IOException
     {
         super.writeExternal(out);
-        out.writeObject(myPartitions);
+        out.writeObject(myPartitionInfo);
     }
 }

@@ -18,13 +18,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.partitioner;
+package org.hit.db.partitioner;
 
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.hit.communicator.NodeID;
-import org.hit.key.Keyspace;
+import org.hit.db.keyspace.Keyspace;
 
 /**
  * Extends <code>PartitionTable</code> to support mapping as a DHT.

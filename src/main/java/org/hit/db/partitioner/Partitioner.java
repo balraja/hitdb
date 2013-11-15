@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.partitioner;
+package org.hit.db.partitioner;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -29,8 +29,8 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import org.hit.communicator.NodeID;
+import org.hit.db.keyspace.Keyspace;
 import org.hit.gossip.AbstractGossip;
-import org.hit.key.Keyspace;
 import org.hit.util.Pair;
 import org.hit.util.Range;
 

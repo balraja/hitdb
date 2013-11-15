@@ -18,17 +18,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.key;
+package org.hit.db.keyspace;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.math.BigInteger;
 
-import org.hit.key.domain.BigIntegerDomain;
-import org.hit.key.domain.DiscreteDomain;
-import org.hit.partitioner.DistributedHashTable;
-import org.hit.partitioner.Partitioner;
+import org.hit.db.keyspace.domain.BigIntegerDomain;
+import org.hit.db.keyspace.domain.DiscreteDomain;
+import org.hit.db.partitioner.DistributedHashTable;
+import org.hit.db.partitioner.Partitioner;
 
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashFunction;

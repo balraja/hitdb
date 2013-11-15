@@ -24,12 +24,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.hit.db.keyspace.HashKeyspace;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Schema;
 import org.hit.db.transactions.TransactableDatabase;
 import org.hit.db.transactions.TransactableTable;
 import org.hit.event.DBStatEvent;
-import org.hit.key.HashKeyspace;
 
 /**
  * Defines an implementation for the hit database that stores the

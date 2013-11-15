@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.key.domain;
+package org.hit.db.keyspace.domain;
 
 import java.io.Externalizable;
 

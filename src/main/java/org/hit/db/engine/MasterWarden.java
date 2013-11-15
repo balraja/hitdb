@@ -31,6 +31,7 @@ import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
 import org.hit.db.model.Schema;
+import org.hit.db.partitioner.TablePartitionInfo;
 import org.hit.event.DBStatEvent;
 import org.hit.event.Event;
 import org.hit.event.SendMessageEvent;
@@ -153,8 +154,10 @@ public class MasterWarden extends AbstractWarden
                 getEventBus().publish(
                       new SendMessageEvent(
                           Collections.singletonList(fir.getSenderId()),
-                          new FacadeInitResponse(getServerID(),
-                                                 myAllocator.getPartitions())));
+                          new FacadeInitResponse(
+                              getServerID(),
+                              new TablePartitionInfo(
+                                  myAllocator.getPartitions()))));
             }
         }
         catch (IllegalAccessException e) {

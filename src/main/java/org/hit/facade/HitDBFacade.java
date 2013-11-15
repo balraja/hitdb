@@ -20,9 +20,12 @@
 
 package org.hit.facade;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -48,6 +51,11 @@ import org.hit.db.model.Row;
 import org.hit.db.model.Schema;
 import org.hit.db.model.mutations.RangeMutation;
 import org.hit.db.model.mutations.SingleKeyMutation;
+import org.hit.db.model.query.PointQuery;
+import org.hit.db.model.query.RewritableQuery;
+import org.hit.db.partitioner.DistributedHashTable;
+import org.hit.db.partitioner.Partitioner;
+import org.hit.db.partitioner.TablePartitionInfo;
 import org.hit.db.query.merger.QueryMerger;
 import org.hit.db.query.merger.SimpleQueryMerger;
 import org.hit.db.query.operators.QueryBuilder;
@@ -64,7 +72,6 @@ import org.hit.messages.DBOperationSuccessMessage;
 import org.hit.messages.DistributedDBOperationMessage;
 import org.hit.messages.FacadeInitRequest;
 import org.hit.messages.FacadeInitResponse;
-import org.hit.partitioner.Partitioner;
 import org.hit.registry.RegistryService;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
@@ -115,9 +122,7 @@ public class HitDBFacade
         {
             if (myMessage instanceof FacadeInitResponse) {
                 FacadeInitResponse fir = (FacadeInitResponse) myMessage;
-                synchronized (myTable2Partitions) {
-                    myTable2Partitions.putAll(fir.getPartitions());
-                }
+                myTablePartitionInfo.merge(fir.getPartitionInfo());
                 myIsInitialized.set(true);
             }
             else if (myMessage instanceof CreateTableResponseMessage) {
@@ -148,11 +153,12 @@ public class HitDBFacade
                         dbOperationSuccessMessage.getResult()));
                 }
                 else {
-                    final SettableFuture<Pair<NodeID, Collection<Row>>>
-                        queryFuture = myQueryToMergableFutureMap.get(id);
+                    List<SettableFuture<Pair<NodeID, Collection<Row>>>>
+                        queryFutures = 
+                            myQueryToMergableFuturesMap.get(id);
 
-                    if (queryFuture != null) {
-                        queryFuture.set(new Pair<>(
+                    if (queryFutures != null & !queryFutures.isEmpty()) {
+                        queryFutures.remove(0).set(new Pair<>(
                             dbOperationSuccessMessage.getSenderId(),
                             (Collection<Row>)
                                 dbOperationSuccessMessage.getResult()));
@@ -181,11 +187,11 @@ public class HitDBFacade
                         dbOperationFailure.getException());
                 }
                 else {
-                    final SettableFuture<Pair<NodeID, Collection<Row>>>
-                        queryFuture = myQueryToMergableFutureMap.get(id);
+                    List<SettableFuture<Pair<NodeID, Collection<Row>>>>
+                        queryFutures = myQueryToMergableFuturesMap.get(id);
 
-                    if (queryFuture != null) {
-                        queryFuture.setException(
+                    if (queryFutures != null && !queryFutures.isEmpty()) {
+                        queryFutures.remove(0).setException(
                             dbOperationFailure.getException());
                     }
                     else {
@@ -198,8 +204,8 @@ public class HitDBFacade
             }
         }
     }
-
-    private class QueryResponserHandler
+    
+    private class RangeQueryResponserHandler
         implements FutureCallback<Pair<NodeID, Collection<Row>>>
     {
         private final SettableFuture<QueryResponse> myClientFuture;
@@ -213,7 +219,7 @@ public class HitDBFacade
         /**
          * CTOR
          */
-        public QueryResponserHandler(
+        public RangeQueryResponserHandler(
             Long operationId,
             Set<NodeID> serverNodes,
             QueryMerger queryMerger,
@@ -246,8 +252,42 @@ public class HitDBFacade
             if (myServerNodes.isEmpty()) {
                 myClientFuture.set(new QueryResponse(
                     myQueryMerger.getMergedResult()));
-                myQueryToMergableFutureMap.remove(myOperationId);
+                myQueryToMergableFuturesMap.remove(myOperationId);
             }
+        }
+    }
+    
+    private class PointQueryResponserHandler
+        implements FutureCallback<Pair<NodeID, Collection<Row>>>
+    {
+        private final SettableFuture<QueryResponse> myClientFuture;
+    
+        /**
+         * CTOR
+         */
+        public PointQueryResponserHandler(
+            SettableFuture<QueryResponse> clientFuture)
+        {
+            super();
+            myClientFuture = clientFuture;
+        }
+    
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onFailure(Throwable exception)
+        {
+            myClientFuture.setException(exception);
+        }
+    
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onSuccess(Pair<NodeID, Collection<Row>> result)
+        {
+            myClientFuture.set(new QueryResponse(result.getSecond()));
         }
     }
 
@@ -357,23 +397,29 @@ public class HitDBFacade
 
     private class SubmitQueryTask implements Runnable
     {
-        private final SettableFuture<QueryResponse> myClientFuture;
-
         private final Query myQuery;
 
         private final long mySequenceNumber;
-
+        
+        private final 
+            FutureCallback<Pair<NodeID, Collection<Row>>> myResultCallback;
+        
+        private final NodeID myServer;
+        
         /**
          * CTOR
          */
-        public SubmitQueryTask(SettableFuture<QueryResponse> cLientFuture,
-                               Query query,
-                               long sequenceNumber)
+        public SubmitQueryTask(Query query,
+                               long sequenceNumber,
+                               FutureCallback<Pair<NodeID, Collection<Row>>>
+                                   resultCallback,
+                               NodeID server)
         {
             super();
-            myClientFuture = cLientFuture;
             myQuery = query;
             mySequenceNumber = sequenceNumber;
+            myResultCallback = resultCallback;
+            myServer = server;
         }
 
         /**
@@ -382,31 +428,27 @@ public class HitDBFacade
         @Override
         public void run()
         {
-            SettableFuture<Pair<NodeID, Collection<Row>>>
-                resultFuture = SettableFuture.create();
-            Set<NodeID> serverNodes =
-                new HashSet<>(myRegistryService.getServerNodes());
-            Futures.addCallback(
-                resultFuture,
-                new QueryResponserHandler(
-                    mySequenceNumber,
-                    serverNodes,
-                    new SimpleQueryMerger(),
-                    myClientFuture));
+            List<SettableFuture<Pair<NodeID,Collection<Row>>>> resultFutures =
+                myQueryToMergableFuturesMap.get(mySequenceNumber);
+            
+            if (resultFutures == null) {
+                resultFutures = new ArrayList<>();
+                myQueryToMergableFuturesMap.put(mySequenceNumber,
+                                                resultFutures);
+            }
+            SettableFuture<Pair<NodeID,Collection<Row>>> resultFuture =
+                SettableFuture.create();
+            Futures.addCallback(resultFuture, myResultCallback);
 
-            myQueryToMergableFutureMap.put(mySequenceNumber, resultFuture);
-
-            for (NodeID server : serverNodes) {
-                try {
-                    myCommunicator.sendTo(
-                        server,
-                        new DBOperationMessage(myClientID,
-                                               mySequenceNumber,
-                                               myQuery));
-                }
-                catch (CommunicatorException e) {
-                    myClientFuture.setException(e);
-                }
+            try {
+                myCommunicator.sendTo(
+                    myServer,
+                    new DBOperationMessage(myClientID,
+                                           mySequenceNumber,
+                                           myQuery));
+            }
+            catch (CommunicatorException e) {
+                myResultCallback.onFailure(e);
             }
         }
     }
@@ -497,7 +539,7 @@ public class HitDBFacade
                     new RuntimeException(response.getErrorMessage()));
             }
             else {
-                myTable2Partitions.put(
+                myTablePartitionInfo.addPartitionInfo(
                     response.getTableName(), response.getPartitioner());
 
                 myClientFuture.set(
@@ -523,12 +565,12 @@ public class HitDBFacade
 
     private final AtomicLong myOperationsCount;
 
-    private final Map<Long, SettableFuture<Pair<NodeID, Collection<Row>>>>
-        myQueryToMergableFutureMap;
+    private final Map<Long, List<SettableFuture<Pair<NodeID, Collection<Row>>>>>
+        myQueryToMergableFuturesMap;
 
     private final RegistryService myRegistryService;
 
-    private final Map<String, Partitioner<?,?>> myTable2Partitions;
+    private final TablePartitionInfo myTablePartitionInfo;
 
     private final Map<String, SettableFuture<CreateTableResponseMessage>>
         myTableCreationFutureMap;
@@ -542,11 +584,11 @@ public class HitDBFacade
         myCommunicator = injector.getInstance(Communicator.class);
         myRegistryService = injector.getInstance(RegistryService.class);
         myClientID = injector.getInstance(NodeID.class);
-        myTable2Partitions = new HashMap<>();
+        myTablePartitionInfo = new TablePartitionInfo();
         myMutationIDToFutureMap = new HashMap<>();
         myOperationsCount = new AtomicLong(0L);
         myTableCreationFutureMap = new HashMap<>();
-        myQueryToMergableFutureMap = new HashMap<>();
+        myQueryToMergableFuturesMap = new HashMap<>();
 
         myExecutorService =
             MoreExecutors.listeningDecorator(
@@ -565,14 +607,14 @@ public class HitDBFacade
         ListenableFuture<DBOperationResponse> apply(RangeMutation<K,P> mutation)
     {
         @SuppressWarnings("unchecked")
-        Partitioner<K,K> partitions =
-            (Partitioner<K,K>) myTable2Partitions.get(mutation.getTableName());
+        Partitioner<K,?> partitions = 
+            myTablePartitionInfo.lookup(mutation.getTableName());
 
         if (partitions == null) {
             return null;
         }
 
-        final Map<NodeID, Range<K>> split =
+        final Map<NodeID, ?> split =
             partitions.lookupNodes(mutation.getKeyRange());
 
         final SettableFuture<DBOperationResponse> futureResponse =
@@ -589,9 +631,7 @@ public class HitDBFacade
                 id));
         }
         else {
-            // For now we assume that executing the same query across
-            // multiple servers will have the same result as executing
-            // the query on a single node within that node's key range.
+           
             Map<NodeID, DBOperation> nodeToOperationMap = new HashMap<>();
             for (NodeID key : split.keySet()) {
                 nodeToOperationMap.put(key, mutation);
@@ -612,11 +652,10 @@ public class HitDBFacade
      */
     public <K extends Comparable<K>>
         ListenableFuture<DBOperationResponse> apply(
-        SingleKeyMutation<K> mutation)
+            SingleKeyMutation<K> mutation)
     {
-        @SuppressWarnings("unchecked")
         Partitioner<K,?> partitions =
-            (Partitioner<K, ?>) myTable2Partitions.get(mutation.getTableName());
+            myTablePartitionInfo.lookup(mutation.getTableName());
 
         if (partitions == null) {
             return null;
@@ -654,9 +693,70 @@ public class HitDBFacade
     /** Returns list of tables known to this database server */
     public Set<String> listTables()
     {
-        return myTable2Partitions.keySet();
+        return myTablePartitionInfo.getTableNames();
     }
 
+    /**
+     * A helper method to query the database.
+     */
+    public <K extends Comparable<K>> ListenableFuture<QueryResponse> 
+        executePointQuery(PointQuery query)
+    {
+        SettableFuture<QueryResponse> queryResponse = SettableFuture.create();
+        final long id = myOperationsCount.getAndIncrement();
+        Partitioner<K, ?>  partitioner = 
+            myTablePartitionInfo.lookup(query.getTableName());
+        NodeID serverNode = partitioner.lookupNode(query.<K>getQueriedKey());
+        
+        myExecutorService.submit(
+            new SubmitQueryTask(query, 
+                                id,
+                                new PointQueryResponserHandler(queryResponse),
+                                serverNode));
+        return queryResponse;
+    }
+    
+    /**
+     * A helper method to query the database.
+     */
+    public <K extends Comparable<K>> ListenableFuture<QueryResponse> 
+        executeRangeQuery(RewritableQuery query)
+    {
+        SettableFuture<QueryResponse> queryResponse = SettableFuture.create();
+        final long id = myOperationsCount.getAndIncrement();
+        Partitioner<K, ?>  partitioner = 
+            myTablePartitionInfo.lookup(query.getTableName());
+        if (partitioner instanceof DistributedHashTable) {
+            throw new RuntimeException("We cannot execute range queries"
+                + " over hashed tables");
+        }
+        else {
+            @SuppressWarnings("unchecked")
+            Partitioner<K, K> linearPartitioner = 
+                (Partitioner<K, K>) partitioner;
+            final Map<NodeID, Range<K>> split =
+                linearPartitioner.lookupNodes(query.<K>getRange());
+            FutureCallback<Pair<NodeID, Collection<Row>>> callback = 
+                new RangeQueryResponserHandler(
+                    id,
+                    new HashSet<>(split.keySet()),
+                    new SimpleQueryMerger(),
+                    queryResponse);
+            for (Map.Entry<NodeID, Range<K>> entry : split.entrySet()) {
+                Query nodeQuery = 
+                    query.updateRange(entry.getValue());
+                
+                myExecutorService.submit(
+                    new SubmitQueryTask(nodeQuery,
+                                        id, 
+                                        callback,
+                                        entry.getKey()));
+            }
+            
+        }
+        return queryResponse;
+    }
+    
     /**
      * A helper method to query the database.
      */
@@ -664,12 +764,27 @@ public class HitDBFacade
     {
         SettableFuture<QueryResponse> queryResponse = SettableFuture.create();
         final long id = myOperationsCount.getAndIncrement();
-        myExecutorService.submit(new SubmitQueryTask(queryResponse, query, id));
+        FutureCallback<Pair<NodeID, Collection<Row>>> callback = 
+            new RangeQueryResponserHandler(
+                id,
+                new HashSet<>(myRegistryService.getServerNodes()),
+                new SimpleQueryMerger(),
+                queryResponse);
+        
+        for (NodeID server : myRegistryService.getServerNodes()) {
+            
+            myExecutorService.submit(
+                new SubmitQueryTask(query,
+                                    id, 
+                                    callback,
+                                    server));
+        }
         return queryResponse;
     }
 
     /**
-     * A helper method to query the database.
+     * A helper method to query the database. The query is executed 
+     * across nodes 
      */
     public ListenableFuture<QueryResponse> queryDB(String query)
         throws QueryBuildingException, RecognitionException

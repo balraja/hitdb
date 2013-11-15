@@ -18,14 +18,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.key;
+package org.hit.db.keyspace;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import org.hit.key.domain.DiscreteDomain;
-import org.hit.partitioner.Partitioner;
+import org.hit.db.keyspace.domain.DiscreteDomain;
+import org.hit.db.partitioner.Partitioner;
 
 /**
  * Defines the contract for the key space that's partitioned between the
