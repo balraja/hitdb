@@ -30,7 +30,7 @@ import org.hit.db.model.Row;
 import org.hit.db.query.operators.ColumnNameUtil;
 import org.hit.db.query.operators.QueryBuildingException;
 import org.hit.db.query.operators.RowMap;
-import org.hit.db.query.parser.QueryFactory;
+import org.hit.db.query.parser.QueryParser;
 import org.hit.example.Airport;
 import org.hit.example.HitDbTest;
 import org.junit.Before;
@@ -61,7 +61,7 @@ public class QueryTest
     public void testSelect() throws RecognitionException, QueryBuildingException
     {
         Query query = 
-            QueryFactory.makeQuery("select * from " + HitDbTest.TABLE_NAME);
+            QueryParser.parseQuery("select * from " + HitDbTest.TABLE_NAME);
         
         @SuppressWarnings("unchecked")
         Collection<Airport> airports = 
@@ -78,7 +78,7 @@ public class QueryTest
     public void testCount() throws RecognitionException, QueryBuildingException
     {
         Query query = 
-            QueryFactory.makeQuery(
+            QueryParser.parseQuery(
                 "select count(*) from " + HitDbTest.TABLE_NAME);
         
         @SuppressWarnings("unchecked")
@@ -104,7 +104,7 @@ public class QueryTest
     public void testMax() throws RecognitionException, QueryBuildingException
     {
         Query query = 
-            QueryFactory.makeQuery(
+            QueryParser.parseQuery(
                 "select max(id) from " + HitDbTest.TABLE_NAME);
         
         @SuppressWarnings("unchecked")
@@ -130,7 +130,7 @@ public class QueryTest
     public void testJoin() throws RecognitionException, QueryBuildingException
     {
         Query query = 
-            QueryFactory.makeQuery(
+            QueryParser.parseQuery(
                "select count(*) " +
                "from airports join routes " +
                "on airports.id = routes.src_airport_id" +

@@ -25,6 +25,7 @@ import java.io.ObjectOutput;
 
 import org.hit.db.model.Query;
 import org.hit.db.model.query.RewritableQuery;
+import org.hit.db.query.merger.QueryMerger;
 import org.hit.util.Range;
 
 /**
@@ -35,81 +36,60 @@ import org.hit.util.Range;
 public class RewritableQueryAdapter extends QueryAdaptor 
     implements RewritableQuery
 {
-    private String myTableName;
+    private QueryMerger myQueryMerger;
     
-    private Range<?> myQueryRange;
-
     /**
      * CTOR
      */
     public RewritableQueryAdapter()
     {
-        this(null, null, null);
+        this(null, null);
     }
 
     /**
      * CTOR
      */
-    public RewritableQueryAdapter(QueryOperator operator,
-                                  String        tableName,
-                                  Range<?>      range)
+    public RewritableQueryAdapter(QueryAdaptor query,
+                                  QueryMerger  queryMerger)
     {
-        super(operator);
-        myTableName  = tableName;
-        myQueryRange = range;
+        super(query.getOperator());
+        myQueryMerger = queryMerger;
     }
-
+    
     /**
-     * {@inheritDoc}
+     * CTOR
      */
-    @SuppressWarnings("unchecked")
-    @Override
-    public <K extends Comparable<K>> Range<K> getRange()
+    public RewritableQueryAdapter(QueryOperator query,
+                                  QueryMerger  queryMerger)
     {
-        return (Range<K>) myQueryRange;
+        super(query);
+        myQueryMerger = queryMerger;
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String getTableName()
-    {
-        return myTableName;
-    }
-
+    
     /**
      * {@inheritDoc}
      */
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException
+    public RewritableQuery cloneQuery()
     {
-        super.writeExternal(out);
-        out.writeUTF(myTableName);
-        out.writeObject(myQueryRange);
+        return new RewritableQueryAdapter(getOperator(), myQueryMerger);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void readExternal(ObjectInput in) 
-        throws IOException, ClassNotFoundException
+    public <K extends Comparable<K>> void updateRange(Range<K> newRange)
     {
-        super.readExternal(in);
-        myTableName = in.readUTF();
-        myQueryRange = (Range<?>) in.readObject();
+        getOperator().updateRange(newRange);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public <K extends Comparable<K>> Query updateRange(Range<K> newRange)
+    public QueryMerger getQueryMerger()
     {
-        QueryOperator newOperator = 
-            getOperator().cloneOperator();
-        newOperator.updateRange(newRange);
-        return new QueryAdaptor(newOperator);
+        return myQueryMerger;
     }
 }

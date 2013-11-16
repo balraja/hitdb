@@ -22,9 +22,11 @@ package org.hit.db.query.operators;
 
 import java.util.Map;
 
-import org.hit.db.model.Query;
-import org.hit.db.query.operators.Aggregate.ID;
+import org.hit.db.query.merger.AggregationMerger;
+import org.hit.db.query.merger.MergeableHaving;
+import org.hit.db.query.merger.QueryMerger;
 import org.hit.db.query.parser.QueryAttributes;
+import org.hit.util.Pair;
 
 /**
  * Defines a query builder that be used for building the <code>Query</code>
@@ -47,7 +49,8 @@ public class QueryBuilder
      * Returns the <code>Query</code> built from the <code>QueryAttributes
      * </code>.
      */
-    public Query buildQuery() throws QueryBuildingException
+    public Pair<QueryAdaptor, QueryMerger> buildQuery(boolean isDistributed) 
+        throws QueryBuildingException
     {
         if (   myQueryAttributes.getSelectedColumns() == null 
             || myQueryAttributes.getSelectedColumns().isEmpty())
@@ -56,12 +59,12 @@ public class QueryBuilder
                 "Please select some columns for the output");
         }
         
-        for (Map.Entry<String, ID> selectedColumn : 
+        for (Map.Entry<String, AggregationID> selectedColumn : 
                  myQueryAttributes.getSelectedColumns().entrySet())
         {
             if (selectedColumn.getKey().equals(ColumnNameUtil.ALL_COLUMNS)
                 && selectedColumn.getValue() != null
-                && selectedColumn.getValue() != Aggregate.ID.CNT) 
+                && selectedColumn.getValue() != AggregationID.CNT) 
             {
                 throw new QueryBuildingException(
                     "Only CNT aggregation is valid in select * format");
@@ -70,7 +73,7 @@ public class QueryBuilder
         }
         
         boolean hasSelectAggregation = false, hasNonAggregatedColumns = false;
-        for (Map.Entry<String, ID> selectedColumn : 
+        for (Map.Entry<String, AggregationID> selectedColumn : 
             myQueryAttributes.getSelectedColumns().entrySet())
         {
             if (selectedColumn.getValue() != null) {
@@ -87,7 +90,7 @@ public class QueryBuilder
         }
         
         if (myQueryAttributes.getGroupByAttributes() != null) {
-            for (Map.Entry<String, ID> selectedColumn : 
+            for (Map.Entry<String, AggregationID> selectedColumn : 
                     myQueryAttributes.getSelectedColumns().entrySet())
             {
                 if (   selectedColumn.getValue() == null 
@@ -127,7 +130,9 @@ public class QueryBuilder
                                        myQueryAttributes.getSelectedColumns());
             }
             
-            if (myQueryAttributes.getHavingCondition() != null) {
+            if (myQueryAttributes.getHavingCondition() != null
+                && !isDistributed) 
+            {
                 
                 operator = new Having(operator, 
                                       myQueryAttributes.getHavingCondition());
@@ -137,6 +142,14 @@ public class QueryBuilder
             operator = new Select(operator,
                                   myQueryAttributes.getSelectedColumns());
         }
-        return new QueryAdaptor(operator);
+        
+        QueryMerger queryMerger = 
+            isDistributed ?
+                myQueryAttributes.getHavingCondition() != null ?
+                    new MergeableHaving(myQueryAttributes.getHavingCondition())
+                    : new AggregationMerger()
+            : null;
+                    
+        return new Pair<>(new QueryAdaptor(operator), queryMerger);
     }
 }

@@ -17,18 +17,30 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package org.hit.db.model.query;
-
-import org.hit.db.model.Query;
+package org.hit.db.query.operators;
 
 /**
- * Defines the contract for a {@link Query} to queries a single key.
- * 
- * @author Balraja Subbiah
+ * Defines an enum to capture various aggregating functions.
  */
-public interface PointQuery extends Query
+public enum AggregationID
 {
-    public <K extends Comparable<K>> K getQueriedKey();
+    MIN,
+    MAX,
+    AVG,
+    CNT,
+    SUM;
     
-    public String getTableName();
+    /** 
+     * A static factory method to match the aggregate function 
+     * irrespective if id.
+     */
+    public static AggregationID lookup(String name)
+    {
+        for (AggregationID id : values()) {
+            if (id.name().equalsIgnoreCase(name)) {
+                return id;
+            }
+        }
+        return null;
+    }
 }

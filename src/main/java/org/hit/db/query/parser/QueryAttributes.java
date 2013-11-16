@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.hit.db.query.operators.Aggregate;
+import org.hit.db.query.operators.AggregationID;
 import org.hit.db.query.operators.Condition;
 import org.hit.util.Pair;
 
@@ -37,7 +37,7 @@ import org.hit.util.Pair;
  */
 public class QueryAttributes
 {
-    private Map<String, Aggregate.ID> mySelectedColumns;
+    private Map<String, AggregationID> mySelectedColumns;
     
     private List<String> myGroupByAttributes;
     
@@ -66,7 +66,7 @@ public class QueryAttributes
     /**
      * Returns the value of selectedColumns
      */
-    public Map<String, Aggregate.ID> getSelectedColumns()
+    public Map<String, AggregationID> getSelectedColumns()
     {
         return mySelectedColumns;
     }
@@ -74,7 +74,7 @@ public class QueryAttributes
     /**
      * Setter for the selectedColumns
      */
-    public void setSelectedColumns(Map<String, Aggregate.ID> selectedColumns)
+    public void setSelectedColumns(Map<String, AggregationID> selectedColumns)
     {
         mySelectedColumns = selectedColumns;
     }

@@ -20,6 +20,7 @@
 package org.hit.db.model.query;
 
 import org.hit.db.model.Query;
+import org.hit.db.query.merger.QueryMerger;
 import org.hit.util.Range;
 
 /**
@@ -28,10 +29,22 @@ import org.hit.util.Range;
  * 
  * @author Balraja Subbiah
  */
-public interface RewritableQuery extends Cloneable, RangeQuery
+public interface RewritableQuery extends Query
 {
+    /**
+     * Clones a new {@link RewritableQuery} out of the attributes of existing
+     * {@link Query}.
+     */
+    public RewritableQuery cloneQuery();
+    
+    /**
+     * Returns the {@link QueryMerger} that's used for merging values
+     * from multiple queries.
+     */
+    public QueryMerger getQueryMerger();
+    
     /**
      * Updates query to query within the new query range.
      */
-    public <K extends Comparable<K>> Query updateRange(Range<K> newRange);
+    public <K extends Comparable<K>> void updateRange(Range<K> newRange);
 }

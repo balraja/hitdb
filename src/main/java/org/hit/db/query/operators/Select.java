@@ -29,8 +29,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.hit.db.model.Row;
-import org.hit.db.query.operators.Aggregate.Aggregator;
-import org.hit.db.query.operators.Aggregate.ID;
 
 import com.google.common.collect.Lists;
 
@@ -42,7 +40,7 @@ import com.google.common.collect.Lists;
  */
 public class Select extends Decorator
 {
-    private Map<String, Aggregate.ID> mySelectColumns;
+    private Map<String, AggregationID> mySelectColumns;
     
     /**
      * CTOR
@@ -55,7 +53,7 @@ public class Select extends Decorator
     /**
      * CTOR
      */
-    public Select(QueryOperator operator, Map<String, ID> selectColumns)
+    public Select(QueryOperator operator, Map<String, AggregationID> selectColumns)
     {
         super(operator);
         mySelectColumns = selectColumns;
@@ -69,10 +67,10 @@ public class Select extends Decorator
         doPerformOperation(Collection<Row> toBeOperatedCollection)
     {
         if (mySelectColumns.containsKey(ColumnNameUtil.ALL_COLUMNS)) {
-            Aggregate.ID aggregatingFunctionID = 
+            AggregationID aggregatingFunctionID = 
                 mySelectColumns.get(ColumnNameUtil.ALL_COLUMNS);
             if (aggregatingFunctionID != null) {
-                if (aggregatingFunctionID == Aggregate.ID.CNT) {
+                if (aggregatingFunctionID == AggregationID.CNT) {
                     RowMap result = new RowMap();
                     result.setFieldValue(ColumnNameUtil.ALL_COLUMNS_SYMBOLIC, 
                                          Integer.valueOf(
@@ -92,7 +90,7 @@ public class Select extends Decorator
                 mySelectColumns.values().iterator().next() != null;
             if (hasAggregation) {
                 RowMap result = new RowMap();
-                for (Map.Entry<String, ID> selectedColumn : 
+                for (Map.Entry<String, AggregationID> selectedColumn : 
                          mySelectColumns.entrySet())
                 {
                     Aggregator aggregator = 
@@ -132,7 +130,7 @@ public class Select extends Decorator
             ClassNotFoundException
     {
         super.readExternal(in);
-        mySelectColumns = (Map<String, ID>) in.readObject();
+        mySelectColumns = (Map<String, AggregationID>) in.readObject();
     }
 
     /**
@@ -142,6 +140,6 @@ public class Select extends Decorator
     public QueryOperator cloneOperator()
     {
         return new Select(getDecoratedOperator().cloneOperator(), 
-                          new HashMap<String, Aggregate.ID>(mySelectColumns));
+                          new HashMap<String, AggregationID>(mySelectColumns));
     }
 }

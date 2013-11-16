@@ -26,8 +26,13 @@ import org.antlr.runtime.TokenRewriteStream;
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.CommonTreeNodeStream;
 import org.hit.db.model.Query;
+import org.hit.db.model.query.RewritableQuery;
+import org.hit.db.query.merger.QueryMerger;
+import org.hit.db.query.operators.QueryAdaptor;
 import org.hit.db.query.operators.QueryBuilder;
 import org.hit.db.query.operators.QueryBuildingException;
+import org.hit.db.query.operators.RewritableQueryAdapter;
+import org.hit.util.Pair;
 
 /**
  * An util class that can be used for parsing query string and generating 
@@ -35,12 +40,19 @@ import org.hit.db.query.operators.QueryBuildingException;
  * 
  * @author Balraja Subbiah
  */
-public final class QueryFactory
+public final class QueryParser
 {
     /**
      * Parses the given string to generate query out of it.
      */
-    public static Query makeQuery(String query) 
+    public static Query parseQuery(String query) 
+        throws RecognitionException, QueryBuildingException
+    {
+       return parseAndBuildQuery(query, false).getFirst();
+    }
+    
+    private static Pair<QueryAdaptor, QueryMerger> 
+        parseAndBuildQuery(String query, boolean isDistributed)
         throws RecognitionException, QueryBuildingException
     {
         ANTLRStringStream fs = new ANTLRStringStream(query);
@@ -56,13 +68,26 @@ public final class QueryFactory
         HitSQLTree tree = new HitSQLTree(nodeStream);
         tree.select_statement();
         QueryBuilder builder = new QueryBuilder(tree.getQueryAttributes());
-        return builder.buildQuery();
+        return builder.buildQuery(isDistributed);
+    }
+    
+    /**
+     * Parses the given string to generate a {@link RewritableQuery}
+     * out of it.
+     */
+    public static RewritableQuery parseRewritableQuery(String query) 
+        throws RecognitionException, QueryBuildingException
+    {
+        Pair<QueryAdaptor, QueryMerger> buildResult = 
+            parseAndBuildQuery(query, true);
+        return new RewritableQueryAdapter(buildResult.getFirst(),
+                                          buildResult.getSecond());
     }
     
     /**
      * Private CTOR to avoid initialization
      */
-    private QueryFactory()
+    private QueryParser()
     {
     }
 }

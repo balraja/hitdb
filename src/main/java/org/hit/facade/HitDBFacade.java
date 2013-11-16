@@ -44,14 +44,12 @@ import org.hit.communicator.Message;
 import org.hit.communicator.MessageHandler;
 import org.hit.communicator.NodeID;
 import org.hit.db.model.DBOperation;
-import org.hit.db.model.Mutation;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Query;
 import org.hit.db.model.Row;
 import org.hit.db.model.Schema;
 import org.hit.db.model.mutations.RangeMutation;
 import org.hit.db.model.mutations.SingleKeyMutation;
-import org.hit.db.model.query.PointQuery;
 import org.hit.db.model.query.RewritableQuery;
 import org.hit.db.partitioner.DistributedHashTable;
 import org.hit.db.partitioner.Partitioner;
@@ -606,7 +604,6 @@ public class HitDBFacade
     public <K extends Comparable<K>, P extends Persistable<K>>
         ListenableFuture<DBOperationResponse> apply(RangeMutation<K,P> mutation)
     {
-        @SuppressWarnings("unchecked")
         Partitioner<K,?> partitions = 
             myTablePartitionInfo.lookup(mutation.getTableName());
 
@@ -700,13 +697,13 @@ public class HitDBFacade
      * A helper method to query the database.
      */
     public <K extends Comparable<K>> ListenableFuture<QueryResponse> 
-        executePointQuery(PointQuery query)
+        executePointQuery(Query query, String tableName, K queriedKey)
     {
         SettableFuture<QueryResponse> queryResponse = SettableFuture.create();
         final long id = myOperationsCount.getAndIncrement();
         Partitioner<K, ?>  partitioner = 
-            myTablePartitionInfo.lookup(query.getTableName());
-        NodeID serverNode = partitioner.lookupNode(query.<K>getQueriedKey());
+            myTablePartitionInfo.lookup(tableName);
+        NodeID serverNode = partitioner.lookupNode(queriedKey);
         
         myExecutorService.submit(
             new SubmitQueryTask(query, 
@@ -720,12 +717,13 @@ public class HitDBFacade
      * A helper method to query the database.
      */
     public <K extends Comparable<K>> ListenableFuture<QueryResponse> 
-        executeRangeQuery(RewritableQuery query)
+        executeRangeQuery(
+            RewritableQuery query, String tableName, Range<K> range)
     {
         SettableFuture<QueryResponse> queryResponse = SettableFuture.create();
         final long id = myOperationsCount.getAndIncrement();
         Partitioner<K, ?>  partitioner = 
-            myTablePartitionInfo.lookup(query.getTableName());
+            myTablePartitionInfo.lookup(tableName);
         if (partitioner instanceof DistributedHashTable) {
             throw new RuntimeException("We cannot execute range queries"
                 + " over hashed tables");
@@ -735,16 +733,16 @@ public class HitDBFacade
             Partitioner<K, K> linearPartitioner = 
                 (Partitioner<K, K>) partitioner;
             final Map<NodeID, Range<K>> split =
-                linearPartitioner.lookupNodes(query.<K>getRange());
+                linearPartitioner.lookupNodes(range);
             FutureCallback<Pair<NodeID, Collection<Row>>> callback = 
                 new RangeQueryResponserHandler(
                     id,
                     new HashSet<>(split.keySet()),
-                    new SimpleQueryMerger(),
+                    query.getQueryMerger(),
                     queryResponse);
             for (Map.Entry<NodeID, Range<K>> entry : split.entrySet()) {
-                Query nodeQuery = 
-                    query.updateRange(entry.getValue());
+                RewritableQuery nodeQuery = query.cloneQuery();
+                nodeQuery.updateRange(entry.getValue());
                 
                 myExecutorService.submit(
                     new SubmitQueryTask(nodeQuery,
@@ -803,7 +801,7 @@ public class HitDBFacade
         tree.select_statement();
 
         QueryBuilder builder = new QueryBuilder(tree.getQueryAttributes());
-        return queryDB(builder.buildQuery());
+        return queryDB(builder.buildQuery(false).getFirst());
     }
 
     /**

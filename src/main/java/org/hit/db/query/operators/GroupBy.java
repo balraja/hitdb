@@ -32,8 +32,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.hit.db.model.Row;
-import org.hit.db.query.operators.Aggregate.Aggregator;
-import org.hit.db.query.operators.Aggregate.ID;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
@@ -45,7 +43,7 @@ import com.google.common.collect.ListMultimap;
  */
 public class GroupBy extends Decorator
 {
-    private Map<String, Aggregate.ID> myAggregatingColumns;
+    private Map<String, AggregationID> myAggregatingColumns;
     
     private SortedSet<String> myGroupingColumns;
     
@@ -63,7 +61,7 @@ public class GroupBy extends Decorator
      */
     public GroupBy(QueryOperator              operator,
                    List<String>                groupingColumns,
-                   Map<String, Aggregate.ID>  columns)
+                   Map<String, AggregationID>  columns)
     {
         super(operator);
         myGroupingColumns = new TreeSet<>(groupingColumns);
@@ -87,23 +85,25 @@ public class GroupBy extends Decorator
         for (Map.Entry<GroupKey, Collection<Row>> entry :
                multimap.asMap().entrySet())
         {
-            RowMap result = new RowMap();
-            for (Map.Entry<String, Aggregate.ID> aggrEntry : 
+            AggregatedResult row = 
+                new AggregatedResult(entry.getKey(), entry.getValue().size());
+            
+            // For each group, we are aggregating values in that 
+            // group.
+            for (Map.Entry<String, AggregationID> columnEntry : 
                     myAggregatingColumns.entrySet())
             {
-                if (aggrEntry.getValue() == null) {
-                    result.setFieldValue(aggrEntry.getKey(), 
-                                         entry.getKey().getValue(
-                                             aggrEntry.getKey()));
-                }
-                else {
+                if (columnEntry.getValue() != null) {
+                  
                     Aggregator aggregator = 
                         new Aggregator(
-                            aggrEntry.getValue(), aggrEntry.getKey());
-                    result.setFieldValue(aggrEntry.getKey(),
-                                         aggregator.apply(entry.getValue()));
+                            columnEntry.getValue(), columnEntry.getKey());
+                    
+                    row.setAggregate(columnEntry.getKey(),
+                                     aggregator.apply(entry.getValue()));
                 }
             }
+            resultCollection.add(row);
         }
         return resultCollection;
     }
@@ -130,7 +130,7 @@ public class GroupBy extends Decorator
     {
         super.readExternal(in);
         myGroupingColumns = (SortedSet<String>) in.readObject();
-        myAggregatingColumns = (Map<String, ID>) in.readObject();
+        myAggregatingColumns = (Map<String, AggregationID>) in.readObject();
     }
 
     /**
