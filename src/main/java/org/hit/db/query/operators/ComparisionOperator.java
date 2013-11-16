@@ -140,4 +140,19 @@ public enum ComparisionOperator
         }
         return null;
     }
+    
+    static boolean isEqualityComparator(ComparisionOperator operator)
+    {
+        return operator == EQ || operator == NE;
+    }
+    
+    static boolean isLTComparator(ComparisionOperator operator)
+    {
+        return operator == LT || operator == LE;
+    }
+    
+    static boolean isGTComparator(ComparisionOperator operator)
+    {
+        return operator == GT || operator == GE;
+    }
 }

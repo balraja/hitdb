@@ -27,6 +27,7 @@ import java.util.Collection;
 
 import org.hit.db.model.Database;
 import org.hit.db.model.Row;
+import org.hit.util.Range;
 
 /**
  * Defines contract for the query operator, which supports decoration.
@@ -48,6 +49,14 @@ public abstract class Decorator implements QueryOperator
     public Decorator(QueryOperator operator)
     {
         myDecoratedOperator = operator;
+    }
+    
+    /**
+     * Returns the value of decoratedOperator
+     */
+    protected QueryOperator getDecoratedOperator()
+    {
+        return myDecoratedOperator;
     }
 
     /**
@@ -85,5 +94,13 @@ public abstract class Decorator implements QueryOperator
         throws IOException, ClassNotFoundException
     {
         myDecoratedOperator = (QueryOperator) in.readObject();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <K extends Comparable<K>> void updateRange(Range<K> newRange)
+    {
     }
 }

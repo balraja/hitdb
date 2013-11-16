@@ -26,6 +26,7 @@ import java.io.ObjectOutput;
 import java.util.regex.Pattern;
 
 import org.hit.db.model.Row;
+import org.hit.util.Range;
 
 /**
  * Defines the contract for performing string comparision between 
@@ -56,6 +57,16 @@ public class StringComparison implements Condition
         myColumnNames = ColumnNameUtil.nestedColumnNames(columnName);
         myPattern = Pattern.compile(regex);
     }
+    
+    /**
+     * CTOR
+     */
+    public StringComparison(String[] columnNames, Pattern pattern)
+    {
+        super();
+        myColumnNames = columnNames;
+        myPattern = pattern;
+    }
 
     /**
      * {@inheritDoc}
@@ -76,7 +87,7 @@ public class StringComparison implements Condition
     public void writeExternal(ObjectOutput out) throws IOException
     {
         out.writeObject(myColumnNames);
-        out.writeObject(myPattern);
+        out.writeUTF(myPattern.pattern());
     }
 
     /**
@@ -87,6 +98,25 @@ public class StringComparison implements Condition
         throws IOException, ClassNotFoundException
     {
         myColumnNames = (String[]) in.readObject();
-        myPattern = (Pattern) in.readObject();
+        myPattern = Pattern.compile(in.readUTF());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <K extends Comparable<K>> void updateRange(Range<K> newRange)
+    {
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Condition cloneCondition() 
+    {
+        return new StringComparison(
+            ColumnNameUtil.copyColumnName(myColumnNames), 
+            Pattern.compile(myPattern.pattern()));
     }
 }

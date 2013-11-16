@@ -25,6 +25,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import org.hit.db.model.Row;
+import org.hit.util.Range;
 
 /**
  * Defines the contract for a class that can be used for comparing 
@@ -75,6 +76,20 @@ public class NumericComparison implements Condition
     }
     
     /**
+     * CTOR
+     */
+    public NumericComparison(
+        String[] columnNames,
+        ComparisionOperator operator,
+        double comparedValue)
+    {
+        super();
+        myColumnNames = columnNames;
+        myOperator = operator;
+        myComparedValue = comparedValue;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -121,5 +136,39 @@ public class NumericComparison implements Condition
         myColumnNames = (String[]) in.readObject();
         myOperator = ComparisionOperator.valueOf(in.readUTF());
         myComparedValue = in.readDouble();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <K extends Comparable<K>> void updateRange(Range<K> newRange)
+    {
+        if (!ComparisionOperator.isEqualityComparator(myOperator)) {
+            K updatedValue = 
+                ComparisionOperator.isGTComparator(myOperator) ?
+                    newRange.getMinValue()
+                    : newRange.getMaxValue();
+               
+            if (updatedValue instanceof Number) {
+                myComparedValue = ((Number) updatedValue).doubleValue();
+            }
+            else if (updatedValue instanceof Row) {
+                Object fieldValue = 
+                    ColumnNameUtil.getValue((Row) updatedValue, myColumnNames);
+                if (fieldValue != null && fieldValue instanceof Number) {
+                    Number numericValue = (Number) fieldValue;
+                    myComparedValue = numericValue.doubleValue();
+                }
+            }
+        }
+    }
+    
+    public Condition cloneCondition()
+    {
+        return new NumericComparison(
+            ColumnNameUtil.copyColumnName(myColumnNames), 
+            myOperator, 
+            myComparedValue);
     }
 }

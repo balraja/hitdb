@@ -25,6 +25,7 @@ import java.util.Collection;
 
 import org.hit.db.model.Database;
 import org.hit.db.model.Row;
+import org.hit.util.Range;
 
 /**
  * Defines the contract for the interface that can be used for performing
@@ -36,4 +37,10 @@ public interface QueryOperator extends Externalizable
 {
     /** Returns the result of query */
     public Collection<Row> getResult(Database database);
+    
+    /** Sets the new range whose data is to be queried */
+    <K extends Comparable<K>> void updateRange(Range<K> newRange);
+    
+    /** Defines the contract for cloning */
+    public QueryOperator cloneOperator();
 }

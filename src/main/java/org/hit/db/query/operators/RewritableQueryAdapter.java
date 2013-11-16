@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -17,58 +17,65 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
 package org.hit.db.query.operators;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Collection;
 
-import org.hit.db.model.Row;
+import org.hit.db.model.Query;
+import org.hit.db.model.query.RewritableQuery;
+import org.hit.util.Range;
 
 /**
- * Defines the contract for the query operator that supports filtering
- * on the aggregate values of a group.
+ * Extends {@link QueryAdaptor} to support implementing {@link RewritableQuery}.
  * 
  * @author Balraja Subbiah
  */
-public class Having extends Decorator
+public class RewritableQueryAdapter extends QueryAdaptor 
+    implements RewritableQuery
 {
-    private Condition myCondition;
+    private String myTableName;
     
+    private Range<?> myQueryRange;
+
     /**
      * CTOR
      */
-    public Having()
+    public RewritableQueryAdapter()
     {
-        myCondition = null;
+        this(null, null, null);
     }
-    
+
     /**
      * CTOR
      */
-    public Having(QueryOperator grouper, Condition condition)
+    public RewritableQueryAdapter(QueryOperator operator,
+                                  String        tableName,
+                                  Range<?>      range)
     {
-        super(grouper);
-        myCondition = condition;
+        super(operator);
+        myTableName  = tableName;
+        myQueryRange = range;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public <K extends Comparable<K>> Range<K> getRange()
+    {
+        return (Range<K>) myQueryRange;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    protected Collection<Row>
-        doPerformOperation(Collection<Row> toBeOperatedCollection)
+    public String getTableName()
     {
-        ArrayList<Row> result = new ArrayList<>();
-        for (Row q : toBeOperatedCollection) {
-            if (myCondition.isValid(q)) {
-                result.add(q);
-            }
-        }
-        return result;
+        return myTableName;
     }
 
     /**
@@ -78,27 +85,31 @@ public class Having extends Decorator
     public void writeExternal(ObjectOutput out) throws IOException
     {
         super.writeExternal(out);
-        out.writeObject(myCondition);
+        out.writeUTF(myTableName);
+        out.writeObject(myQueryRange);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void readExternal(ObjectInput in)
+    public void readExternal(ObjectInput in) 
         throws IOException, ClassNotFoundException
     {
         super.readExternal(in);
-        myCondition = (Condition) in.readObject();
+        myTableName = in.readUTF();
+        myQueryRange = (Range<?>) in.readObject();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public QueryOperator cloneOperator()
+    public <K extends Comparable<K>> Query updateRange(Range<K> newRange)
     {
-        return new Having(getDecoratedOperator().cloneOperator(),
-                          myCondition.cloneCondition());
+        QueryOperator newOperator = 
+            getOperator().cloneOperator();
+        newOperator.updateRange(newRange);
+        return new QueryAdaptor(newOperator);
     }
 }

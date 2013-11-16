@@ -25,6 +25,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.hit.db.model.Row;
@@ -132,5 +133,15 @@ public class Select extends Decorator
     {
         super.readExternal(in);
         mySelectColumns = (Map<String, ID>) in.readObject();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public QueryOperator cloneOperator()
+    {
+        return new Select(getDecoratedOperator().cloneOperator(), 
+                          new HashMap<String, Aggregate.ID>(mySelectColumns));
     }
 }

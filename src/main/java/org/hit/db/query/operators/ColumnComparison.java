@@ -25,6 +25,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import org.hit.db.model.Row;
+import org.hit.util.Range;
 
 /**
  * Defines the contract for comparing two columns.
@@ -60,6 +61,20 @@ public class ColumnComparison implements Condition
         myColumnNames2 = ColumnNameUtil.nestedColumnNames(columnName2);
     }
     
+    /**
+     * CTOR
+     */
+    public ColumnComparison(
+        ComparisionOperator operator,
+        String[] columnNames1,
+        String[] columnNames2)
+    {
+        super();
+        myColumnNames1 = columnNames1;
+        myColumnNames2 = columnNames2;
+        myOperator = operator;
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -105,5 +120,25 @@ public class ColumnComparison implements Condition
         myColumnNames1 = (String[]) in.readObject();
         myColumnNames2 = (String[]) in.readObject();
         myOperator = ComparisionOperator.valueOf(in.readUTF());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <K extends Comparable<K>> void updateRange(Range<K> newRange)
+    {
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Condition cloneCondition()
+    {
+        return new ColumnComparison(
+            myOperator, 
+            ColumnNameUtil.copyColumnName(myColumnNames1), 
+            ColumnNameUtil.copyColumnName(myColumnNames2));
     }
 }

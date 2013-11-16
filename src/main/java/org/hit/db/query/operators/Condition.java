@@ -23,6 +23,7 @@ package org.hit.db.query.operators;
 import java.io.Externalizable;
 
 import org.hit.db.model.Row;
+import org.hit.util.Range;
 
 /**
  * Defines the contract for the condition used for matching against 
@@ -34,4 +35,10 @@ public interface Condition extends Externalizable
 {
     /** Returns true if the condition holds on the given record */
     boolean isValid(Row record);
+    
+    /** Updates the filtering condition to use the new range */
+    <K extends Comparable<K>> void updateRange(Range<K> newRange);
+    
+    /** Defines the contract for cloning  this object*/
+    public Condition cloneCondition();
 }

@@ -49,6 +49,13 @@ public final class ColumnNameUtil
         return result;
     }
     
+    public static String[] copyColumnName(String[] columnNames)
+    {
+        String[] newColumnNames = new String[columnNames.length];
+        System.arraycopy(columnNames, 0, newColumnNames, 0, columnNames.length);
+        return newColumnNames;
+    }
+    
     private ColumnNameUtil()
     {
     }

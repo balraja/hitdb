@@ -25,13 +25,13 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 
 import org.hit.db.model.Database;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
 import org.hit.db.model.Row;
 import org.hit.db.model.Table;
+import org.hit.util.Range;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
@@ -129,5 +129,28 @@ public class Where implements QueryOperator
         else {
             myFilteringCondition = null;
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <K extends Comparable<K>> void updateRange(Range<K> newRange)
+    {
+        if (myFilteringCondition != null) {
+            myFilteringCondition.updateRange(newRange);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public QueryOperator cloneOperator()
+    {
+        Condition fc = 
+            myFilteringCondition != null ? myFilteringCondition.cloneCondition()
+                                         : null;
+        return new Where(myTableName, fc);
     }
 }

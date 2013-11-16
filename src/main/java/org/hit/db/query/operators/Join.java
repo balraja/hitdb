@@ -36,6 +36,7 @@ import org.hit.db.model.Persistable;
 import org.hit.db.model.Row;
 import org.hit.db.model.Table;
 import org.hit.util.Pair;
+import org.hit.util.Range;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
@@ -219,5 +220,26 @@ public class Join implements QueryOperator
         throws IOException, ClassNotFoundException
     {
         myJoinCondition = (Pair<List<String>, Condition>) in.readObject();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <K extends Comparable<K>> void updateRange(Range<K> newRange)
+    {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public QueryOperator cloneOperator()
+    {
+        return new Join(
+            new Pair<List<String>, Condition>(
+                new ArrayList<>(myJoinCondition.getFirst()),
+                myJoinCondition.getSecond().cloneCondition()), 
+            myFilter.cloneCondition());
     }
 }

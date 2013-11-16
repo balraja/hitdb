@@ -23,9 +23,11 @@ package org.hit.db.query.operators;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.hit.db.model.Row;
+import org.hit.util.Range;
 
 /**
  * Defines the contract for condition list, joined by conjunctive operators.
@@ -126,5 +128,29 @@ public class ConjugateCondition implements Condition
     {
         myConjunctive = Conjunctive.valueOf(in.readUTF());
         myConditions = (List<Condition>) in.readObject();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <K extends Comparable<K>> void updateRange(Range<K> newRange)
+    {
+        for (Condition condition : myConditions) {
+            condition.updateRange(newRange);
+        }
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Condition cloneCondition()
+    {
+        List<Condition> newList = new ArrayList<>();
+        for (Condition condition : myConditions) {
+            newList.add(condition.cloneCondition());
+        }
+        return new ConjugateCondition(myConjunctive, newList);
     }
 }

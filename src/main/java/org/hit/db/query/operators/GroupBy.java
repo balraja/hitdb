@@ -25,6 +25,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -130,5 +131,16 @@ public class GroupBy extends Decorator
         super.readExternal(in);
         myGroupingColumns = (SortedSet<String>) in.readObject();
         myAggregatingColumns = (Map<String, ID>) in.readObject();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public QueryOperator cloneOperator()
+    {
+        return new GroupBy(getDecoratedOperator().cloneOperator(), 
+                           new ArrayList<>(myGroupingColumns), 
+                           new HashMap<>(myAggregatingColumns));
     }
 }

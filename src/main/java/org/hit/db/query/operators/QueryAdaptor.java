@@ -81,4 +81,9 @@ public class QueryAdaptor implements Query
     {
         return myQueryOperator.getResult(database);
     }
+    
+    protected QueryOperator getOperator()
+    {
+        return myQueryOperator;
+    }
 }
