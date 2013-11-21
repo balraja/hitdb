@@ -73,7 +73,7 @@ public class DBEngine extends Actor
     @Override
     protected void registerEvents()
     {
-        myEngineWarden.register(getActorID());       
+        myEngineWarden.register(getActorID());
     }
     
     /**

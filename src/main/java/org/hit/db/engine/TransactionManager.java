@@ -42,6 +42,7 @@ import org.hit.db.model.DatabaseException;
 import org.hit.db.model.Mutation;
 import org.hit.db.model.Query;
 import org.hit.db.model.Schema;
+import org.hit.db.model.mutations.MutationWrapper;
 import org.hit.db.transactions.AbstractTransaction;
 import org.hit.db.transactions.IDAssigner;
 import org.hit.db.transactions.Memento;
@@ -60,6 +61,7 @@ import org.hit.event.ProposalNotificationResponse;
 import org.hit.event.SendMessageEvent;
 import org.hit.messages.DBOperationFailureMessage;
 import org.hit.messages.DBOperationSuccessMessage;
+import org.hit.messages.DataLoadResponse;
 import org.hit.time.Clock;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
@@ -73,6 +75,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import com.sun.corba.se.spi.legacy.connection.GetEndPointInfoAgainException;
 
 /**
  * Class for managing the execution of transactions.
@@ -155,11 +158,42 @@ public class TransactionManager
         {
             return myTransaction.getTransactionID();
         }
+        
+        /**
+         * Returns the {@link ClientInfo} to which response is to be 
+         * sent.
+         */
+        protected ClientInfo getClientInfo()
+        {
+            return myClientInfo;
+        }
+        
+        /**
+         * A helper method to send response to the client.
+         */
+        protected void sendResponseToClient(TransactionResult result)
+        {
+            Message message =
+                result.isCommitted() ?
+                    new DBOperationSuccessMessage(
+                        myServerID,
+                        myClientInfo.getClientSequenceNumber(), 
+                        result.getResult())
+                    : new DBOperationFailureMessage(
+                          myServerID,
+                          myClientInfo.getClientSequenceNumber(),
+                          "Failed to apply the transaction on db");
+
+            myEventBus.publish(
+               new SendMessageEvent(
+                   Collections.singleton(myClientInfo.getClientID()),
+                   message));
+        }
 
         /**
          * Sends error notification to the client.
          */
-        private void sendErrorToClient(Exception exception)
+        protected void sendErrorToClient(Exception exception)
         {
             if (myClientInfo != null) {
                 myEventBus.publish(
@@ -255,22 +289,7 @@ public class TransactionManager
                 @SuppressWarnings("unchecked")
                 Memento<TransactionResult> result = 
                     (Memento<TransactionResult>) event;
-                Message message =
-                    result.getPhase().getResult().isCommitted() ?
-                        new DBOperationSuccessMessage(
-                            myServerID,
-                            myClientInfo.getClientSequenceNumber(), 
-                            result.getPhase().getResult().getResult())
-                        : new DBOperationFailureMessage(
-                              myServerID,
-                              myClientInfo.getClientSequenceNumber(),
-                              "Failed to apply the transaction on db");
-
-                myEventBus.publish(
-                   new SendMessageEvent(
-                       Collections.singleton(myClientInfo.getClientID()),
-                       message));
-                
+                sendResponseToClient(result.getPhase().getResult());
                 scheduleNextTransactions(myTransaction.getTransactionID());
             }
             else if (event instanceof Exception) {
@@ -279,6 +298,41 @@ public class TransactionManager
                 // XXX Abort all transactions that is dependent 
                 // on this transaction.
             }
+        }
+    }
+    
+    private class DeletionWorkflow extends SimpleWorkflow
+    {
+        private final DeleteRangeMutation myMutation;
+
+        /**
+         * CTOR
+         */
+        public DeletionWorkflow(
+            ClientInfo clientInfo,
+            AbstractTransaction transaction,
+            DeleteRangeMutation mutation)
+        {
+            super(clientInfo, transaction);
+            myMutation = mutation;
+        }
+        
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected void sendResponseToClient(TransactionResult result)
+        {
+            myEventBus.publish(
+                new SendMessageEvent(
+                    Collections.singletonList(getClientInfo().getClientID()),
+                    new DataLoadResponse(myServerID,
+                                         myMutation.getTableName(), 
+                                         MutationWrapper.wrapRangeMutation(
+                                             myMutation.getDeletedData()
+                                                       .get(0)
+                                                       .getClass(),
+                                             myMutation.getDeletedData()))));
         }
     }
     
@@ -595,8 +649,26 @@ public class TransactionManager
      * queries on the database.
      */
     public void processQueryAndDeleteOperation(
-        NodeID originatorNode, Range<?> deletedRange)
+        NodeID originatorNode, String tableName, Range<?> deletedRange)
     {
+        long id = myIdAssigner.getTransactionID();
+        DeleteRangeMutation operation = 
+            new DeleteRangeMutation(tableName, deletedRange);
+
+        AbstractTransaction transaction =
+            new WriteTransaction(
+                id, myDatabase, myClock, operation);
+        
+        ClientInfo clientInfo = new ClientInfo(originatorNode, -1L);
+        WorkFlow workFlow = 
+            new DeletionWorkflow(clientInfo, transaction, operation);
+        myWorkFlowMap.put(Long.valueOf(id), workFlow);
+        
+        if (myDatabase.lock(id)) {
+            // The new distributed transaction will be 
+            // dependent on all other transactions to complete.
+            Registry.addDependencyToAll(id);
+        }
     }
     
     /**

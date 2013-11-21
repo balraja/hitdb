@@ -35,6 +35,7 @@ import org.hit.event.ProposalNotificationEvent;
 import org.hit.event.SendMessageEvent;
 import org.hit.messages.DBOperationFailureMessage;
 import org.hit.messages.DBOperationMessage;
+import org.hit.messages.DataLoadRequest;
 import org.hit.messages.DistributedDBOperationMessage;
 import org.hit.util.LogFactory;
 
@@ -171,6 +172,13 @@ public abstract class AbstractWarden implements EngineWarden
                 (ConsensusResponseEvent) event;
             myTransactionManager.processOperation(cre);
         }
+        else if (event instanceof DataLoadRequest) {
+            DataLoadRequest loadRequest = (DataLoadRequest) event;
+            myTransactionManager.processQueryAndDeleteOperation(
+                loadRequest.getSenderId(), 
+                loadRequest.getTableName(),
+                loadRequest.getNodeRange());
+        }
     }
 
     /**
@@ -180,7 +188,9 @@ public abstract class AbstractWarden implements EngineWarden
     public void register(ActorID actorID)
     {
         myEventBus.registerForEvent(DBOperationMessage.class, actorID);
+        myEventBus.registerForEvent(DistributedDBOperationMessage.class, actorID);
         myEventBus.registerForEvent(ProposalNotificationEvent.class, actorID);
         myEventBus.registerForEvent(ConsensusResponseEvent.class, actorID);
+        myEventBus.registerForEvent(DataLoadRequest.class, actorID);
     }
 }

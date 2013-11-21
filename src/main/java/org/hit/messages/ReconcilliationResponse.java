@@ -32,7 +32,7 @@ import org.hit.gossip.Gossip;
 
 /**
  * Defines the contract for a message that can be used for sending back the 
- * updated key - value pairs.
+ * updated key value pairs.
  * 
  * @author Balraja Subbiah
  */
