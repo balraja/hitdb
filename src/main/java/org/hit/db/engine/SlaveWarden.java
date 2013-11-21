@@ -131,8 +131,13 @@ public class SlaveWarden extends AbstractWarden
         @Override
         public void onSuccess(DataLoadResponse response)
         {
+            getTransactionManager().createTable(
+                myAllocation.getTable2SchemaMap().get(
+                    response.getTableName()));
+            
             getTransactionManager().processOperation(
                 response.getDataLoadResponseMutation());
+            
             myAllocation.getTableToDataNodeMap().remove(
                 response.getTableName());
             

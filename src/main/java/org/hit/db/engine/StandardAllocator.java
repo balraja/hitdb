@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import org.hit.communicator.NodeID;
+import org.hit.db.keyspace.domain.DiscreteDomain;
 import org.hit.db.model.Schema;
 import org.hit.db.partitioner.Partitioner;
 import org.hit.event.DBStatEvent;
@@ -95,15 +96,37 @@ public class StandardAllocator implements Allocator
     public void addSchema(Schema tableSchema)
     {
         myTableToSchemaMap.put(tableSchema.getTableName(), tableSchema);
+        
+        if (!tableSchema.isReplicated()) {
+            return;
+        }
+        
         Partitioner<?,?> partitioner =
             tableSchema.getKeyspace().makePartitioner(
                 tableSchema.getTableName());
+        
+        DiscreteDomain<?> domain = 
+            tableSchema.getKeyspace().getDomain();
+        
+        long perNodeRange = domain.getTotalElements() / (myNodes.size() + 1);
+        int i = 1;
+        for (NodeID node : myNodes) {
+            partitioner.update(new Pair<Comparable<?>, NodeID>(
+                domain.elementAt(i * perNodeRange),
+                node));
+            
+            LOG.info("Adding " + myServerID + " to handle data upto " +
+                tableSchema.getKeyspace().getDomain().getMaximum());
+            i++;
+        }
+        
+        // Allocate the remaining keys to the master node.
         partitioner.update(new Pair<Comparable<?>, NodeID>(
-            tableSchema.getKeyspace().getDomain().getMaximum(),
+            domain.getMaximum(),
             myServerID));
-
+        
         LOG.info("Adding " + myServerID + " to handle data upto " +
-                 tableSchema.getKeyspace().getDomain().getMaximum());
+            tableSchema.getKeyspace().getDomain().getMaximum());
 
         myTableToPartitionMap.put(tableSchema.getTableName(), partitioner);
     }
@@ -125,16 +148,32 @@ public class StandardAllocator implements Allocator
         for (Map.Entry<String, Schema> entry : myTableToSchemaMap.entrySet())
         {
             tableSchemaMap.put(entry.getKey(), entry.getValue());
-            NodeID maxLoadedNode = lookupMaxLoadedNode(entry.getKey());
-            Partitioner<?, ?> partition =
-                myTableToPartitionMap.get(entry.getKey());
-            Range<?> nodeRange = partition.getNodeRange(maxLoadedNode);
-            Comparable<?> newValue =
-                entry.getValue().getKeyspace().getDomain().getMiddleOf(
-                    nodeRange.getMinValue(), nodeRange.getMaxValue());
-            partition.update(new Pair<Comparable<?>, NodeID>(newValue, nodeID));
-            partitionTableMap.put(entry.getKey(), partition);
-            dataNodeMap.put(entry.getKey(), maxLoadedNode);
+            if (entry.getValue().isReplicated()) {
+                
+                Partitioner<?,?> partition =
+                    entry.getValue().getKeyspace().makePartitioner(
+                        entry.getValue().getTableName());
+                
+                DiscreteDomain<?> domain = 
+                    entry.getValue().getKeyspace().getDomain();
+                
+                partition.update(new Pair<Comparable<?>, NodeID>(
+                    domain.getMaximum(), nodeID));
+                
+                dataNodeMap.put(entry.getKey(), myServerID);
+            }
+            else {
+                NodeID maxLoadedNode = lookupMaxLoadedNode(entry.getKey());
+                Partitioner<?, ?> partition =
+                    myTableToPartitionMap.get(entry.getKey());
+                Range<?> nodeRange = partition.getNodeRange(maxLoadedNode);
+                Comparable<?> newValue =
+                    entry.getValue().getKeyspace().getDomain().getMiddleOf(
+                        nodeRange.getMinValue(), nodeRange.getMaxValue());
+                partition.update(new Pair<Comparable<?>, NodeID>(newValue, nodeID));
+                partitionTableMap.put(entry.getKey(), partition);
+                dataNodeMap.put(entry.getKey(), maxLoadedNode);
+            }
         }
         return new Allocation(tableSchemaMap, 
                               partitionTableMap,

@@ -27,6 +27,8 @@ import java.util.List;
 
 import org.hit.db.model.Database;
 import org.hit.db.model.Mutation;
+import org.hit.db.model.Predicate;
+import org.hit.db.model.Row;
 import org.hit.util.Range;
 
 /**
@@ -104,12 +106,26 @@ public class DeleteRangeMutation implements Mutation
     @Override
     public void update(Database database)
     {
-        myData = 
-            new ArrayList<>(
-                database.lookUpTable(myTableName)
-                        .deleteRange(myDeletedRange.getMinValue(),
-                                     myDeletedRange.getMaxValue()));
-
+        if (database.lookUpTable(myTableName).getSchema().isReplicated()) {
+            myData = 
+                new ArrayList<>(
+                    database.lookUpTable(myTableName)
+                            .findMatching(new Predicate() {
+                                
+                                @Override
+                                public boolean isInterested(Row row)
+                                {
+                                    return true;
+                                }
+                            }));
+        }
+        else {
+            myData = 
+                new ArrayList<>(
+                    database.lookUpTable(myTableName)
+                            .deleteRange(myDeletedRange.getMinValue(),
+                                         myDeletedRange.getMaxValue()));
+        }
     }
 
 }

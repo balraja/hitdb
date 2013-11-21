@@ -156,11 +156,20 @@ public abstract class AbstractWarden implements EngineWarden
             LOG.info(String.format(DB_OPERATION_LOG,
                                    ddbMessage.getSenderId(),
                                    ddbMessage.getNodeToOperationMap().keySet()));
-
-            myTransactionManager.processOperation(
-                ddbMessage.getSenderId(),
-                ddbMessage.getSequenceNumber(),
-                ddbMessage.getNodeToOperationMap());
+            if (myIsInitialized.get()) {
+                myTransactionManager.processOperation(
+                    ddbMessage.getSenderId(),
+                    ddbMessage.getSequenceNumber(),
+                    ddbMessage.getNodeToOperationMap());
+            }
+            else {
+                myEventBus.publish(new SendMessageEvent(
+                    Collections.singletonList(ddbMessage.getSenderId()),
+                    new DBOperationFailureMessage(
+                        myServerID, 
+                        ddbMessage.getSequenceNumber(),
+                        "DB not yet initialized")));
+            }
         }
         else if (event instanceof ProposalNotificationEvent) {
             ProposalNotificationEvent pne = 

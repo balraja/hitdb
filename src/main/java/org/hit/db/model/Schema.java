@@ -44,6 +44,8 @@ public class Schema implements Externalizable
     private Class<? extends Persistable<?>> myPersistableClass;
 
     private String myTableName;
+    
+    private boolean myReplicated;
 
     /**
      * CTOR
@@ -52,7 +54,7 @@ public class Schema implements Externalizable
     {
         this(null, null, null, null, null);
     }
-
+    
     /**
      * CTOR
      */
@@ -62,11 +64,25 @@ public class Schema implements Externalizable
                   Class<? extends Comparable<?>> keyclass,
                   Keyspace<?,?> keyspace)
     {
+        this(tableName, columns, persistableclass, keyclass, keyspace, false);
+    }
+
+    /**
+     * CTOR
+     */
+    public Schema(String tableName,
+                  List<Column> columns,
+                  Class<? extends Persistable<?>> persistableclass,
+                  Class<? extends Comparable<?>> keyclass,
+                  Keyspace<?,?> keyspace,
+                  boolean replicated)
+    {
         myColumns = columns;
         myTableName = tableName;
         myPersistableClass = persistableclass;
         myKeyClass = keyclass;
         myKeyspace = keyspace;
+        myReplicated = false;
     }
 
     /**
@@ -109,6 +125,14 @@ public class Schema implements Externalizable
     {
         return myTableName;
     }
+    
+    /**
+     * Returns true if the table is to be replicated across all the nodes.
+     */
+    public boolean isReplicated()
+    {
+        return myReplicated;
+    }
 
     /**
      * {@inheritDoc}
@@ -123,6 +147,7 @@ public class Schema implements Externalizable
         myKeyClass = (Class<? extends Comparable<?>>) in.readObject();
         myColumns = (List<Column>) in.readObject();
         myKeyspace = (Keyspace<?,?>) in.readObject();
+        myReplicated = in.readBoolean();
     }
 
     /**
@@ -138,8 +163,10 @@ public class Schema implements Externalizable
                + myKeyClass
                + ", myColumns="
                + myColumns
-               + ", myHashRing="
+               + ", myKeySpace="
                + myKeyspace
+               + "isReplicated"
+               + myReplicated
                + "]";
     }
 
@@ -154,5 +181,6 @@ public class Schema implements Externalizable
         out.writeObject(myKeyClass);
         out.writeObject(myColumns);
         out.writeObject(myKeyspace);
+        out.writeBoolean(myReplicated);
     }
 }
