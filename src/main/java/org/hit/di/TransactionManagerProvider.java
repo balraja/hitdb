@@ -22,6 +22,7 @@ package org.hit.di;
 
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
+import org.hit.consensus.UnitID;
 import org.hit.consensus.raft.log.WAL;
 import org.hit.db.engine.TransactionManager;
 import org.hit.db.transactions.TransactableDatabase;
@@ -29,6 +30,7 @@ import org.hit.time.Clock;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import com.google.inject.name.Named;
 
 /**
  * Implements <code>Provider</code> to generate the <code>Transaction
@@ -48,14 +50,15 @@ public class TransactionManagerProvider implements Provider<TransactionManager>
                                       Clock                clock,
                                       EventBus             eventBus,
                                       NodeID               serverID,
-                                      WAL                  writeAheadLog)
+                                      @Named("ReplicationUnitID")
+                                      UnitID               replicationID)
     {
         myTransactionManager = 
             new TransactionManager(database, 
                                    clock, 
                                    eventBus, 
-                                   serverID, 
-                                   writeAheadLog);
+                                   serverID,
+                                   replicationID);
     }
         
     /**

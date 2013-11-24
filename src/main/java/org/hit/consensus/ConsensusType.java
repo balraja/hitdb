@@ -19,7 +19,6 @@
 */
 package org.hit.consensus;
 
-import org.hit.consensus.paxos.PaxosProvider;
 import org.hit.consensus.raft.RaftProvider;
 import org.hit.consensus.twopc.TwoPCProvider;
 
@@ -30,16 +29,6 @@ import org.hit.consensus.twopc.TwoPCProvider;
  */
 public enum ConsensusType
 {
-    PAXOS {
-
-        @Override
-        public
-            ConsensusProtocolProvider makeProvider()
-        {
-            return new PaxosProvider();
-        }
-        
-    },
     TW0_PC {
 
         @Override

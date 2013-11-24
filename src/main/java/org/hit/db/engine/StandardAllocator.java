@@ -42,6 +42,7 @@ import org.hit.event.GossipUpdateEvent;
 import org.hit.gossip.Gossip;
 import org.hit.messages.Allocation;
 import org.hit.messages.Heartbeat;
+import org.hit.server.ServerConfig;
 import org.hit.util.LogFactory;
 import org.hit.util.Pair;
 import org.hit.util.Range;
@@ -59,7 +60,7 @@ public class StandardAllocator implements Allocator
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(StandardAllocator.class);
 
-    private final EngineConfig myNodeConfig;
+    private final ServerConfig myNodeConfig;
 
     private final Set<NodeID> myNodes;
 
@@ -77,7 +78,7 @@ public class StandardAllocator implements Allocator
      * CTOR
      */
     @Inject
-    public StandardAllocator(EngineConfig nodeConfig, NodeID serverID)
+    public StandardAllocator(ServerConfig nodeConfig, NodeID serverID)
     {
         super();
         myNodeConfig = nodeConfig;

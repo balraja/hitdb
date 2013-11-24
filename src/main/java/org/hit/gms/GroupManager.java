@@ -101,7 +101,8 @@ public class GroupManager extends Actor
     public void notifyLeaderDown(GroupID groupID)
     {
         Group group = myGroupMap.get(groupID);
-        group.
+        group.selectLeader(myServerID);
+        // Check and fix sending response of leader election.
     }
 
     /**

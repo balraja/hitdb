@@ -26,14 +26,14 @@ import org.hit.communicator.nio.IPNodeID;
  * 
  * @author Balraja Subbiah
  */
-public class ServerID extends IPNodeID
+public class ServerNodeID extends IPNodeID
 {
     private final String myName;
 
     /**
      * CTOR
      */
-    public ServerID()
+    public ServerNodeID()
     {
         this(-1, null);
     }
@@ -41,7 +41,7 @@ public class ServerID extends IPNodeID
     /**
      * CTOR
      */
-    public ServerID(int bindingPort, String name)
+    public ServerNodeID(int bindingPort, String name)
     {
         super(bindingPort);
         myName = name;
@@ -79,7 +79,7 @@ public class ServerID extends IPNodeID
             return false;
         if (getClass() != obj.getClass())
             return false;
-        ServerID other = (ServerID) obj;
+        ServerNodeID other = (ServerNodeID) obj;
         if (myName == null) {
             if (other.myName != null)
                 return false;

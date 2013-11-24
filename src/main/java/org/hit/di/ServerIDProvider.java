@@ -24,7 +24,7 @@ import com.google.inject.name.Named;
 
 import org.hit.communicator.NodeID;
 import org.hit.server.ServerConfig;
-import org.hit.server.ServerID;
+import org.hit.server.ServerNodeID;
 
 /**
  * Extends {@link Provider} to generate server id from the port no 
@@ -42,7 +42,7 @@ public class ServerIDProvider implements Provider<NodeID>
     public ServerIDProvider(@Named("PreferredPort") Integer port,
                             ServerConfig            config)
     {
-        myServerID = new ServerID(port, config.getServerName());
+        myServerID = new ServerNodeID(port, config.getServerName());
     }
     
     /**

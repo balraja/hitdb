@@ -42,6 +42,7 @@ import org.hit.messages.FacadeInitRequest;
 import org.hit.messages.FacadeInitResponse;
 import org.hit.messages.NodeAdvertisement;
 import org.hit.messages.NodeAdvertisementResponse;
+import org.hit.server.ServerConfig;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
 
@@ -72,7 +73,7 @@ public class MasterWarden extends AbstractWarden
      */
     @Inject
     public MasterWarden(TransactionManager transactionManager,
-                        EngineConfig engineConfig,
+                        ServerConfig engineConfig,
                         EventBus eventBus,
                         NodeID masterID,
                         Allocator allocator)
@@ -201,7 +202,7 @@ public class MasterWarden extends AbstractWarden
                         myAllocator.getGossipUpdates());
                 }
             },
-            getEngineConfig().getGossipUpdateSecs(),
+            getServerConfig().getGossipUpdateSecs(),
             TimeUnit.SECONDS);
     }
 

@@ -23,11 +23,11 @@ package org.hit.di;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
 import org.hit.db.engine.Allocator;
-import org.hit.db.engine.EngineConfig;
 import org.hit.db.engine.EngineWarden;
 import org.hit.db.engine.SlaveWarden;
 import org.hit.db.engine.MasterWarden;
 import org.hit.db.engine.TransactionManager;
+import org.hit.server.ServerConfig;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
@@ -46,7 +46,7 @@ public class EngineWardenProvider implements Provider<EngineWarden>
      */
     @Inject
     public EngineWardenProvider(TransactionManager transactionManager,
-                                EngineConfig engineConfig,
+                                ServerConfig engineConfig,
                                 EventBus eventBus,
                                 NodeID nodeID,
                                 Allocator allocator)

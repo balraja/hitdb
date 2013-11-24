@@ -54,6 +54,7 @@ import org.hit.db.transactions.ReplicationExecutor;
 import org.hit.db.transactions.TransactableDatabase;
 import org.hit.db.transactions.TransactionResult;
 import org.hit.db.transactions.WriteTransaction;
+import org.hit.event.ConsensusRequestEvent;
 import org.hit.event.ConsensusResponseEvent;
 import org.hit.event.CreateConsensusLeaderEvent;
 import org.hit.event.ProposalNotificationEvent;
@@ -75,6 +76,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import com.sun.corba.se.impl.protocol.RequestCanceledException;
 import com.sun.corba.se.spi.legacy.connection.GetEndPointInfoAgainException;
 
 /**
@@ -608,7 +610,6 @@ public class TransactionManager
                               Clock                clock,
                               EventBus             eventBus,
                               NodeID               serverID,
-                              @Named("ReplicationUnitID")
                               UnitID               replicationID)
     {
         myDatabase = database;
@@ -749,6 +750,12 @@ public class TransactionManager
             new DistributedWorkflow(transaction, clientInfo, null);
         myWorkFlowMap.put(Long.valueOf(id), workFlow);
         myConsensusToWorkFlowMap.put(unitID, workFlow);
+        
+        myEventBus.publish(new ConsensusRequestEvent(
+            new DistributedTrnProposal(
+                new DistributedTrnID(clientID, sequenceNumber),
+                operations,
+                id)));
         
         if (myDatabase.lock(id)) {
             // The new distributed transaction will be 

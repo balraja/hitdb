@@ -19,18 +19,35 @@
 */
 package org.hit.server;
 
+import org.hit.util.ApplicationProperties;
+
 /**
  * Implements {@link ServerConfig} by extracting out the values from property.
  * 
  * @author Balraja Subbiah
  */
-public class ServerPropertyConfig implements ServerConfig
+public  class ServerPropertyConfig implements ServerConfig
 {
-    public static final String SERVER_NAME_PROPERTY = "org.hit.server.name";
+    public static final String SERVER_NAME_PROPERTY = 
+        "org.hit.server.name";
     
-    public static final String SERVER_REPLICATION_PROPERTY = "org.hit.server.replication";
+    public static final String SERVER_REPLICATION_FACTOR_PROPERTY = 
+        "org.hit.server.replicationFactor";
     
-    public static final String SERVER_COUNT_PROPERTY = "org.hit.server.count";
+    public static final String REPLICATION_SLAVE_FOR_PROPERTY = 
+        "org.hit.server.replicatingDataForGroup";
+    
+    public static final String SERVER_COUNT_PROPERTY = 
+        "org.hit.server.count";
+    
+    public static final String IS_MASTER_PROPERTY = 
+        "org.hit.server.isMaster";
+    
+    public static final String HEARTBEAT_INTERVAL_PROPERTY= 
+        "org.hit.server.heartbeatIntervalInSecs";
+    
+    public static final String GOSSIP_INTERVAL_PROPERTY= 
+        "org.hit.server.gossipIntervalInSecs";
 
     /**
      * {@inheritDoc}
@@ -38,7 +55,7 @@ public class ServerPropertyConfig implements ServerConfig
     @Override
     public String getServerName()
     {
-        return System.getProperty(SERVER_NAME_PROPERTY);
+        return ApplicationProperties.getProperty(SERVER_NAME_PROPERTY);
     }
 
     /**
@@ -47,7 +64,8 @@ public class ServerPropertyConfig implements ServerConfig
     @Override
     public int getInitialServerCount()
     {
-        return Integer.parseInt(System.getProperty(SERVER_COUNT_PROPERTY));
+        return Integer.parseInt(
+            ApplicationProperties.getProperty(SERVER_COUNT_PROPERTY));
     }
 
     /**
@@ -56,7 +74,48 @@ public class ServerPropertyConfig implements ServerConfig
     @Override
     public int getReplicationFactor()
     {
-        return Integer.parseInt(System.getProperty(SERVER_REPLICATION_PROPERTY));
+        return Integer.parseInt(
+            ApplicationProperties.getProperty(
+                SERVER_REPLICATION_FACTOR_PROPERTY));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getReplicationGroup()
+    {
+        return ApplicationProperties.getProperty(REPLICATION_SLAVE_FOR_PROPERTY);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isMaster()
+    {
+        return Boolean.valueOf(
+            ApplicationProperties.getProperty(IS_MASTER_PROPERTY));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getHeartBeatIntervalSecs()
+    {
+        return Integer.parseInt(
+            ApplicationProperties.getProperty(HEARTBEAT_INTERVAL_PROPERTY));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getGossipUpdateSecs()
+    {
+        return Integer.parseInt(
+            ApplicationProperties.getProperty(GOSSIP_INTERVAL_PROPERTY));
     }
 
 }

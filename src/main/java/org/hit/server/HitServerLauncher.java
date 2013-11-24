@@ -31,7 +31,6 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.hit.consensus.raft.log.WALPropertyConfig;
-import org.hit.db.engine.EnginePropertyConfig;
 import org.hit.di.HitModule;
 import org.hit.util.AbstractLauncher;
 
@@ -53,6 +52,8 @@ public class HitServerLauncher extends AbstractLauncher
     private static final String SERVER_NAME = "server_name";
     
     private static final String SERVER_COUNT = "server_count";
+    
+    private static final String REPLICATION_SLAVE_FOR = "replication_slave_for";
 
     public static void main (String[] args)
     {
@@ -105,6 +106,13 @@ public class HitServerLauncher extends AbstractLauncher
             SERVER_COUNT,
             true,
             "The number of servers launched under a topology");
+        
+        myServerCommandLineOptions.addOption(
+            REPLICATION_SLAVE_FOR,
+            REPLICATION_SLAVE_FOR,
+            true,
+            "The name of server for which this server acts " +
+            "as a replication salve");
 
         myServerCommandLineOptions.addOption(
              HELP,
@@ -150,7 +158,7 @@ public class HitServerLauncher extends AbstractLauncher
 
             if (cmdLine.hasOption(IS_MASTER)) {
                 optsBuilder.append(addProperty(
-                    EnginePropertyConfig.MASTER_PROPERTY,
+                    ServerPropertyConfig.IS_MASTER_PROPERTY,
                     "true"));
             }
             
@@ -170,6 +178,12 @@ public class HitServerLauncher extends AbstractLauncher
                 optsBuilder.append(addProperty(
                     ServerPropertyConfig.SERVER_COUNT_PROPERTY, 
                     cmdLine.getOptionValue(SERVER_COUNT)));
+            }
+            
+            if (cmdLine.hasOption(REPLICATION_SLAVE_FOR)) {
+                optsBuilder.append(addProperty(
+                    ServerPropertyConfig.REPLICATION_SLAVE_FOR_PROPERTY, 
+                    cmdLine.getOptionValue(REPLICATION_SLAVE_FOR)));
             }
 
             ProcessBuilder bldr = null;

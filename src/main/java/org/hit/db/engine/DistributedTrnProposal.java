@@ -28,7 +28,6 @@ import java.util.Map;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
-import org.hit.consensus.paxos.PaxosProposal;
 import org.hit.db.model.DBOperation;
 
 /**
@@ -67,17 +66,6 @@ public class DistributedTrnProposal implements Proposal
         myUnitID = unitID;
         myNodeToDBOperationMap = nodeToDBOperationMap;
         myTransactionNumber = transactionNumber;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean contains(Proposal proposal)
-    {
-        return proposal instanceof DistributedTrnProposal
-             && ((DistributedTrnProposal) proposal).getTransactionNumber() 
-                 < myTransactionNumber;
     }
 
     /**

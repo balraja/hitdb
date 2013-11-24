@@ -53,8 +53,9 @@ import org.hit.util.LogFactory;
  */
 public class ServerComponentManager extends Actor
 {
-    private static final Logger LOG = LogFactory.getInstance()
-                                                .getLogger(ServerComponentManager.class);
+    private static final Logger LOG = 
+        LogFactory.getInstance()
+                  .getLogger(ServerComponentManager.class);
     
     private final CommunicatingActor myCommunicatingActor;
 

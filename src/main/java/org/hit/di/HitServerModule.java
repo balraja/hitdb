@@ -22,14 +22,10 @@ package org.hit.di;
 
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
-import org.hit.consensus.ConsensusProtocolProvider;
 import org.hit.consensus.UnitID;
-import org.hit.consensus.paxos.PaxosProvider;
 import org.hit.consensus.raft.log.WALConfig;
 import org.hit.consensus.raft.log.WALPropertyConfig;
 import org.hit.db.engine.Allocator;
-import org.hit.db.engine.EngineConfig;
-import org.hit.db.engine.EnginePropertyConfig;
 import org.hit.db.engine.EngineWarden;
 import org.hit.db.engine.ReplicationID;
 import org.hit.db.engine.StandardAllocator;
@@ -45,7 +41,6 @@ import org.hit.server.ServerPropertyConfig;
 import org.hit.time.Clock;
 import org.hit.time.SimpleSystemClock;
 
-import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.google.inject.name.Named;
 import com.google.inject.name.Names;
@@ -75,11 +70,9 @@ public class HitServerModule extends HitModule
     protected void configure()
     {
         super.configure();
-        bind(ConsensusProtocolProvider.class).to(PaxosProvider.class);
         bind(Clock.class).to(SimpleSystemClock.class);
         bind(WALConfig.class).to(WALPropertyConfig.class);
         bind(FileSystemFacacde.class).to(StandardFileSystem.class);
-        bind(EngineConfig.class).to(EnginePropertyConfig.class);
         bind(Allocator.class).to(StandardAllocator.class);
         bind(TransactableDatabase.class).to(TransactableHitDatabase.class);
         bind(TransactionManager.class).toProvider(

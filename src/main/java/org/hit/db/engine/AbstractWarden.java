@@ -37,6 +37,7 @@ import org.hit.messages.DBOperationFailureMessage;
 import org.hit.messages.DBOperationMessage;
 import org.hit.messages.DataLoadRequest;
 import org.hit.messages.DistributedDBOperationMessage;
+import org.hit.server.ServerConfig;
 import org.hit.util.LogFactory;
 
 /**
@@ -53,7 +54,7 @@ public abstract class AbstractWarden implements EngineWarden
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(DBEngine.class);
 
-    private final EngineConfig myEngineConfig;
+    private final ServerConfig myServerConfig;
 
     private final EventBus myEventBus;
 
@@ -67,23 +68,23 @@ public abstract class AbstractWarden implements EngineWarden
      * CTOR
      */
     public AbstractWarden(TransactionManager transactionManager,
-                          EngineConfig       engineConfig,
+                          ServerConfig       serverConfig,
                           EventBus           eventBus,
                           NodeID             serverID)
     {
         myTransactionManager = transactionManager;
-        myEngineConfig = engineConfig;
+        myServerConfig = serverConfig;
         myEventBus = eventBus;
         myIsInitialized = new AtomicBoolean(false);
         myServerID = serverID;
     }
 
     /**
-     * Returns the value of engineConfig
+     * Returns the value of {@link ServerConfig}.
      */
-    protected EngineConfig getEngineConfig()
+    protected ServerConfig getServerConfig()
     {
-        return myEngineConfig;
+        return myServerConfig;
     }
 
     /**

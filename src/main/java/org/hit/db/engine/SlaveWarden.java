@@ -45,6 +45,7 @@ import org.hit.messages.DataLoadResponse;
 import org.hit.messages.Heartbeat;
 import org.hit.messages.NodeAdvertisement;
 import org.hit.messages.NodeAdvertisementResponse;
+import org.hit.server.ServerConfig;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
 
@@ -168,11 +169,11 @@ public class SlaveWarden extends AbstractWarden
      */
     @Inject
     public SlaveWarden(TransactionManager transactionManager,
-                       EngineConfig       engineConfig,
+                       ServerConfig       serverConfig,
                        EventBus           eventBus,
                        NodeID             slaveID)
     {
-        super(transactionManager, engineConfig, eventBus, slaveID);
+        super(transactionManager, serverConfig, eventBus, slaveID);
         myPartitions = new HashMap<>();
         myTableRowCountMap = new TObjectLongHashMap<>();
         myNodeToResponseFutureMap = new HashMap<>();
@@ -255,8 +256,8 @@ public class SlaveWarden extends AbstractWarden
         
         myScheduler.scheduleWithFixedDelay(
             new PublishHeartbeatTask(),
-            getEngineConfig().getHeartBeatIntervalSecs(),
-            getEngineConfig().getHeartBeatIntervalSecs(),
+            getServerConfig().getHeartBeatIntervalSecs(),
+            getServerConfig().getHeartBeatIntervalSecs(),
             TimeUnit.SECONDS);
     }
 

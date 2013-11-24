@@ -43,7 +43,8 @@ public class RewritableQueryAdapter extends QueryAdaptor
      */
     public RewritableQueryAdapter()
     {
-        this(null, null);
+        super(null);
+        myQueryMerger = null;
     }
 
     /**

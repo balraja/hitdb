@@ -52,4 +52,16 @@ public interface ServerConfig
      * Returns true if the server is marked as master initially.
      */
     public boolean isMaster();
+    
+    /**
+     * Returns the interval in seconds during which the heartbeats are to be
+     * published.
+     */
+    public int getHeartBeatIntervalSecs();
+    
+    /**
+     * Returns the interval in seconds during which gossip updates are to
+     * be published.
+     */
+    public int getGossipUpdateSecs();
 }
