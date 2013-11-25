@@ -174,7 +174,7 @@ limit_clause: ^(LIMIT INTEGER_NUM) {
 
 select_list
 scope {
-    Map<String, Aggregate.ID> columnCollector;
+    Map<String, AggregationID> columnCollector;
 }
 @init {
     $select_list::columnCollector = new HashMap<>();
@@ -185,18 +185,18 @@ scope {
     }
     else {
         myQueryAttributes.setSelectedColumns(
-            Collections.<String, Aggregate.ID>singletonMap("ALL", null));
+            Collections.<String, AggregationID>singletonMap("ALL", null));
     }
 }
 : ^(SELECTED_COLUMNS column_ref+) 
 | ^(SELECTED_COLUMNS ALL);
 
-group_function returns [Aggregate.ID id]:
-    AVG {id = Aggregate.ID.AVG;} 
-    | COUNT {id = Aggregate.ID.CNT;}
-    | MAX_SYM {id = Aggregate.ID.MAX;}
-    | MIN_SYM {id = Aggregate.ID.MIN;}
-    | SUM {id = Aggregate.ID.SUM;};
+group_function returns [AggregationID id]:
+    AVG {id = AggregationID.AVG;} 
+    | COUNT {id = AggregationID.CNT;}
+    | MAX_SYM {id = AggregationID.MAX;}
+    | MIN_SYM {id = AggregationID.MIN;}
+    | SUM {id = AggregationID.SUM;};
     
 column_ref :
      c=column_name {$select_list::columnCollector.put($c.coercedName, null);}

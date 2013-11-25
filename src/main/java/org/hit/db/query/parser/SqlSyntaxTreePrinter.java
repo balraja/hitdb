@@ -25,6 +25,7 @@ import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.TokenRewriteStream;
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.CommonTreeNodeStream;
+import org.hit.example.HitDbTest;
 
 /**
  * @author Balraja Subbiah
@@ -51,11 +52,7 @@ public class SqlSyntaxTreePrinter
     {
         try {
             ANTLRStringStream fs = 
-                new ANTLRStringStream(
-                    "select count(*) " +
-                    "from airport join routes " +
-                    "on airport.id = routes.src_airport_id" +
-                    " where airport.id = 3093");
+                new ANTLRStringStream("select max(id) from " + HitDbTest.TABLE_NAME);
             
             HitSQLLexer lex = new HitSQLLexer(fs);
             TokenRewriteStream tokens = new TokenRewriteStream(lex);

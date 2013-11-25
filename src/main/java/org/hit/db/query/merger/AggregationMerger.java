@@ -63,7 +63,6 @@ public class AggregationMerger implements QueryMerger
                 existing.merge(newResult);
             }
         }
-        
     }
 
     /**

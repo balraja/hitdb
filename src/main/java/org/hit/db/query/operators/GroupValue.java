@@ -31,7 +31,7 @@ public class GroupValue
     
     private double myResult;
     
-   /**
+    /**
      * CTOR
      */
     public GroupValue(AggregationID id)
@@ -50,14 +50,12 @@ public class GroupValue
     }
 
     /**
- * Returns the value of iD
- */
-public AggregationID getID()
-{
-    return myID;
-}
-
-
+     * Returns the value of iD
+     */
+    public AggregationID getID()
+    {
+        return myID;
+    }
 
     /** Accumulate the given value to the list of old values */
     public void accumulate(Number value)

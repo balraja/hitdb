@@ -27,6 +27,8 @@ import java.util.Collection;
 import org.antlr.runtime.RecognitionException;
 import org.hit.db.model.Query;
 import org.hit.db.model.Row;
+import org.hit.db.query.merger.AggregationMerger;
+import org.hit.db.query.merger.QueryMerger;
 import org.hit.db.query.operators.ColumnNameUtil;
 import org.hit.db.query.operators.QueryBuildingException;
 import org.hit.db.query.operators.RowMap;

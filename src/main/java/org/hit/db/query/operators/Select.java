@@ -99,7 +99,8 @@ public class Select extends Decorator
                             selectedColumn.getKey());
                     
                     result.setFieldValue(selectedColumn.getKey(),
-                                         aggregator.apply(toBeOperatedCollection));
+                                         aggregator.apply(toBeOperatedCollection)
+                                                   .getResult());
 
                 }
                 return Lists.<Row>newArrayList(result);
