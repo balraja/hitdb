@@ -71,7 +71,6 @@ public class HitServerModule extends HitModule
     {
         super.configure();
         bind(Clock.class).to(SimpleSystemClock.class);
-        bind(WALConfig.class).to(WALPropertyConfig.class);
         bind(FileSystemFacacde.class).to(StandardFileSystem.class);
         bind(Allocator.class).to(StandardAllocator.class);
         bind(TransactableDatabase.class).to(TransactableHitDatabase.class);

@@ -53,6 +53,8 @@ public class HitServerLauncher extends AbstractLauncher
     
     private static final String SERVER_COUNT = "server_count";
     
+    private static final String REPLICATION_FACTOR = "replication_factor";
+    
     private static final String REPLICATION_SLAVE_FOR = "replication_slave_for";
 
     public static void main (String[] args)
@@ -113,6 +115,12 @@ public class HitServerLauncher extends AbstractLauncher
             true,
             "The name of server for which this server acts " +
             "as a replication salve");
+        
+        myServerCommandLineOptions.addOption(
+            REPLICATION_FACTOR,
+            REPLICATION_FACTOR,
+            true,
+            "The number of servers to which data has to be replicated");
 
         myServerCommandLineOptions.addOption(
              HELP,
@@ -135,6 +143,12 @@ public class HitServerLauncher extends AbstractLauncher
             if (applicationHome == null) {
                 System.out.println("Application home is not defined");
                 System.exit(1);
+            }
+            
+            if (cmdLine.hasOption(HELP)) {
+                HelpFormatter formatter = new HelpFormatter();
+                formatter.printHelp("start_server", myServerCommandLineOptions);
+                return;
             }
 
             commandBuilder.append(applicationHome);
@@ -167,11 +181,17 @@ public class HitServerLauncher extends AbstractLauncher
                     HitModule.HIT_COMM_PORT_PROPERTY, 
                     cmdLine.getOptionValue(SERVER_PORT)));
             }
+            else {
+                throw new RuntimeException(SERVER_PORT + " not specified ");
+            }
             
             if (cmdLine.hasOption(SERVER_NAME)) {
                 optsBuilder.append(addProperty(
                     ServerPropertyConfig.SERVER_NAME_PROPERTY, 
                     cmdLine.getOptionValue(SERVER_NAME)));
+            }
+            else {
+                throw new RuntimeException(SERVER_NAME + " not specified");
             }
             
             if (cmdLine.hasOption(SERVER_COUNT)) {
@@ -179,11 +199,27 @@ public class HitServerLauncher extends AbstractLauncher
                     ServerPropertyConfig.SERVER_COUNT_PROPERTY, 
                     cmdLine.getOptionValue(SERVER_COUNT)));
             }
+            else {
+                throw new RuntimeException(SERVER_COUNT + " not specified");
+            }
+            
+            if (cmdLine.hasOption(REPLICATION_FACTOR)) {
+                optsBuilder.append(addProperty(
+                    ServerPropertyConfig.REPLICATION_FACTOR_PROPERTY,
+                    cmdLine.getOptionValue(REPLICATION_FACTOR)));
+            }
+            else {
+                throw new RuntimeException(REPLICATION_FACTOR + " not specified");
+            }
             
             if (cmdLine.hasOption(REPLICATION_SLAVE_FOR)) {
                 optsBuilder.append(addProperty(
                     ServerPropertyConfig.REPLICATION_SLAVE_FOR_PROPERTY, 
                     cmdLine.getOptionValue(REPLICATION_SLAVE_FOR)));
+            }
+            else {
+                throw new RuntimeException(
+                    REPLICATION_SLAVE_FOR + " not specified ");
             }
 
             ProcessBuilder bldr = null;
@@ -195,7 +231,7 @@ public class HitServerLauncher extends AbstractLauncher
                 bldr = new ProcessBuilder(Arrays.<String>asList(
                     "bash", "-c", commandBuilder.toString()));
             }
-
+            
             if (optsBuilder.length() > 0) {
                 bldr.environment().put(JAVA_OPTS, optsBuilder.toString());
             }

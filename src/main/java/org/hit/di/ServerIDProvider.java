@@ -19,6 +19,7 @@
 */
 package org.hit.di;
 
+import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.name.Named;
 
@@ -39,6 +40,7 @@ public class ServerIDProvider implements Provider<NodeID>
     /**
      * CTOR
      */
+    @Inject
     public ServerIDProvider(@Named("PreferredPort") Integer port,
                             ServerConfig            config)
     {

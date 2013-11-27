@@ -31,7 +31,7 @@ public  class ServerPropertyConfig implements ServerConfig
     public static final String SERVER_NAME_PROPERTY = 
         "org.hit.server.name";
     
-    public static final String SERVER_REPLICATION_FACTOR_PROPERTY = 
+    public static final String REPLICATION_FACTOR_PROPERTY = 
         "org.hit.server.replicationFactor";
     
     public static final String REPLICATION_SLAVE_FOR_PROPERTY = 
@@ -75,8 +75,7 @@ public  class ServerPropertyConfig implements ServerConfig
     public int getReplicationFactor()
     {
         return Integer.parseInt(
-            ApplicationProperties.getProperty(
-                SERVER_REPLICATION_FACTOR_PROPERTY));
+            ApplicationProperties.getProperty(REPLICATION_FACTOR_PROPERTY));
     }
 
     /**

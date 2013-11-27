@@ -114,8 +114,8 @@
 	             <program>
                   <mainClass>org.hit.server.HitServerLauncher</mainClass>
                   <commandLineArguments>
-                       <commandLineArgument>-log_file C:\hitdbtest\server.log</commandLineArgument>
-                       <commandLineArgument>-transaction_log_dir C:\hitdbtest\transactions\</commandLineArgument>
+                       <commandLineArgument>-log_file E:\hitdbtest\server.log</commandLineArgument>
+                       <commandLineArgument>-transaction_log_dir E:\hitdbtest\transactions\</commandLineArgument>
                        <commandLineArgument>-is_master</commandLineArgument>
                   </commandLineArguments>
                   <name>start_server</name>
@@ -155,7 +155,7 @@
                 <program>
                   <mainClass>org.hit.client.ClientLauncher</mainClass>
                    <commandLineArguments>
-                       <commandLineArgument>-log_file C:\hitdbtest\client.log</commandLineArgument>
+                       <commandLineArgument>-log_file E:\hitdbtest\client.log</commandLineArgument>
                        <commandLineArgument>-client_class_name org.hit.example.HitDbTest</commandLineArgument>
                        <commandLineArgument>-jar_path ${project.build.directory}/hitdatabase/repo/org/hit/hitdb/0.001/hitdb-0.001.jar</commandLineArgument>
                   </commandLineArguments>
@@ -175,7 +175,7 @@
                     <maxStackSize>512M</maxStackSize>
                    
                     <systemProperties>
-                      <systemProperty>org.hit.util.logFile=C:\hitdbtest\shell.log</systemProperty>
+                      <systemProperty>org.hit.util.logFile=E:\hitdbtest\shell.log</systemProperty>
                       <systemProperty>app.properties.file=hitfacade.properties</systemProperty>
                       <systemProperty>org.hit.app.home=${project.build.directory}/hitdatabase</systemProperty>
                     </systemProperties>

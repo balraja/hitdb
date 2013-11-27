@@ -20,8 +20,6 @@
 
 package org.hit.db.query.operators;
 
-import java.util.Arrays;
-
 import org.hit.db.model.Row;
 
 /**
