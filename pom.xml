@@ -114,9 +114,6 @@
 	             <program>
                   <mainClass>org.hit.server.HitServerLauncher</mainClass>
                   <commandLineArguments>
-                       <commandLineArgument>-log_file E:\hitdbtest\server.log</commandLineArgument>
-                       <commandLineArgument>-transaction_log_dir E:\hitdbtest\transactions\</commandLineArgument>
-                       <commandLineArgument>-is_master</commandLineArgument>
                   </commandLineArguments>
                   <name>start_server</name>
                   <jvmSettings>

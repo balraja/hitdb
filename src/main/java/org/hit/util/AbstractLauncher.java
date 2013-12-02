@@ -38,8 +38,6 @@ public abstract class AbstractLauncher
 
     protected static final String LOG_FILE= "log_file";
 
-    protected static final String LOG_FILE_PROPERTY = "org.hit.util.logFile";
-
     /** Returns a property that can be added to a command line */
     protected String addProperty(String PropertyName, String value)
     {

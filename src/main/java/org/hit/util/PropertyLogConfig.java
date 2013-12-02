@@ -32,10 +32,10 @@ public class PropertyLogConfig implements LogConfig
 {
     private static final String LOG_FILE_NAME = "hit.log";
     
-    private static final String LOG_FILE_NAME_PROPERTY = 
+    public static final String LOG_FILE_NAME_PROPERTY = 
             "org.hit.util.logFile";
     
-    private static final String LOG_CONFIG_FILE_NAME_PROPERTY = 
+    public static final String LOG_CONFIG_FILE_NAME_PROPERTY = 
             "org.hit.util.logConfigFile";
     
     /**

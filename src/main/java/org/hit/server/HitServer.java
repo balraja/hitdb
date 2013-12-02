@@ -25,6 +25,7 @@ import java.util.logging.Logger;
 import org.hit.di.HitServerModule;
 import org.hit.util.Application;
 import org.hit.util.ApplicationLauncher;
+import org.hit.util.ApplicationProperties;
 import org.hit.util.LogFactory;
 import org.hit.zookeeper.ZooKeeperClient;
 
@@ -71,6 +72,9 @@ public class HitServer implements Application
     @Override
     public void start()
     {
+        LOG.info("Server Properties");
+        LOG.info(ApplicationProperties.makeDumpString().toString());
+        LOG.info("*************************************************");
         LOG.info("Hit db server starting up");
         while (!myZooKeeperClient.isUp()) {
             //Wait till zookeeper client becomes ready.

@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 /**
@@ -72,6 +73,22 @@ public final class ApplicationProperties
             value = System.getProperty(propertyName);
         }
         return value;
+    }
+    
+    /** Dumps the value of properties to the log file */
+    public static StringBuilder makeDumpString()
+    {
+        StringBuilder builder = new StringBuilder();
+        for (String property : ourAppProperties.stringPropertyNames()) {
+            builder.append("\n " + property 
+                           + " = " + ourAppProperties.getProperty(property));
+        }
+        for (String key : System.getProperties().stringPropertyNames()) {
+            if (ourAppProperties.getProperty(key) == null) {
+                builder.append("\n " + key + " = " + System.getProperty(key));
+            }
+        }
+        return builder;
     }
     
     /** CTOR */

@@ -33,6 +33,7 @@ import org.apache.commons.cli.ParseException;
 import org.hit.consensus.raft.log.WALPropertyConfig;
 import org.hit.di.HitModule;
 import org.hit.util.AbstractLauncher;
+import org.hit.util.PropertyLogConfig;
 
 /**
  * Defines an application that can be used for launching the server.
@@ -159,8 +160,9 @@ public class HitServerLauncher extends AbstractLauncher
 
             StringBuilder optsBuilder = new StringBuilder();
             if (cmdLine.hasOption(LOG_FILE)) {
+                System.out.println("The log file is " + cmdLine.getOptionValue(LOG_FILE));
                 optsBuilder.append(addProperty(
-                    LOG_FILE_PROPERTY,
+                    PropertyLogConfig.LOG_FILE_NAME_PROPERTY,
                     cmdLine.getOptionValue(LOG_FILE)));
             }
 

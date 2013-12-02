@@ -31,6 +31,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.hit.util.AbstractLauncher;
+import org.hit.util.PropertyLogConfig;
 
 /**
  * Defines the launcher for the client.
@@ -125,7 +126,7 @@ public class ClientLauncher extends AbstractLauncher
 
             StringBuilder optsBuilder = new StringBuilder();
             optsBuilder.append(addProperty(
-                LOG_FILE_PROPERTY,
+                PropertyLogConfig.LOG_FILE_NAME_PROPERTY,
                 cmdLine.getOptionValue(LOG_FILE)));
 
             optsBuilder.append(addProperty(
