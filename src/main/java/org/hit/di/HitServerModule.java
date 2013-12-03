@@ -23,8 +23,6 @@ package org.hit.di;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.UnitID;
-import org.hit.consensus.raft.log.WALConfig;
-import org.hit.consensus.raft.log.WALPropertyConfig;
 import org.hit.db.engine.Allocator;
 import org.hit.db.engine.EngineWarden;
 import org.hit.db.engine.ReplicationID;
@@ -61,6 +59,14 @@ public class HitServerModule extends HitModule
     public HitServerModule()
     {
         myEventBus = new EventBus();
+    }
+    
+    /**
+     * CTOR
+     */
+    public HitServerModule(EventBus eventBus)
+    {
+        myEventBus = eventBus;
     }
 
     /**
@@ -100,7 +106,7 @@ public class HitServerModule extends HitModule
     
     @Named("ReplicationUnitID")
     @Provides
-    UnitID makeReplicationUnitID(ServerConfig config)
+    public UnitID makeReplicationUnitID(ServerConfig config)
     {
         return new ReplicationID(config.getServerName());
     }

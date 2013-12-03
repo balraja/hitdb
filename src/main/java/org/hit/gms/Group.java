@@ -21,13 +21,14 @@ package org.hit.gms;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
+import java.util.logging.Logger;
 
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.hit.communicator.NodeID;
+import org.hit.util.LogFactory;
 import org.hit.util.Pair;
 import org.hit.zookeeper.ZooKeeperClient;
 
@@ -38,6 +39,9 @@ import org.hit.zookeeper.ZooKeeperClient;
  */
 public class Group
 {
+    private static final Logger LOG = 
+        LogFactory.getInstance().getLogger(Group.class);
+                    
     /**
      * A listener to be used for notifying about events
      * of interest wrt the group.
@@ -174,11 +178,13 @@ public class Group
      */
     public void initGroup(NodeID node, boolean isLeader, int expectedSize)
     {
+        LOG.info("Adding " + node + " to group " + myID + " as leader "
+                 + isLeader + " with expected size " + expectedSize);
+        
         myZKClient.addNode(myID.toString(), node);
         if (isLeader) {
             myZKClient.acquireLockUnder(myZKPath, node);
-            if (myZKClient.checkChildrenCount(myZKPath, expectedSize, true))
-            {
+            if (myZKClient.checkChildrenCount(myZKPath, expectedSize, true)) {
                 notifyGroupReady();
             }
             else {

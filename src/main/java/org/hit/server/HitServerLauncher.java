@@ -238,7 +238,6 @@ public class HitServerLauncher extends AbstractLauncher
                 bldr.environment().put(JAVA_OPTS, optsBuilder.toString());
             }
 
-            System.out.println("Executing " + bldr.command());
             bldr.start();
         }
         catch (ParseException e) {

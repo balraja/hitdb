@@ -240,6 +240,12 @@ public class ZooKeeperClient
             Stat stat = myZooKeeper.exists(lockPath, false);
             int childCount = excludeLock ? stat.getNumChildren() - 1
                                          : stat.getNumChildren();
+            
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Checking the path under " 
+                         + lockPath
+                         + " and it has " + childCount + " children");
+            }
             return childCount == count;
         }
         catch (KeeperException | InterruptedException e) {

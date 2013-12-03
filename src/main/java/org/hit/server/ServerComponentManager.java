@@ -79,9 +79,9 @@ public class ServerComponentManager extends Actor
     
     private final UnitID             myReplicationSlaveUnitID;
     
-    private GroupReadyEvent myReplicatedGroupReadyEvent;
+    private GroupReadyEvent          myReplicatedGroupReadyEvent;
     
-    private GroupReadyEvent myReplicatedSlaveGroupReadyEvent;
+    private GroupReadyEvent          myReplicatedSlaveGroupReadyEvent;
     
     /**
      * CTOR
@@ -102,7 +102,7 @@ public class ServerComponentManager extends Actor
         UnitID replicationSlaveUnitID)
     {
         super(eventBus, new ActorID(ServerComponentManager.class.getSimpleName()));
-        Injector injector = Guice.createInjector(new HitServerModule());
+        Injector injector = Guice.createInjector(new HitServerModule(eventBus));
         myCommunicatingActor = injector.getInstance(CommunicatingActor.class);
         myConsensusManager = injector.getInstance(ConsensusManager.class);
         myDisseminator = injector.getInstance(Disseminator.class);

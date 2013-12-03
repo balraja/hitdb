@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
@@ -33,6 +34,7 @@ import org.hit.communicator.NodeID;
 import org.hit.event.Event;
 import org.hit.event.GroupReadyEvent;
 import org.hit.event.JoinGroupEvent;
+import org.hit.util.LogFactory;
 import org.hit.zookeeper.ZooKeeperClient;
 
 /**
@@ -44,6 +46,9 @@ import org.hit.zookeeper.ZooKeeperClient;
 public class GroupManager extends Actor
     implements Group.Listener
 {
+    private static final Logger LOG = 
+        LogFactory.getInstance().getLogger(GroupManager.class);
+                    
     private final Map<GroupID, Group> myGroupMap;
     
     private final ZooKeeperClient myZKClient;
@@ -114,6 +119,9 @@ public class GroupManager extends Actor
                                  NodeID leader, 
                                  Collection<NodeID> followers)
     {
+        LOG.info("Notifying group ready for " + groupID 
+                 + " This group has " + leader + " as leader "
+                 + " and " + followers  + " as followers");
         getEventBus().publish(new GroupReadyEvent(
             groupID, term, leader, new HashSet<NodeID>(followers)));
         

@@ -102,6 +102,11 @@ public class EventBus
      */
     public void publish(Event event) 
     {
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Publishing event " + event.getClass().getSimpleName()
+                     + " on " + toString());
+            LOG.fine("EPQ STATE " + myEvent2Actors);
+        }
         Collection<ActorID> actors = myEvent2Actors.get(event.getClass());
         if (actors != null) {
             for (ActorID actor : actors) {
@@ -137,9 +142,10 @@ public class EventBus
         myEvent2Actors.put(eventType, actorID);
         if (LOG.isLoggable(Level.FINE)) {
             LOG.fine("Following actors have registered for receiving the event "
-                     + eventType.getSimpleName()
+                     + eventType.getName()
                      + " : "
-                     + myEvent2Actors.get(eventType));
+                     + myEvent2Actors.get(eventType)
+                     + " with event bus " + toString());
         }
     }
 }
