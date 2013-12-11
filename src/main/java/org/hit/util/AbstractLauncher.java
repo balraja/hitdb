@@ -37,6 +37,12 @@ public abstract class AbstractLauncher
     protected static final String JAVA_OPTS = "JAVA_OPTS";
 
     protected static final String LOG_FILE= "log_file";
+    
+    protected static final String DUMP_FILE = "dump_file";
+    
+    private static final String BAT = ".bat";
+    
+    private static final String SH = ".sh";
 
     /** Returns a property that can be added to a command line */
     protected String addProperty(String PropertyName, String value)
@@ -47,7 +53,7 @@ public abstract class AbstractLauncher
     protected String getLauncherScriptSuffix()
     {
         return System.getProperty("os.name")
-                        .toLowerCase()
-                        .indexOf("win") >= 0 ? ".bat" : ".sh";
+                     .toLowerCase()
+                     .indexOf("win") >= 0 ? BAT : SH;
     }
 }

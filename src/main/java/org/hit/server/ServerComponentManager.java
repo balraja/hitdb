@@ -124,12 +124,18 @@ public class ServerComponentManager extends Actor
     {
         if (event instanceof GroupReadyEvent) {
             GroupReadyEvent grEvent = (GroupReadyEvent) event;
-            if (grEvent.getGroupID().equals(myReplicationGroupID)) {
+            if (grEvent.getGroupID().equals(myServerGroupID)) {
+                LOG.info("Sending request to join group " 
+                         + myReplicationGroupID);
+                getEventBus().publish(
+                    new JoinGroupEvent(myServerGroupID, 
+                                       true,
+                                       myServerConfig.getReplicationFactor()));
+            }
+            else if (grEvent.getGroupID().equals(myReplicationGroupID)) {
                 myReplicatedGroupReadyEvent = grEvent;
-                
                 LOG.info("Sending request to join group " 
                          + myReplicationSlaveID);
-                
                 getEventBus().publish(
                     new JoinGroupEvent(myReplicationSlaveID, 
                                        false,
@@ -137,15 +143,6 @@ public class ServerComponentManager extends Actor
             }
             else if (grEvent.getGroupID().equals(myReplicationSlaveID)) {
                 myReplicatedSlaveGroupReadyEvent = grEvent;
-                LOG.info("Sending request to join group " 
-                    + myServerGroupID);
-                
-                getEventBus().publish(
-                    new JoinGroupEvent(myServerGroupID, 
-                                       myServerConfig.isMaster(),
-                                       myServerConfig.getInitialServerCount()));
-            }
-            else if (grEvent.getGroupID().equals(myServerGroupID)) {
                 myDBEngine.init(grEvent.getLeader());
                 myCommunicatingActor.start();
                 LOG.info("Communicator started");
@@ -210,12 +207,12 @@ public class ServerComponentManager extends Actor
         LOG.info("Starting Group Manager");
         myGroupManager.start();
         
-        LOG.info("Sending request to join group " + myReplicationGroupID);
+        LOG.info("Sending request to join group " + myServerGroupID);
+            
         getEventBus().publish(
             new JoinGroupEvent(myServerGroupID, 
-                               true,
-                               myServerConfig.getReplicationFactor()));
-        
+                               myServerConfig.isMaster(),
+                               myServerConfig.getInitialServerCount()));
     }
     
     /**

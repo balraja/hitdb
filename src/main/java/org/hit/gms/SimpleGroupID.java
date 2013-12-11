@@ -97,7 +97,7 @@ public class SimpleGroupID implements GroupID
     @Override
     public String toString()
     {
-        return "SimpleGroupID [myGroupName=" + myGroupName + "]";
+        return myGroupName;
     }
 
     /**

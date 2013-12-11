@@ -52,7 +52,7 @@ public class HitServer implements Application
 
     private final ServerComponentManager myServerComponentManager;
     
-    private final ZooKeeperClient   myZooKeeperClient;
+    private final ZooKeeperClient myZooKeeperClient;
     
     /**
      * CTOR

@@ -95,7 +95,6 @@ public class ServerNodeID extends IPNodeID
     @Override
     public String toString()
     {
-        return "ServerID [myName=" + myName + ", toString()="
-            + super.toString() + "]";
+        return myName;
     }
 }

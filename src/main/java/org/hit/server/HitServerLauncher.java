@@ -22,6 +22,7 @@ package org.hit.server;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.ProcessBuilder.Redirect;
 import java.util.Arrays;
 
 import org.apache.commons.cli.BasicParser;
@@ -126,8 +127,14 @@ public class HitServerLauncher extends AbstractLauncher
         myServerCommandLineOptions.addOption(
              HELP,
              false,
-             "Prints the help message"
-         );
+             "Prints the help message");
+        
+        myServerCommandLineOptions.addOption(
+            DUMP_FILE,
+            DUMP_FILE,
+            true,
+            "The file to which output and error streams of server nodes"
+            + " to be written");
     }
 
     /** A helper method for launching server */
@@ -160,7 +167,6 @@ public class HitServerLauncher extends AbstractLauncher
 
             StringBuilder optsBuilder = new StringBuilder();
             if (cmdLine.hasOption(LOG_FILE)) {
-                System.out.println("The log file is " + cmdLine.getOptionValue(LOG_FILE));
                 optsBuilder.append(addProperty(
                     PropertyLogConfig.LOG_FILE_NAME_PROPERTY,
                     cmdLine.getOptionValue(LOG_FILE)));
@@ -237,7 +243,11 @@ public class HitServerLauncher extends AbstractLauncher
             if (optsBuilder.length() > 0) {
                 bldr.environment().put(JAVA_OPTS, optsBuilder.toString());
             }
-
+            
+            if (cmdLine.hasOption(DUMP_FILE)) {
+                bldr.redirectOutput(Redirect.to(new File(
+                    cmdLine.getOptionValue(DUMP_FILE))));
+            }
             bldr.start();
         }
         catch (ParseException e) {

@@ -41,6 +41,7 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.ZooKeeper.States;
 import org.apache.zookeeper.data.Stat;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
@@ -65,26 +66,7 @@ public class ZooKeeperClient
     
     private static final String LOCK_NODE = "lock";
 
-    private final AtomicBoolean myIsReadyFlag;
-
     private final ZooKeeper myZooKeeper;
-    
-    /**
-     * Simple watcher service for listening to updates from zookeeper.
-     */
-    private class LocalWatcher implements Watcher
-    {
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void process(WatchedEvent watchedEvent)
-        {
-            if (watchedEvent.getState() == KeeperState.SyncConnected) {
-                myIsReadyFlag.set(true);
-            }
-        }
-    }
     
     private static class SeqNodeComparator 
         implements Comparator<Pair<String,Long>> 
@@ -124,18 +106,21 @@ public class ZooKeeperClient
      */
     public boolean createPersistentPath(String path)
     {
+        LOG.info("Trying to create path " + path);
         if (!isUp()) {
+            LOG.info("Server is not up hence returning");
             return false;
         }
         try {
+            LOG.info("Adding node under path " + path + " to zoo keeper");
             if (myZooKeeper.exists(path, false) == null) {
-                LOG.info("Adding node under path " + path + "to zoo keeper");
                 myZooKeeper.create(path,
                                    null,
                                    Ids.OPEN_ACL_UNSAFE,
                                    CreateMode.PERSISTENT);
             }
             return true;
+            
         }
         catch (KeeperException | InterruptedException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
@@ -151,14 +136,14 @@ public class ZooKeeperClient
         try {
             String path =
                 treePath + PATH_SEPARATOR + nodeID.toString();
-
-            if (myZooKeeper.exists(path, false) == null) {
-                LOG.info("Adding node under path " + path + "to zoo keeper");
-                myZooKeeper.create(path,
-                                   null,
-                                   Ids.OPEN_ACL_UNSAFE,
-                                   CreateMode.EPHEMERAL);
-            }
+            
+            createPersistentPath(treePath);
+            LOG.info("Checking for path " + path);
+            LOG.info(" Adding node under path " + path + " to zookeeper");
+            myZooKeeper.create(path,
+                               null,
+                               Ids.OPEN_ACL_UNSAFE,
+                               CreateMode.EPHEMERAL);
         }
         catch (KeeperException | InterruptedException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
@@ -356,7 +341,7 @@ public class ZooKeeperClient
      */
     public boolean isUp()
     {
-        return myIsReadyFlag.get();
+        return myZooKeeper.getState() == States.CONNECTED;
     }
 
     /**
