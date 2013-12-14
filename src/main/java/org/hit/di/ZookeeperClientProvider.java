@@ -31,15 +31,13 @@ import com.google.inject.Provider;
  */
 public class ZookeeperClientProvider implements Provider<ZooKeeperClient>
 {    
-    private static ZooKeeperClient ourCachedZCSingleton = null;
+    private final ZooKeeperClient myZCSingleton;
     
     /** CTOR */
     @Inject
     public ZookeeperClientProvider(ZooKeeperClientConfig config)
     {
-        if (ourCachedZCSingleton == null) {
-            ourCachedZCSingleton = new ZooKeeperClient(config);
-        }
+        myZCSingleton = new ZooKeeperClient(config);
     }
 
     /**
@@ -48,6 +46,6 @@ public class ZookeeperClientProvider implements Provider<ZooKeeperClient>
     @Override
     public ZooKeeperClient get()
     {
-        return ourCachedZCSingleton;
+        return myZCSingleton;
     }
 }

@@ -87,6 +87,7 @@ public class HitServerModule extends HitModule
         bind(NodeID.class).toProvider(ServerIDProvider.class);
         bind(String.class).annotatedWith(Names.named("ServerGroupName"))
                           .toInstance("HitServers");
+       
     }
 
     /**

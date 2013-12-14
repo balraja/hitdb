@@ -19,6 +19,9 @@
 */
 package org.hit.server;
 
+import java.net.InetSocketAddress;
+
+import org.hit.communicator.NodeID;
 import org.hit.communicator.nio.IPNodeID;
 
 /**
@@ -46,6 +49,28 @@ public class ServerNodeID extends IPNodeID
         super(bindingPort);
         myName = name;
     }
+    
+    /**
+     * CTOR
+     */
+    public ServerNodeID(String representation)
+    {
+        this(
+            parseAddress(
+                representation.substring(
+                    representation.indexOf(SEPARATOR) + 1)),
+            representation.substring(0, representation.indexOf(SEPARATOR) - 1));
+    }
+    
+    /**
+     * CTOR
+     */
+    public ServerNodeID(InetSocketAddress address, String name)
+    {
+        super(address);
+        myName = name;
+    }
+
 
     /**
      * Returns the value of name
@@ -95,6 +120,6 @@ public class ServerNodeID extends IPNodeID
     @Override
     public String toString()
     {
-        return myName;
+        return myName + SEPARATOR + super.toString();
     }
 }

@@ -21,6 +21,7 @@ package org.hit.gms;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.zookeeper.WatchedEvent;
@@ -31,6 +32,7 @@ import org.hit.communicator.NodeID;
 import org.hit.util.LogFactory;
 import org.hit.util.Pair;
 import org.hit.zookeeper.ZooKeeperClient;
+import org.hit.zookeeper.ZooKeeperClientPropertyConfig;
 
 /**
  * Defines the set nodes that participates in a election.
@@ -99,15 +101,17 @@ public class Group
             if (   event.getState() == KeeperState.SyncConnected
                 && event.getType()  == EventType.NodeChildrenChanged)
             {
-                if (myZKClient.checkChildrenCount(myZKPath,
-                                                  myExpectedGroupSize,
-                                                  true))
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("The watch on " + event.getPath() + " is triggerred");
+                }
+                
+                if (myZKClient.checkLockParticipantsCount(
+                        myZKPath, myExpectedGroupSize))
                 {
                     notifyGroupReady();
                 }
                 else {
-                    myZKClient.addChildWatchToLockNode(myZKPath, 
-                                                       this);
+                    myZKClient.addWatchToLockNode(myZKPath, this);
                 }
             }
         }
@@ -136,14 +140,16 @@ public class Group
             if (   event.getState() == KeeperState.SyncConnected
                 && event.getType()  == EventType.NodeChildrenChanged)
             {
-                if (myZKClient.checkChildrenCount(myZKPath,
-                                                  myExpectedGroupSize,
-                                                  true))
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("The watch on " + event.getPath() + " is triggerred");
+                }
+                if (myZKClient.checkLockParticipantsCount(
+                        myZKPath, myExpectedGroupSize))
                 {
                     notifyGroupReady();
                 }
                 else {
-                    myZKClient.addChildWatchToLockNode(
+                    myZKClient.addWatchToLockNode(
                         myZKPath, new WaitForMembersWatch(myExpectedGroupSize));
                 }
             }
@@ -162,13 +168,13 @@ public class Group
      * CTOR
      */
     public Group(GroupID id, 
-                 ZooKeeperClient zc,
-                 Listener listener)
+                 Listener listener,
+                 ZooKeeperClient zkClient)
     {
         myID    = id;
-        myZKClient = zc;
+        myZKClient = zkClient;
         myListener = listener;
-        myZKPath = ZooKeeperClient.PATH_SEPARATOR + id.toString();
+        myZKPath = ZooKeeperClient.PATH_SEPARATOR + id.toString().toLowerCase();
     }
     
     /**
@@ -179,36 +185,58 @@ public class Group
     public void initGroup(NodeID node, boolean isLeader, int expectedSize)
     {
         LOG.info("Adding " + node + " to group " + myID + " as leader "
-                 + isLeader + " with expected size " + expectedSize);
+                 + isLeader + " with expected group size " + expectedSize);
         
-        myZKClient.addNode(myID.toString(), node);
+        myZKClient.addNode(myZKPath, node);
+        
         if (isLeader) {
-            myZKClient.acquireLockUnder(myZKPath, node);
-            if (myZKClient.checkChildrenCount(myZKPath, expectedSize, true)) {
+            boolean isLocked = myZKClient.acquireLockUnder(myZKPath, node);
+            if (isLocked) {
+                LOG.info("The " + node + " acquired lock under " + myID);
+            }
+            
+            if (myZKClient.checkLockParticipantsCount(
+                    myZKPath, expectedSize)) 
+            {
                 notifyGroupReady();
             }
             else {
-                myZKClient.addChildWatchToLockNode(
+                myZKClient.addWatchToLockNode(
                     myZKPath, new WaitForMembersWatch(expectedSize));
             }
         }
         else {
-            boolean isLockAvailable = myZKClient.isLockNodeAvailable(myZKPath);
-            boolean isAllNodesAvailable = 
-                myZKClient.checkChildrenCount(myZKPath,
-                                              expectedSize,
-                                              true);
+            boolean isLockAcquiredAlready = 
+                myZKClient.checkLockParticipantsCount(myZKPath, 1);
             
-            if (isLockAvailable && isAllNodesAvailable) {
-                notifyGroupReady();
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("IS LOCK ACQUIRED FOR " + myID + " " 
+                         + isLockAcquiredAlready);
             }
-            else if (!isLockAvailable) {
-                myZKClient.addChildWatchToLockNode(
-                    myZKPath, new WaitForLeaderWatch(expectedSize));
+            
+            if (isLockAcquiredAlready) {
+                myZKClient.acquireLockUnder(myZKPath, node);
+                boolean isAllNodesAvailable = 
+                    myZKClient.checkLockParticipantsCount(
+                        myZKPath, expectedSize);
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("IS ALL NODES AVAILABLE FOR " + myID + " " 
+                             + isAllNodesAvailable);
+                }
+
+                if (!isAllNodesAvailable) {
+                    myZKClient.addWatchToLockNode(
+                        myZKPath, new WaitForMembersWatch(expectedSize));
+                }
+                else {
+                    notifyGroupReady();
+                    myZKClient.addWatchToLockHolder(myZKPath, 
+                                                    new LeaderWatch());
+                }
             }
-            else if (isLockAvailable && !isAllNodesAvailable) {
-                myZKClient.addWatchToLockHolder(
-                    myZKPath, new LeaderWatch());
+            else {
+                myZKClient.addWatchToLockNode(
+                    myZKPath, new WaitForLeaderWatch(expectedSize)); 
             }
         }
     }
@@ -236,10 +264,20 @@ public class Group
     
     private void notifyGroupReady()
     {
-        myZKClient.addWatchToLockHolder(myZKPath, new LeaderWatch());
-        
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Notifying group ready for " + myID);
+        }
+
         List<NodeID> groupNodes = myZKClient.getNodes(myZKPath);
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("The nodes under group " + myID + " are " + groupNodes);
+        }
+
         Pair<NodeID,Long> leader = myZKClient.getLockHolder(myZKPath);
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("The leader for group " + myID + " is " + leader.getFirst());
+        }
+
         groupNodes.remove(leader.getFirst());
         myListener.notifyGroupReady(myID, 
                                     leader.getSecond(), 

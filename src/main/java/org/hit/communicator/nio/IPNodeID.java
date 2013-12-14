@@ -37,7 +37,7 @@ import com.google.common.net.InetAddresses;
  */
 public class IPNodeID implements NodeID
 {
-    private static final String SEPARATOR = ":";
+    public static final String SEPARATOR = ":";
     
     private InetSocketAddress myIPAddress;
     
@@ -126,14 +126,14 @@ public class IPNodeID implements NodeID
     }
     
     /** Parses the string representation of the nodeId */
-    public static IPNodeID parseString(String value)
+    protected static InetSocketAddress parseAddress(String value)
     {
         String[] hostAndPort = value.split(SEPARATOR);
         InetSocketAddress address = 
             new InetSocketAddress(
                 InetAddresses.forString(hostAndPort[0]),
                 Integer.parseInt(hostAndPort[1]));
-        return new IPNodeID(address);
+        return address;
     }
 
     /**

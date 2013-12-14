@@ -51,20 +51,22 @@ public class GroupManager extends Actor
                     
     private final Map<GroupID, Group> myGroupMap;
     
-    private final ZooKeeperClient myZKClient;
-    
     private final NodeID myServerID;
+    
+    private final ZooKeeperClient myZooKeeperClient;
     
     /**
      * CTOR
      */
     @Inject
-    public GroupManager(EventBus eventBus, ZooKeeperClient zc, NodeID serverID)
+    public GroupManager(EventBus        eventBus, 
+                        NodeID          serverID,
+                        ZooKeeperClient zkClient)
     {
         super(eventBus, new ActorID(GroupManager.class.getSimpleName()));
         myGroupMap = new HashMap<>();
-        myZKClient = zc;
         myServerID = serverID;
+        myZooKeeperClient = zkClient;
     }
 
     /**
@@ -78,7 +80,7 @@ public class GroupManager extends Actor
             Group group = myGroupMap.get(jgEvent.getID());
             if (group == null) {
                 group = 
-                    new Group(jgEvent.getID(), myZKClient, this);
+                    new Group(jgEvent.getID(), this, myZooKeeperClient);
                 myGroupMap.put(jgEvent.getID(), group);
                 group.initGroup(
                     myServerID, 
@@ -122,6 +124,7 @@ public class GroupManager extends Actor
         LOG.info("Notifying group ready for " + groupID 
                  + " This group has " + leader + " as leader "
                  + " and " + followers  + " as followers");
+        
         getEventBus().publish(new GroupReadyEvent(
             groupID, term, leader, new HashSet<NodeID>(followers)));
         

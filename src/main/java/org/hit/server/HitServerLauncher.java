@@ -58,6 +58,8 @@ public class HitServerLauncher extends AbstractLauncher
     private static final String REPLICATION_FACTOR = "replication_factor";
     
     private static final String REPLICATION_SLAVE_FOR = "replication_slave_for";
+    
+    private static final String ZOOKEEPER_CONFIG = "zookeeper_config";
 
     public static void main (String[] args)
     {
@@ -135,6 +137,12 @@ public class HitServerLauncher extends AbstractLauncher
             true,
             "The file to which output and error streams of server nodes"
             + " to be written");
+        
+        myServerCommandLineOptions.addOption(
+            ZOOKEEPER_CONFIG,
+            ZOOKEEPER_CONFIG,
+            true,
+            "The config directory to which data is to be sent");
     }
 
     /** A helper method for launching server */
@@ -245,9 +253,18 @@ public class HitServerLauncher extends AbstractLauncher
             }
             
             if (cmdLine.hasOption(DUMP_FILE)) {
-                bldr.redirectOutput(Redirect.to(new File(
-                    cmdLine.getOptionValue(DUMP_FILE))));
+                File file = new File(cmdLine.getOptionValue(DUMP_FILE));
+                bldr.redirectOutput(Redirect.to(file));
+                bldr.redirectError(Redirect.to(file));
             }
+            
+            if (cmdLine.hasOption(ZOOKEEPER_CONFIG)) {
+                StringBuilder classPathBuilder = new StringBuilder();
+                classPathBuilder.append(cmdLine.getOptionValue(ZOOKEEPER_CONFIG));
+                bldr.environment().put(CLASSPATH_PREFIX,
+                                       classPathBuilder.toString());
+            }
+
             bldr.start();
         }
         catch (ParseException e) {

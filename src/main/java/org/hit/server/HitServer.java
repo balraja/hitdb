@@ -52,8 +52,6 @@ public class HitServer implements Application
 
     private final ServerComponentManager myServerComponentManager;
     
-    private final ZooKeeperClient myZooKeeperClient;
-    
     /**
      * CTOR
      */
@@ -62,8 +60,6 @@ public class HitServer implements Application
         Injector injector = Guice.createInjector(new HitServerModule());
         myServerComponentManager = 
             injector.getInstance(ServerComponentManager.class);
-        myZooKeeperClient = 
-            injector.getInstance(ZooKeeperClient.class);
     }
 
     /**
@@ -76,10 +72,6 @@ public class HitServer implements Application
         LOG.info(ApplicationProperties.makeDumpString().toString());
         LOG.info("*************************************************");
         LOG.info("Hit db server starting up");
-        while (!myZooKeeperClient.isUp()) {
-            //Wait till zookeeper client becomes ready.
-        }
-        LOG.info("Connected to zookeeper");
         myServerComponentManager.start();
 
     }

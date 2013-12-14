@@ -45,6 +45,7 @@ import org.hit.gms.GroupManager;
 import org.hit.gms.GroupID;
 import org.hit.gossip.Disseminator;
 import org.hit.util.LogFactory;
+import org.hit.zookeeper.ZooKeeperClient;
 
 /**
  * Extends {@link Actor} to support initializing the server.
@@ -66,6 +67,8 @@ public class ServerComponentManager extends Actor
     private final Disseminator       myDisseminator;
     
     private final GroupManager       myGroupManager;
+    
+    private final ZooKeeperClient    myZKClient;
     
     private final GroupID            myServerGroupID;
     
@@ -108,6 +111,7 @@ public class ServerComponentManager extends Actor
         myDisseminator = injector.getInstance(Disseminator.class);
         myDBEngine      = injector.getInstance(DBEngine.class);
         myGroupManager = injector.getInstance(GroupManager.class);
+        myZKClient     = injector.getInstance(ZooKeeperClient.class);
         myServerGroupID = serverGroupID;
         myReplicationGroupID = replicationGroupID;
         myReplicationSlaveID = replicationSlave;
@@ -204,11 +208,16 @@ public class ServerComponentManager extends Actor
     public void start()
     {
         super.start();
+        LOG.info("Initializing the server");
+        
+        while(!myZKClient.isUp()) {
+            
+        }
+        LOG.info("Zookeeper is UP");
         LOG.info("Starting Group Manager");
         myGroupManager.start();
         
         LOG.info("Sending request to join group " + myServerGroupID);
-            
         getEventBus().publish(
             new JoinGroupEvent(myServerGroupID, 
                                myServerConfig.isMaster(),

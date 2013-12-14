@@ -43,10 +43,12 @@ import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
 import org.apache.zookeeper.data.Stat;
+import org.apache.zookeeper.server.ZooTrace;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
 import org.hit.communicator.nio.IPNodeID;
 import org.hit.event.MasterDownEvent;
+import org.hit.server.ServerNodeID;
 import org.hit.util.LogFactory;
 import org.hit.util.Pair;
 
@@ -65,6 +67,8 @@ public class ZooKeeperClient
         LogFactory.getInstance().getLogger(ZooKeeperClient.class);
     
     private static final String LOCK_NODE = "lock";
+    
+    private static final String PARTICIPANTS_NODE = "participants";
 
     private final ZooKeeper myZooKeeper;
     
@@ -90,11 +94,19 @@ public class ZooKeeperClient
     @Inject
     public ZooKeeperClient(ZooKeeperClientConfig config)
     {
-        myIsReadyFlag = new AtomicBoolean(false);
         try {
             myZooKeeper = new ZooKeeper(config.getHosts(),
                                         config.getSessionTimeout(),
-                                        new LocalWatcher());
+                                        new Watcher() {
+
+                                            @Override
+                                            public void process(
+                                                    WatchedEvent arg0)
+                                            {
+                                            }
+                
+                                        });
+            ZooTrace.setTextTraceLevel(ZooTrace.CLIENT_REQUEST_TRACE_MASK);
         }
         catch (IOException e) {
             throw new RuntimeException(e);
@@ -106,18 +118,22 @@ public class ZooKeeperClient
      */
     public boolean createPersistentPath(String path)
     {
-        LOG.info("Trying to create path " + path);
         if (!isUp()) {
-            LOG.info("Server is not up hence returning");
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.info("Returning as server is not up ");
+            }
             return false;
         }
         try {
-            LOG.info("Adding node under path " + path + " to zoo keeper");
+           
             if (myZooKeeper.exists(path, false) == null) {
                 myZooKeeper.create(path,
                                    null,
                                    Ids.OPEN_ACL_UNSAFE,
                                    CreateMode.PERSISTENT);
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.info("Created persistent " + path + " to zoo keeper");
+                }
             }
             return true;
             
@@ -138,12 +154,12 @@ public class ZooKeeperClient
                 treePath + PATH_SEPARATOR + nodeID.toString();
             
             createPersistentPath(treePath);
-            LOG.info("Checking for path " + path);
-            LOG.info(" Adding node under path " + path + " to zookeeper");
-            myZooKeeper.create(path,
-                               null,
-                               Ids.OPEN_ACL_UNSAFE,
-                               CreateMode.EPHEMERAL);
+            if (myZooKeeper.exists(path, false) == null) {
+                myZooKeeper.create(path,
+                                   null,
+                                   Ids.OPEN_ACL_UNSAFE,
+                                   CreateMode.EPHEMERAL);
+            }
         }
         catch (KeeperException | InterruptedException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
@@ -170,10 +186,10 @@ public class ZooKeeperClient
      *  A helper method to add {@link Watcher} to the zkNode at 
      *  the specified path.
      */
-    public boolean addChildWatchToLockNode(String path, Watcher watcher)
+    public boolean addWatchToLockNode(String path, Watcher watcher)
     {
         try {
-            String lockPath = path + PATH_SEPARATOR + LOCK_NODE;
+            String lockPath = createLockNode(path);
             myZooKeeper.getChildren(lockPath, watcher);
             return true;
         }
@@ -189,7 +205,7 @@ public class ZooKeeperClient
     public boolean addWatchToLockHolder(String path, Watcher watcher)
     {
         try {
-            String lockPath = path + PATH_SEPARATOR + LOCK_NODE;
+            String lockPath = createLockNode(path);
             myZooKeeper.getChildren(lockPath, watcher);
             return true;
         }
@@ -199,33 +215,20 @@ public class ZooKeeperClient
     }
     
     /**
-     * Returns true if the LOCK node is available under the specified path
-     */
-    public boolean isLockNodeAvailable(String treePath)
-    {
-        String lockPath = treePath + PATH_SEPARATOR + LOCK_NODE;
-        try {
-            return (myZooKeeper.exists(lockPath, true) != null);
-        }
-        catch (KeeperException | InterruptedException e) {
-            return false;
-        }
-    }
-    
-    /**
-     * Returns true if the children under a group matches the specified 
+     * Returns true if the number of nodes under a path matches the specified 
      * count.
      */
-    public boolean checkChildrenCount(String treePath, 
-                                      int count,
-                                      boolean excludeLock)
+    public boolean checkLockParticipantsCount(String treePath, int count)
     {
         try {
-            String lockPath = treePath + PATH_SEPARATOR + LOCK_NODE;
+            String lockPath = 
+                treePath + PATH_SEPARATOR + LOCK_NODE;
             Stat stat = myZooKeeper.exists(lockPath, false);
-            int childCount = excludeLock ? stat.getNumChildren() - 1
-                                         : stat.getNumChildren();
+            if (stat == null) {
+                return false;
+            }
             
+            int childCount = stat.getNumChildren();
             if (LOG.isLoggable(Level.FINE)) {
                 LOG.fine("Checking the path under " 
                          + lockPath
@@ -238,6 +241,18 @@ public class ZooKeeperClient
         }
     }
     
+    private String createLockNode(String treePath)
+    {
+        String path = treePath + PATH_SEPARATOR + LOCK_NODE;
+        createPersistentPath(path);
+        return path;
+    }
+    
+    private Long parseSequenceNumber(String nodeName)
+    {
+        return Long.valueOf(nodeName.substring(PARTICIPANTS_NODE.length()));
+    }
+    
     /**
      * A helper method to acquire lock under a given path using 
      * zookeeper's sequential nodes.
@@ -245,16 +260,13 @@ public class ZooKeeperClient
     public boolean acquireLockUnder(String treePath, NodeID nodeID)
     {
         try {
-            String path =
-                treePath + PATH_SEPARATOR + LOCK_NODE;
-            createPersistentPath(path);
+            String path = createLockNode(treePath);
             String createdPath = null;
             Stat stat = new Stat();
-            
             for (String child : myZooKeeper.getChildren(path, false)) {
                 String childPath = path + PATH_SEPARATOR + child;
                 byte[] data = myZooKeeper.getData(childPath, null, stat);
-                NodeID childId = IPNodeID.parseString(new String(data));
+                NodeID childId = new ServerNodeID(new String(data));
                 if (childId.equals(nodeID)) {
                     createdPath = child;
                 }
@@ -263,17 +275,31 @@ public class ZooKeeperClient
             if (createdPath == null) {
                 createdPath = 
                     myZooKeeper.create(
-                        path,
+                        path + PATH_SEPARATOR + PARTICIPANTS_NODE,
                         nodeID.toString().getBytes(),
                         Ids.OPEN_ACL_UNSAFE,
                         CreateMode.EPHEMERAL_SEQUENTIAL);
+                
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.info("Created ephimeral " + createdPath + 
+                             " to zoo keeper under " + path);
+                }
             }
             
-            Long id = Long.valueOf(createdPath);
+            Long id = 
+                parseSequenceNumber(
+                    createdPath.substring(
+                        createdPath.lastIndexOf(PATH_SEPARATOR) + 1));
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.info("Acquired lock with  " + id + " for " + nodeID);
+            }
+            
             SortedSet<Pair<String,Long>> sequenceNumbers = 
                 new TreeSet<>(new SeqNodeComparator());
             for (String child : myZooKeeper.getChildren(path, false)) {
-                sequenceNumbers.add(new Pair<>(child, Long.valueOf(child)));
+                sequenceNumbers.add(
+                    new Pair<>(child,
+                               parseSequenceNumber(child)));
             }
             return (sequenceNumbers.first().getSecond() == id);
         }
@@ -291,20 +317,22 @@ public class ZooKeeperClient
     {
         try {
             String lockPath = path + PATH_SEPARATOR + LOCK_NODE;
+            
             SortedSet<Pair<String,Long>> sequenceNumbers = 
                 new TreeSet<>(new SeqNodeComparator());
             for (String child : myZooKeeper.getChildren(lockPath, false))
             {
-                sequenceNumbers.add(new Pair<>(child, Long.valueOf(child)));
+                sequenceNumbers.add(new Pair<>(child,
+                                               parseSequenceNumber(child)));
             }
             
             Pair<String,Long> lockNodePath = sequenceNumbers.first();
             String childPath = 
-                path + PATH_SEPARATOR + lockNodePath.getFirst();
+                lockPath + PATH_SEPARATOR + lockNodePath.getFirst();
             byte[] data = myZooKeeper.getData(childPath, null, new Stat());
             
             return new Pair<NodeID,Long>(
-                IPNodeID.parseString(new String(data)),
+                new ServerNodeID(new String(data)),
                 lockNodePath.getSecond());
         }
         catch (KeeperException | InterruptedException e) {
@@ -325,7 +353,10 @@ public class ZooKeeperClient
                 for (String child :
                         myZooKeeper.getChildren(path, false))
                 {
-                    servers.add(IPNodeID.parseString(child));
+                    if (child.equals(LOCK_NODE)) {
+                        continue;
+                    }
+                    servers.add(new ServerNodeID(child));
                 }
             }
             return servers;
@@ -341,7 +372,7 @@ public class ZooKeeperClient
      */
     public boolean isUp()
     {
-        return myZooKeeper.getState() == States.CONNECTED;
+        return myZooKeeper.getState().isAlive();
     }
 
     /**
