@@ -20,7 +20,11 @@
 
 package org.hit.concurrent.epq;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.hit.event.Event;
+import org.hit.util.LogFactory;
 
 /**
  * Defines the contract for an interface that can be used by consumers for
@@ -30,19 +34,31 @@ import org.hit.event.Event;
  */
 public class ConsumerAccess extends AbstractAccess
 {
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(ConsumerAccess.class);
+
     private volatile int myConsumedIndex;
 
     private final EventPassingQueue myEPQ;
+    
+    private final AccessorID myAccessorID;
 
     /**
      * CTOR
      */
-    public ConsumerAccess(WaitStrategy      waitStrategy,
+    public ConsumerAccess(AccessorID        accessorID,
+                          WaitStrategy      waitStrategy,
                           EventPassingQueue ePQ)
     {
         super(waitStrategy);
+        myAccessorID = accessorID;
         myEPQ = ePQ;
         myConsumedIndex = -1;
+    }
+    
+    public AccessorID getAccessorID()
+    {
+        return myAccessorID;
     }
 
     /** Returns the <code>Event</code> for consumption */
@@ -54,6 +70,10 @@ public class ConsumerAccess extends AbstractAccess
             waitFor();
         }
         myConsumedIndex = myEPQ.nextIndex(myConsumedIndex);
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("The " + myAccessorID + " is consuming message "
+                     + " at " + myConsumedIndex);
+        }
         return myEPQ.eventAt(myConsumedIndex);
     }
 

@@ -56,7 +56,7 @@ public class ConsensusManager extends Actor
     public ConsensusManager(EventBus                  eventBus,
                             NodeID                    myID)
     {
-        super(eventBus, new ActorID(ConsensusManager.class.getName()));
+        super(eventBus, ActorID.CONSENSUS_MANAGER);
         myUnitToConsensusProtocolMap = new HashMap<>();
         myNodeID                     = myID;
     }

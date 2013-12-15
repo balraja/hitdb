@@ -81,9 +81,11 @@ public class Disseminator extends Actor
         @Override
         public void run()
         {
-            getEventBus().publish(new SendMessageEvent(
-                Collections.singletonList(myParticipatingNode),
-                new ReconcillationRequest(myOwner, myDigest)));
+            getEventBus().publish(
+                ActorID.GOSSIPER,
+                new SendMessageEvent(
+                    Collections.singletonList(myParticipatingNode),
+                    new ReconcillationRequest(myOwner, myDigest)));
         }
     }
     
@@ -111,11 +113,12 @@ public class Disseminator extends Actor
             if (!myParticipants.contains(myDigestOwner)) {
                 myParticipants.add(myDigestOwner);
             }
-            getEventBus().publish(new SendMessageEvent(
-                Collections.singletonList(myDigestOwner),
-                new ReconcilliationResponse(
-                    myOwner,
-                    myRepository.processDigest(myDigest))));
+            publish(
+                new SendMessageEvent(
+                    Collections.singletonList(myDigestOwner),
+                    new ReconcilliationResponse(
+                        myOwner,
+                        myRepository.processDigest(myDigest))));
         }
     }
 
@@ -139,7 +142,7 @@ public class Disseminator extends Actor
         public void run()
         {
             myRepository.update(myResponse);
-            getEventBus().publish(new GossipNotificationEvent(
+            publish(new GossipNotificationEvent(
                 myRepository.getLatestInformation()));
         }
     }
@@ -231,7 +234,7 @@ public class Disseminator extends Actor
     @Inject
     public Disseminator(EventBus eventBus, NodeID node)
     {
-        super(eventBus, new ActorID(Disseminator.class.getSimpleName()));
+        super(eventBus, ActorID.GOSSIPER);
         myParticipants = new ArrayList<>();
         myOwner = node;
         myRepository = new Repository();

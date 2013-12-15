@@ -24,9 +24,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.hit.concurrent.CloseableLock;
 import org.hit.event.Event;
+import org.hit.util.LogFactory;
 
 /**
  * This class is responsible for buffering data passed between two
@@ -59,6 +62,9 @@ import org.hit.event.Event;
  */
 public class EventPassingQueue
 {
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(EventPassingQueue.class);
+    
     private final Event[] myBuffer;
 
     private final Map<AccessorID, ConsumerAccess> myConsumers;
@@ -94,7 +100,7 @@ public class EventPassingQueue
         ConsumerAccess access = myConsumers.get(consumerID);
         if (access == null) {
             try (CloseableLock lock = myLock.open()) {
-                access = new ConsumerAccess(myWaitStrategy, this);
+                access = new ConsumerAccess(consumerID, myWaitStrategy, this);
                 for (PublisherAccess publisher : myPublishers.values()) {
                     publisher.addConsumer(access);
                 }
@@ -141,12 +147,15 @@ public class EventPassingQueue
         PublisherAccess access = myPublishers.get(accessorID);
         if (access == null) {
             try (CloseableLock lock = myLock.open()) {
-                access = new PublisherAccess(myWaitStrategy, this);
+                access = new PublisherAccess(myWaitStrategy, this, accessorID);
                 for (ConsumerAccess consumer : myConsumers.values()) {
                     access.addConsumer(consumer);
                 }
                 myPublishers.put(accessorID, access);
             }
+        }
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Accessing the queue as publisher for " + accessorID);
         }
         access.publish(event);
     }

@@ -25,6 +25,7 @@ import gnu.trove.map.hash.TLongObjectHashMap;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
@@ -82,6 +83,7 @@ public class RaftLeader extends ConsensusLeader
         {
             myWAL.addProposal(myTermID, mySequenceNO, myProposal);
             getEventBus().publish(
+                ActorID.CONSENSUS_MANAGER,
                 new SendMessageEvent(
                     myLogAcceptors,
                     new RaftReplicationMessage(getNodeID(),
@@ -98,8 +100,9 @@ public class RaftLeader extends ConsensusLeader
             myLogAcceptors.remove(acceptedNodeID);
             if (myLogAcceptors.isEmpty()) {
                 myProtocolState.setCommitted(myTermID, mySequenceNO);
-                getEventBus().publish(new ConsensusResponseEvent(
-                    myProposal, true));
+                getEventBus().publish(
+                    ActorID.CONSENSUS_MANAGER,
+                    new ConsensusResponseEvent(myProposal, true));
                 myProtocolState.deleteSupervisor(myTermID, mySequenceNO);
             }
         }

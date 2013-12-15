@@ -129,9 +129,11 @@ public class MasterWarden extends AbstractWarden
                     LOG.info("Schema addition for " + schema.getTableName()
                              + " failed");
                 }
-                getEventBus().publish(new SendMessageEvent(
-                    Collections.singleton(ctm.getSenderId()),
-                    response));
+                getEventBus().publish(
+                    ActorID.DB_ENGINE,
+                    new SendMessageEvent(
+                        Collections.singleton(ctm.getSenderId()),
+                         response));
             }
             else if (event instanceof DBStatEvent) {
                 DBStatEvent stat = (DBStatEvent) event;
@@ -143,22 +145,26 @@ public class MasterWarden extends AbstractWarden
                     myAllocator.getAllocation(na.getSenderId());
                 if (allocation != null) {
                     getEventBus().publish(
+                        ActorID.DB_ENGINE,
                         new SendMessageEvent(
                             Collections.singletonList(na.getSenderId()),
                             new NodeAdvertisementResponse(
                                 getServerID(), allocation)));
-                    getEventBus().publish(myAllocator.getGossipUpdates());
+                    getEventBus().publish(
+                        ActorID.DB_ENGINE,
+                        myAllocator.getGossipUpdates());
                 }
             }
             else if (event instanceof FacadeInitRequest) {
                 FacadeInitRequest fir = (FacadeInitRequest) event;
                 getEventBus().publish(
-                      new SendMessageEvent(
-                          Collections.singletonList(fir.getSenderId()),
-                          new FacadeInitResponse(
-                              getServerID(),
-                              new TablePartitionInfo(
-                                  myAllocator.getPartitions()))));
+                    ActorID.DB_ENGINE,
+                    new SendMessageEvent(
+                        Collections.singletonList(fir.getSenderId()),
+                        new FacadeInitResponse(
+                            getServerID(),
+                            new TablePartitionInfo(
+                                myAllocator.getPartitions()))));
             }
         }
         catch (IllegalAccessException e) {
@@ -199,7 +205,7 @@ public class MasterWarden extends AbstractWarden
                 public void run()
                 {
                     getEventBus().publish(
-                        myAllocator.getGossipUpdates());
+                        ActorID.DB_ENGINE, myAllocator.getGossipUpdates());
                 }
             },
             getServerConfig().getGossipUpdateSecs(),

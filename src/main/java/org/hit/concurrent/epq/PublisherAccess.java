@@ -23,8 +23,11 @@ package org.hit.concurrent.epq;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.hit.event.Event;
+import org.hit.util.LogFactory;
 
 /**
  * Defines the contract for an interface that can be used for publishing the
@@ -34,16 +37,25 @@ import org.hit.event.Event;
  */
 public class PublisherAccess extends AbstractAccess
 {
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(PublisherAccess.class);
+    
     private final Collection<ConsumerAccess> myConsumers;
 
     private final EventPassingQueue myEPQ;
+    
+    private final AccessorID myAccessorID;
 
     /**
      * CTOR
      */
-    public PublisherAccess(WaitStrategy waitStrategy, EventPassingQueue ePQ)
+    public PublisherAccess(
+        WaitStrategy waitStrategy, 
+        EventPassingQueue ePQ,
+        AccessorID accessorID)
     {
         super(waitStrategy);
+        myAccessorID = accessorID;
         myEPQ = ePQ;
         myConsumers =
             Collections.synchronizedList(new ArrayList<ConsumerAccess>());
@@ -79,12 +91,23 @@ public class PublisherAccess extends AbstractAccess
             if (myConsumers.isEmpty()
                 && (myEPQ.getCursor() == (myEPQ.getSize() - 1)))
             {
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("The queue is full  " + myEPQ.getCursor()
+                             + " and the current queue size "
+                             + myEPQ.getSize()
+                             + "and there are no consumers "
+                             +  myConsumers.isEmpty());
+                }
                 waitFor();
                 continue;
             }
             // Get the next slot to publish.
             int currIndex = myEPQ.getCursor();
             int publishIndex = myEPQ.nextIndex(myEPQ.getCursor());
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Next published index " + publishIndex
+                         + " curr index " + currIndex);
+            }
             boolean canPublish = true;
             for (ConsumerAccess consumer : myConsumers) {
                 // if the to be published index is yet to consumed index
@@ -92,11 +115,23 @@ public class PublisherAccess extends AbstractAccess
                 if (publishIndex == consumer.getConsumedIndex()
                     && myEPQ.getCursor() != -1)
                 {
+                    if (LOG.isLoggable(Level.FINE)) {
+                        LOG.fine("The consumed index for " 
+                                 + consumer.getAccessorID() 
+                                 + " is at " 
+                                 + consumer.getConsumedIndex());
+                    }
                     canPublish = false;
                     break;
                 }
             }
             if (canPublish && myEPQ.publish(event, currIndex, publishIndex)) {
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine(" The " + myAccessorID + " has successfully "
+                             + " published the message " 
+                             + event.getClass().getSimpleName()
+                             + " to the slot " + publishIndex); 
+                }
                 return;
             }
             else {

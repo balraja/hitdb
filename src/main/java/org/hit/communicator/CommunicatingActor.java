@@ -52,7 +52,7 @@ public class CommunicatingActor extends Actor
     @Inject
     public CommunicatingActor(EventBus eventBus, Communicator communicator)
     {
-        super(eventBus, new ActorID(CommunicatingActor.class.getSimpleName()));
+        super(eventBus, ActorID.COMMUNICATOR);
         myCommunicator = communicator;
         myCommunicator.addMessageHandler(new MessageHandler() {
             @Override
@@ -62,7 +62,7 @@ public class CommunicatingActor extends Actor
                     LOG.fine("Received " + message + " from "
                              + message.getSenderId());
                 }
-                getEventBus().publish(message);
+                publish(message);
                 if (LOG.isLoggable(Level.FINE)) {
                     LOG.fine("Returned from publishing the message");
                 }

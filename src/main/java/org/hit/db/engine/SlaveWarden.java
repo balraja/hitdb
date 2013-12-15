@@ -96,6 +96,7 @@ public class SlaveWarden extends AbstractWarden
         {
             if (myMaster != null) {
                 getEventBus().publish(
+                    ActorID.DB_ENGINE,
                     new SendMessageEvent(
                         Collections.singletonList(myMaster),
                         new Heartbeat(myTableRowCountMap)));
@@ -251,6 +252,7 @@ public class SlaveWarden extends AbstractWarden
     public void start()
     {
         getEventBus().publish(
+            ActorID.DB_ENGINE,
             new SendMessageEvent(Collections.singletonList(myMaster),
                                  new NodeAdvertisement(getServerID())));
         
@@ -279,13 +281,15 @@ public class SlaveWarden extends AbstractWarden
         NodeID targetNode = allocation.getTableToDataNodeMap()
                                       .get(tableName);
         
-        getEventBus().publish(new SendMessageEvent(
-            Collections.singletonList(targetNode),
-            new DataLoadRequest(getServerID(), 
-                                tableName,
-                                allocation.getTable2PartitionMap()
-                                          .get(tableName)
-                                          .getNodeRange(getServerID()))));
+        getEventBus().publish(
+            ActorID.DB_ENGINE,
+            new SendMessageEvent(
+                Collections.singletonList(targetNode),
+                new DataLoadRequest(getServerID(), 
+                                    tableName,
+                                    allocation.getTable2PartitionMap()
+                                              .get(tableName)
+                                              .getNodeRange(getServerID()))));
         
         SettableFuture<DataLoadResponse> future = SettableFuture.create();
         Futures.addCallback(future, new LoadAllocationTask(allocation));

@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
@@ -77,6 +78,7 @@ public class TwoPCLeader extends ConsensusLeader
                              + myShouldCommit);
                     
                     getEventBus().publish(
+                        ActorID.CONSENSUS_MANAGER,
                         new SendMessageEvent(
                             getAcceptors(),
                             new CommitRequest(getNodeID(),
@@ -84,8 +86,10 @@ public class TwoPCLeader extends ConsensusLeader
                                               accept.getProposal(), 
                                               myShouldCommit)));
                     
-                    getEventBus().publish(new ConsensusResponseEvent(
-                        accept.getProposal(), myShouldCommit));
+                    getEventBus().publish(
+                        ActorID.CONSENSUS_MANAGER,
+                        new ConsensusResponseEvent(
+                            accept.getProposal(), myShouldCommit));
                 }
             }
         }
@@ -130,9 +134,11 @@ public class TwoPCLeader extends ConsensusLeader
         myProposalToAcceptanceInfo.put(proposal,
                                        new AcceptanceInfo(getAcceptors()));
         
-        getEventBus().publish(new SendMessageEvent(
-            getAcceptors(), new SolicitConsensusMessage(
-                getNodeID(), getConsensusUnitID(), proposal)));
+        getEventBus().publish(
+            ActorID.CONSENSUS_MANAGER,
+            new SendMessageEvent(
+                getAcceptors(), new SolicitConsensusMessage(
+                    getNodeID(), getConsensusUnitID(), proposal)));
     }
 
 }

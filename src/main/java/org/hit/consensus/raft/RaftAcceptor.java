@@ -29,6 +29,7 @@ import gnu.trove.procedure.TLongProcedure;
 import gnu.trove.set.TLongSet;
 import gnu.trove.set.hash.TLongHashSet;
 
+import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
@@ -82,11 +83,13 @@ public class RaftAcceptor extends ConsensusAcceptor
             if (replicationMessage.getTermID() > myTermID) {
                 // Reject if it comes from a new term that's not known 
                 // to be elected.
-                getEventBus().publish(new SendMessageEvent(
-                    Collections.singleton(replicationMessage.getSenderId()),
-                    new RaftReplicationResponse(
-                        replicationMessage.getSenderId(),
-                        replicationMessage.getUnitID())));
+                getEventBus().publish(
+                    ActorID.CONSENSUS_MANAGER,
+                    new SendMessageEvent(
+                        Collections.singleton(replicationMessage.getSenderId()),
+                        new RaftReplicationResponse(
+                            replicationMessage.getSenderId(),
+                            replicationMessage.getUnitID())));
             }
             
             TLongObjectMap<Proposal> seqMap =
@@ -107,11 +110,13 @@ public class RaftAcceptor extends ConsensusAcceptor
                 if ((replicationMessage.getSequenceNumber() - 1) == 
                         sequenceNumbers[sequenceNumbers.length - 1])
                 {
-                    getEventBus().publish(new SendMessageEvent(
-                        Collections.singleton(replicationMessage.getSenderId()),
-                        new RaftReplicationResponse(
-                            replicationMessage.getSenderId(),
-                            replicationMessage.getUnitID())));
+                    getEventBus().publish(
+                        ActorID.CONSENSUS_MANAGER,
+                        new SendMessageEvent(
+                            Collections.singleton(replicationMessage.getSenderId()),
+                            new RaftReplicationResponse(
+                                replicationMessage.getSenderId(),
+                                replicationMessage.getUnitID())));
                     return;
                 }
             }
@@ -122,14 +127,16 @@ public class RaftAcceptor extends ConsensusAcceptor
                 replicationMessage.getSequenceNumber(),
                 replicationMessage.getProposal());
             
-            getEventBus().publish(new SendMessageEvent(
-                Collections.singleton(replicationMessage.getSenderId()),
-                new RaftReplicationResponse(
-                    replicationMessage.getSenderId(),
-                    replicationMessage.getUnitID(),
-                    true,
-                    replicationMessage.getTermID(),
-                    replicationMessage.getSequenceNumber())));
+            getEventBus().publish(
+                ActorID.CONSENSUS_MANAGER,
+                new SendMessageEvent(
+                    Collections.singleton(replicationMessage.getSenderId()),
+                    new RaftReplicationResponse(
+                        replicationMessage.getSenderId(),
+                        replicationMessage.getUnitID(),
+                        true,
+                        replicationMessage.getTermID(),
+                        replicationMessage.getSequenceNumber())));
             
             final TLongObjectMap<Proposal> termLog = 
                 myProposalLog.get(
@@ -143,8 +150,10 @@ public class RaftAcceptor extends ConsensusAcceptor
                 {
                     if (key <= replicationMessage.getLastCommittedSeqNo())
                     {
-                        getEventBus().publish(new ProposalNotificationEvent(
-                            value, true, true));
+                        getEventBus().publish(
+                            ActorID.CONSENSUS_MANAGER,
+                            new ProposalNotificationEvent(
+                                value, true, true));
                         removedKeys.add(key);
                     }
                     return true;

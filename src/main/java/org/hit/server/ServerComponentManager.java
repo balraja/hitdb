@@ -104,7 +104,7 @@ public class ServerComponentManager extends Actor
         @Named("ReplicationSlaveUnitID")
         UnitID replicationSlaveUnitID)
     {
-        super(eventBus, new ActorID(ServerComponentManager.class.getSimpleName()));
+        super(eventBus, ActorID.SERVER_COMPONENT_MANAGER);
         Injector injector = Guice.createInjector(new HitServerModule(eventBus));
         myCommunicatingActor = injector.getInstance(CommunicatingActor.class);
         myConsensusManager = injector.getInstance(ConsensusManager.class);
@@ -131,7 +131,7 @@ public class ServerComponentManager extends Actor
             if (grEvent.getGroupID().equals(myServerGroupID)) {
                 LOG.info("Sending request to join group " 
                          + myReplicationGroupID);
-                getEventBus().publish(
+                publish(
                     new JoinGroupEvent(myServerGroupID, 
                                        true,
                                        myServerConfig.getReplicationFactor()));
@@ -140,7 +140,7 @@ public class ServerComponentManager extends Actor
                 myReplicatedGroupReadyEvent = grEvent;
                 LOG.info("Sending request to join group " 
                          + myReplicationSlaveID);
-                getEventBus().publish(
+                publish(
                     new JoinGroupEvent(myReplicationSlaveID, 
                                        false,
                                        myServerConfig.getReplicationFactor()));
@@ -157,13 +157,13 @@ public class ServerComponentManager extends Actor
                 myDBEngine.start();
                 LOG.info("Database engine started");
                 
-                getEventBus().publish(
+                publish(
                     new CreateRaftLeaderEvent(
                         myReplicationUnitID,
                         myReplicatedGroupReadyEvent.getFollowers(),
                         myReplicatedGroupReadyEvent.getTerm()));
                 
-                getEventBus().publish(
+                publish(
                     new CreateRaftAcceptorEvent(
                         myReplicationSlaveUnitID,
                         myReplicatedSlaveGroupReadyEvent.getLeader(),
@@ -175,7 +175,7 @@ public class ServerComponentManager extends Actor
                     && myReplicatedGroupReadyEvent.getLeader()
                                                   .equals(lce.getOldLeader())) 
                 {
-                    getEventBus().publish(
+                    publish(
                         new ChangeAcceptorToLeaderEvent(
                             new CreateRaftLeaderEvent(
                                 myReplicationSlaveUnitID,
@@ -218,7 +218,7 @@ public class ServerComponentManager extends Actor
         myGroupManager.start();
         
         LOG.info("Sending request to join group " + myServerGroupID);
-        getEventBus().publish(
+        publish(
             new JoinGroupEvent(myServerGroupID, 
                                myServerConfig.isMaster(),
                                myServerConfig.getInitialServerCount()));

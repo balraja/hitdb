@@ -28,72 +28,12 @@ import org.hit.concurrent.epq.AccessorID;
  *
  * @author Balraja Subbiah
  */
-public class ActorID implements AccessorID
+public enum ActorID implements AccessorID
 {
-    private final String myIdentifier;
-
-    /**
-     * CTOR
-     */
-    public ActorID(String identifier)
-    {
-        myIdentifier = identifier;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        ActorID other = (ActorID) obj;
-        if (myIdentifier == null) {
-            if (other.myIdentifier != null) {
-                return false;
-            }
-        }
-        else if (!myIdentifier.equals(other.myIdentifier)) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Returns the value of identifier
-     */
-    public String getIdentifier()
-    {
-        return myIdentifier;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int hashCode()
-    {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result
-                 + ((myIdentifier == null) ? 0 : myIdentifier.hashCode());
-        return result;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String toString()
-    {
-        return "ActorID [myIdentifier=" + myIdentifier + "]";
-    }
+    COMMUNICATOR,
+    DB_ENGINE,
+    GROUP_MANAGER,
+    SERVER_COMPONENT_MANAGER,
+    CONSENSUS_MANAGER,
+    GOSSIPER
 }

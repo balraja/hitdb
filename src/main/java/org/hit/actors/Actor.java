@@ -58,7 +58,7 @@ public abstract class Actor
         myShouldStop = new AtomicBoolean(false);
         myActorExecutor =
             Executors.newSingleThreadExecutor(
-                new NamedThreadFactory(id.getIdentifier()));
+                new NamedThreadFactory(id.name()));
     }
 
     /**
@@ -111,5 +111,11 @@ public abstract class Actor
     {
         myShouldStop.set(true);
         myActorExecutor.shutdownNow();
+    }
+    
+    /** A helper method to publish the event to the event bus */
+    protected void publish(Event event)
+    {
+        myEventBus.publish(myActorID, event);
     }
 }

@@ -63,7 +63,7 @@ public class GroupManager extends Actor
                         NodeID          serverID,
                         ZooKeeperClient zkClient)
     {
-        super(eventBus, new ActorID(GroupManager.class.getSimpleName()));
+        super(eventBus, ActorID.GROUP_MANAGER);
         myGroupMap = new HashMap<>();
         myServerID = serverID;
         myZooKeeperClient = zkClient;
@@ -125,7 +125,7 @@ public class GroupManager extends Actor
                  + " This group has " + leader + " as leader "
                  + " and " + followers  + " as followers");
         
-        getEventBus().publish(new GroupReadyEvent(
+        publish(new GroupReadyEvent(
             groupID, term, leader, new HashSet<NodeID>(followers)));
         
     }

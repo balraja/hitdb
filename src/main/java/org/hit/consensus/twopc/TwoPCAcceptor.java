@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
@@ -72,6 +73,7 @@ public class TwoPCAcceptor extends ConsensusAcceptor
             SolicitConsensusMessage scm = (SolicitConsensusMessage) message;
             myProposalToConsensusMap.put(scm.getProposal(), scm);
             getEventBus().publish(
+                ActorID.CONSENSUS_MANAGER,
                 new ProposalNotificationEvent(scm.getProposal()));
         }
         else if (message instanceof CommitRequest) {
@@ -79,8 +81,12 @@ public class TwoPCAcceptor extends ConsensusAcceptor
             LOG.info("Received commit " + commitRequest.shouldCommit()
                      + " for " + commitRequest.getProposal()
                      + " from " + commitRequest.getSenderId());
-            getEventBus().publish(new ProposalNotificationEvent(
-                commitRequest.getProposal(), true, commitRequest.shouldCommit()));
+            getEventBus().publish(
+                ActorID.CONSENSUS_MANAGER,
+                new ProposalNotificationEvent(
+                   commitRequest.getProposal(), 
+                   true, 
+                   commitRequest.shouldCommit()));
         }
     }
 
@@ -99,6 +105,7 @@ public class TwoPCAcceptor extends ConsensusAcceptor
                  + scm.getProposal() + " from " + scm.getSenderId());
         
         getEventBus().publish(
+            ActorID.CONSENSUS_MANAGER,
             new SendMessageEvent(
                 Collections.singleton(scm.getSenderId()),
                 new ConsensusAcceptMessage(getNodeID(),

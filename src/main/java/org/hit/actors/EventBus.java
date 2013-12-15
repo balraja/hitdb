@@ -26,7 +26,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.hit.communicator.nio.NIOCommunicator;
 import org.hit.concurrent.epq.EventPassingQueue;
 import org.hit.concurrent.epq.WaitStrategy;
 import org.hit.event.Event;
@@ -50,7 +49,7 @@ import com.google.common.collect.Multimaps;
 public class EventBus
 {
     private static final Logger LOG =
-        LogFactory.getInstance().getLogger(NIOCommunicator.class);
+        LogFactory.getInstance().getLogger(EventBus.class);
 
     private final Map<ActorID, EventPassingQueue> myActorToEPQ;
 
@@ -85,37 +84,39 @@ public class EventBus
     /**
      * Publishes the given <code>Event</code> to the actor.
      */
-    private void publish(ActorID actorID, Event event)
+    private void publish(ActorID from, ActorID to, Event event)
     {
-        EventPassingQueue epq = myActorToEPQ.get(actorID);
+        EventPassingQueue epq = myActorToEPQ.get(to);
         if (epq == null) {
             LOG.log(Level.SEVERE,
-                    "Returning as the " + actorID + " hasn't "
+                    "Returning as the actor " + to + " hasn't "
                     + " registered itself with the event bus ");
             return;
         }
-        epq.publish(actorID, event);
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Publishing data into " + to + " 's queue");
+        }
+        epq.publish(from, event);
     }
 
     /**
      * Publishes the <code>Event</code> to interested actors.
      */
-    public void publish(Event event) 
+    public void publish(ActorID from, Event event) 
     {
         if (LOG.isLoggable(Level.FINE)) {
             LOG.fine("Publishing event " + event.getClass().getSimpleName()
                      + " on " + toString());
-            LOG.fine("EPQ STATE " + myEvent2Actors);
         }
         Collection<ActorID> actors = myEvent2Actors.get(event.getClass());
         if (actors != null) {
-            for (ActorID actor : actors) {
+            for (ActorID to : actors) {
                 if (LOG.isLoggable(Level.FINE)) {
                     LOG.fine("Publishing the event "
                              + event.getClass().getSimpleName()
-                             + " to " + actor.getIdentifier());
+                             + " to " + to);
                 }
-                publish(actor, event);
+                publish(from, to, event);
             }
         }
     }

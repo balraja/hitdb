@@ -44,7 +44,7 @@ public class DBEngine extends Actor
     @Inject
     public DBEngine(EventBus eventBus, EngineWarden warden)
     {
-        super(eventBus, new ActorID(DBEngine.class.getName()));
+        super(eventBus, ActorID.DB_ENGINE);
         myEngineWarden = warden;
     }
     

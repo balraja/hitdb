@@ -141,12 +141,14 @@ public abstract class AbstractWarden implements EngineWarden
                     message.getSenderId(), operation, message.getSequenceNumber());
             }
             else {
-                myEventBus.publish(new SendMessageEvent(
-                    Collections.singletonList(message.getSenderId()),
-                    new DBOperationFailureMessage(
-                        myServerID, 
-                        message.getSequenceNumber(),
-                        "DB not yet initialized")));
+                myEventBus.publish(
+                    ActorID.DB_ENGINE,
+                    new SendMessageEvent(
+                        Collections.singletonList(message.getSenderId()),
+                        new DBOperationFailureMessage(
+                            myServerID, 
+                            message.getSequenceNumber(),
+                            "DB not yet initialized")));
             }
         }
         else if (event instanceof DistributedDBOperationMessage) {
@@ -164,12 +166,14 @@ public abstract class AbstractWarden implements EngineWarden
                     ddbMessage.getNodeToOperationMap());
             }
             else {
-                myEventBus.publish(new SendMessageEvent(
-                    Collections.singletonList(ddbMessage.getSenderId()),
-                    new DBOperationFailureMessage(
-                        myServerID, 
-                        ddbMessage.getSequenceNumber(),
-                        "DB not yet initialized")));
+                myEventBus.publish(
+                    ActorID.DB_ENGINE,
+                    new SendMessageEvent(
+                        Collections.singletonList(ddbMessage.getSenderId()),
+                        new DBOperationFailureMessage(
+                            myServerID, 
+                            ddbMessage.getSequenceNumber(),
+                            "DB not yet initialized")));
             }
         }
         else if (event instanceof ProposalNotificationEvent) {

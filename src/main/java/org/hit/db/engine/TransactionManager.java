@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
@@ -187,6 +188,7 @@ public class TransactionManager
                           "Failed to apply the transaction on db");
 
             myEventBus.publish(
+               ActorID.DB_ENGINE,
                new SendMessageEvent(
                    Collections.singleton(myClientInfo.getClientID()),
                    message));
@@ -199,6 +201,7 @@ public class TransactionManager
         {
             if (myClientInfo != null) {
                 myEventBus.publish(
+                   ActorID.DB_ENGINE,
                    new SendMessageEvent(
                        Collections.singleton(
                            myClientInfo.getClientID()),
@@ -278,9 +281,11 @@ public class TransactionManager
                 myExecutionPahse = false;
             }
             else if (event instanceof Memento && !myExecutionPahse) {
-                myEventBus.publish(myDatabase.getStatistics());
+                myEventBus.publish(
+                    ActorID.DB_ENGINE, myDatabase.getStatistics());
                 if (myTransaction instanceof WriteTransaction) {
                     myEventBus.publish(
+                        ActorID.DB_ENGINE,
                         new ReplicationProposal(
                             myReplicationUnitID,
                             ((WriteTransaction) myTransaction).getMutation(),
@@ -326,6 +331,7 @@ public class TransactionManager
         protected void sendResponseToClient(TransactionResult result)
         {
             myEventBus.publish(
+                ActorID.DB_ENGINE,
                 new SendMessageEvent(
                     Collections.singletonList(getClientInfo().getClientID()),
                     new DataLoadResponse(myServerID,
@@ -406,6 +412,7 @@ public class TransactionManager
                 Memento<Boolean> result = (Memento<Boolean>) event;
                 if (myPne != null) {
                     myEventBus.publish(
+                        ActorID.DB_ENGINE,
                         new ProposalNotificationResponse(
                             myPne,
                             result.getPhase().getResult()));
@@ -414,6 +421,7 @@ public class TransactionManager
             }
             else if (event instanceof Memento && myExecutionPhase) {
                 myEventBus.publish(
+                   ActorID.DB_ENGINE,
                    new ProposalNotificationResponse(myPne, false));
             }
             else if (   event instanceof ProposalNotificationEvent
@@ -433,9 +441,11 @@ public class TransactionManager
                 @SuppressWarnings("unchecked")
                 Memento<TransactionResult> result = 
                     (Memento<TransactionResult>) event;
-                myEventBus.publish(myDatabase.getStatistics());
+                myEventBus.publish(ActorID.DB_ENGINE, 
+                                   myDatabase.getStatistics());
                 if (myTransaction instanceof WriteTransaction) {
                     myEventBus.publish(
+                        ActorID.DB_ENGINE,
                         new ReplicationProposal(
                             myReplicationUnitID,
                             ((WriteTransaction) myTransaction).getMutation(),
@@ -455,6 +465,7 @@ public class TransactionManager
                                   "Failed to apply the transaction on db");
     
                     myEventBus.publish(
+                       ActorID.DB_ENGINE,
                        new SendMessageEvent(
                            Collections.singleton(myClientInfo.getClientID()),
                            message));
@@ -732,8 +743,9 @@ public class TransactionManager
             Sets.difference(operations.keySet(),
                             Collections.singleton(myServerID));
         UnitID unitID = new DistributedTrnID(clientID, sequenceNumber);
-        myEventBus.publish(new CreateConsensusLeaderEvent(unitID, 
-                                                          acceptors));
+        myEventBus.publish(
+            ActorID.DB_ENGINE,
+            new CreateConsensusLeaderEvent(unitID, acceptors));
 
         long id = myIdAssigner.getTransactionID();
         DBOperation operation = operations.get(myServerID);
@@ -751,11 +763,13 @@ public class TransactionManager
         myWorkFlowMap.put(Long.valueOf(id), workFlow);
         myConsensusToWorkFlowMap.put(unitID, workFlow);
         
-        myEventBus.publish(new ConsensusRequestEvent(
-            new DistributedTrnProposal(
-                new DistributedTrnID(clientID, sequenceNumber),
-                operations,
-                id)));
+        myEventBus.publish(
+            ActorID.DB_ENGINE,
+            new ConsensusRequestEvent(
+                new DistributedTrnProposal(
+                    new DistributedTrnID(clientID, sequenceNumber),
+                    operations,
+                    id)));
         
         if (myDatabase.lock(id)) {
             // The new distributed transaction will be 
