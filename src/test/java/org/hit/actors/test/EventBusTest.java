@@ -62,7 +62,7 @@ public class EventBusTest
                 catch (InterruptedException e) {
                 }
                 for (int i = 0; i < 10; i++) {
-                    myActor.getEventBus().publish(new DummyEvent());
+                    myActor.publish(new DummyEvent());
                     try {
                         Thread.sleep(200);
                     }
@@ -98,11 +98,9 @@ public class EventBusTest
         /**
          * CTOR
          */
-        public EventConsumer(EventBus eventBus, int index)
+        public EventConsumer(EventBus eventBus, ActorID id)
         {
-            super(eventBus,
-                  new ActorID(EventConsumer.class.getSimpleName()
-                              + " _ " + index));
+            super(eventBus, id);
         }
 
         /**
@@ -143,7 +141,7 @@ public class EventBusTest
          */
         public EventProvider(EventBus eventBus)
         {
-            super(eventBus, new ActorID(EventProvider.class.getSimpleName()));
+            super(eventBus, ActorID.TEST_PRODUCER);
         }
 
         /**
@@ -170,13 +168,18 @@ public class EventBusTest
     {
         EventBus eventBus = new EventBus();
         Thread senderThread =
-            new Thread(new ActorLauncher(new EventProvider(eventBus)), "provider");
+            new Thread(new ActorLauncher(new EventProvider(eventBus)), 
+                       "provider");
 
-        EventConsumer consumer = new EventConsumer(eventBus, 1);
-        Thread receiverThread = new Thread(new ActorLauncher(consumer), "consumer");
+        EventConsumer consumer = 
+            new EventConsumer(eventBus, ActorID.TEST_CONSUMER1);
+        Thread receiverThread = 
+            new Thread(new ActorLauncher(consumer), "consumer");
 
-        EventConsumer consumer1 = new EventConsumer(eventBus, 2);
-        Thread receiverThread1 = new Thread(new ActorLauncher(consumer1), "consumer1");
+        EventConsumer consumer1 = 
+            new EventConsumer(eventBus, ActorID.TEST_CONSUMER2);
+        Thread receiverThread1 = 
+            new Thread(new ActorLauncher(consumer1), "consumer1");
 
         receiverThread.start();
         receiverThread1.start();

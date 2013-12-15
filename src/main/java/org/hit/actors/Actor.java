@@ -114,7 +114,7 @@ public abstract class Actor
     }
     
     /** A helper method to publish the event to the event bus */
-    protected void publish(Event event)
+    public void publish(Event event)
     {
         myEventBus.publish(myActorID, event);
     }

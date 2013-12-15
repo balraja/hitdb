@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.event.Event;
 
@@ -53,7 +54,7 @@ public class RecordingEventBus extends EventBus
      * {@inheritDoc}
      */
     @Override
-    public void publish(Event event)
+    public void publish(ActorID actorID, Event event)
     {
         if (myInterestedEvents.contains(event.getClass())) {
             myListener.handleEvent(event);

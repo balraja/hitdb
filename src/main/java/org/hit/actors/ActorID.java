@@ -35,5 +35,9 @@ public enum ActorID implements AccessorID
     GROUP_MANAGER,
     SERVER_COMPONENT_MANAGER,
     CONSENSUS_MANAGER,
-    GOSSIPER
+    GOSSIPER,
+    
+    TEST_PRODUCER,
+    TEST_CONSUMER1,
+    TEST_CONSUMER2
 }
