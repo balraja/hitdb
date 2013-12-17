@@ -77,10 +77,12 @@ public class GroupManager extends Actor
     {
         if (event instanceof JoinGroupEvent) {
             JoinGroupEvent jgEvent = (JoinGroupEvent) event;
+            LOG.info("Received event to join group " + jgEvent.getID());
             Group group = myGroupMap.get(jgEvent.getID());
             if (group == null) {
                 group = 
                     new Group(jgEvent.getID(), this, myZooKeeperClient);
+                
                 myGroupMap.put(jgEvent.getID(), group);
                 group.initGroup(
                     myServerID, 

@@ -129,24 +129,32 @@ public class ServerComponentManager extends Actor
         if (event instanceof GroupReadyEvent) {
             GroupReadyEvent grEvent = (GroupReadyEvent) event;
             if (grEvent.getGroupID().equals(myServerGroupID)) {
+                
                 LOG.info("Sending request to join group " 
                          + myReplicationGroupID);
                 publish(
-                    new JoinGroupEvent(myServerGroupID, 
+                    new JoinGroupEvent(myReplicationGroupID, 
                                        true,
-                                       myServerConfig.getReplicationFactor()));
-            }
-            else if (grEvent.getGroupID().equals(myReplicationGroupID)) {
-                myReplicatedGroupReadyEvent = grEvent;
+                                       myServerConfig.getReplicationFactor() + 1));
+                
                 LOG.info("Sending request to join group " 
                          + myReplicationSlaveID);
                 publish(
-                    new JoinGroupEvent(myReplicationSlaveID, 
-                                       false,
-                                       myServerConfig.getReplicationFactor()));
+                   new JoinGroupEvent(myReplicationSlaveID, 
+                                      false,
+                                      myServerConfig.getReplicationFactor() + 1));
+
             }
-            else if (grEvent.getGroupID().equals(myReplicationSlaveID)) {
+            else if (grEvent.getGroupID().equals(myReplicationGroupID)) {
+                myReplicatedGroupReadyEvent = grEvent;
+            }
+            else if (grEvent.getGroupID().equals(myReplicationSlaveID)){
                 myReplicatedSlaveGroupReadyEvent = grEvent;
+            }
+            
+            if (   myReplicatedGroupReadyEvent != null 
+                && myReplicatedSlaveGroupReadyEvent != null)
+            {
                 myDBEngine.init(grEvent.getLeader());
                 myCommunicatingActor.start();
                 LOG.info("Communicator started");
@@ -169,21 +177,20 @@ public class ServerComponentManager extends Actor
                         myReplicatedSlaveGroupReadyEvent.getLeader(),
                         myReplicatedSlaveGroupReadyEvent.getTerm()));
             }
-            else if (event instanceof LeaderChangeEvent) {
-                LeaderChangeEvent lce = (LeaderChangeEvent) event;
-                if (   lce.getGroupID().equals(myReplicationSlaveID)
-                    && myReplicatedGroupReadyEvent.getLeader()
-                                                  .equals(lce.getOldLeader())) 
-                {
-                    publish(
-                        new ChangeAcceptorToLeaderEvent(
-                            new CreateRaftLeaderEvent(
-                                myReplicationSlaveUnitID,
-                                lce.getFollowers(),
-                                lce.getTerm())));
-                }
+        }
+        else if (event instanceof LeaderChangeEvent) {
+            LeaderChangeEvent lce = (LeaderChangeEvent) event;
+            if (   lce.getGroupID().equals(myReplicationSlaveID)
+                && myReplicatedGroupReadyEvent.getLeader()
+                                              .equals(lce.getOldLeader())) 
+            {
+                publish(
+                    new ChangeAcceptorToLeaderEvent(
+                        new CreateRaftLeaderEvent(
+                            myReplicationSlaveUnitID,
+                            lce.getFollowers(),
+                            lce.getTerm())));
             }
-            
         }
         
     }
