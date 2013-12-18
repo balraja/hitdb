@@ -25,7 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.hit.db.model.Row;
-import org.hit.db.query.operators.AggregatedResult;
+import org.hit.db.query.operators.AggregationResult;
 import org.hit.db.query.operators.GroupKey;
 
 /**
@@ -35,7 +35,7 @@ import org.hit.db.query.operators.GroupKey;
  */
 public class AggregationMerger implements QueryMerger
 {
-    private final Map<GroupKey, AggregatedResult> myGroupToAggregateMap;
+    private final Map<GroupKey, AggregationResult> myGroupToAggregateMap;
     
     /**
      * CTOR
@@ -52,8 +52,8 @@ public class AggregationMerger implements QueryMerger
     public void addPartialResult(Collection<Row> result)
     {
         for (Row row : result) {
-            AggregatedResult newResult = (AggregatedResult) row;
-            AggregatedResult existing = 
+            AggregationResult newResult = (AggregationResult) row;
+            AggregationResult existing = 
                 myGroupToAggregateMap.get(newResult.getGroupKey());
             if (existing == null) {
                 myGroupToAggregateMap.put(newResult.getGroupKey(),

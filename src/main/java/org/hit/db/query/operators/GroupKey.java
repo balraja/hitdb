@@ -20,92 +20,13 @@
 
 package org.hit.db.query.operators;
 
-import java.util.SortedSet;
-
-import org.hit.db.model.Row;
+import java.io.Externalizable;
 
 /**
  * Defines the contract for key that can be used in grouping operations
  * 
  * @author Balraja Subbiah
  */
-public class GroupKey
+public interface GroupKey extends Externalizable
 {
-    private final SortedSet<String> myGroupingColumns;
-    
-    private final Row myWrappedObject;
-
-    /**
-     * CTOR
-     */
-    public GroupKey(SortedSet<String> groupingColumns, Row wrappedObject)
-    {
-        super();
-        myGroupingColumns = groupingColumns;
-        myWrappedObject = wrappedObject;
-    }
-    
-    /**
-     * Returns the value of groupingColumns
-     */
-    public SortedSet<String> getGroupingColumns()
-    {
-        return myGroupingColumns;
-    }
-
-    /**
-     * Returns the value of the specified field.
-     */
-    public Object getValue(String fieldName)
-    {
-        return myWrappedObject.getFieldValue(fieldName);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int hashCode()
-    {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + myGroupingColumns.hashCode();
-        for (String columnName : myGroupingColumns) {
-            Object columnValue = myWrappedObject.getFieldValue(columnName);
-            result = prime * result
-                     + ((myGroupingColumns == null) ? 0
-                                                    : columnValue.hashCode());
-        }
-        return result;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        GroupKey other = (GroupKey) obj;
-        if (!getGroupingColumns().equals(other.getGroupingColumns()))
-        {
-            return false;
-        }
-        for (String fieldName : getGroupingColumns()) {
-            Object value = getValue(fieldName);
-            Object value2 = other.getValue(fieldName);
-            if ((value == null && value2 != null)
-                || (value != null && value2 == null)
-                || (!value.equals(value2))) 
-            {
-                return false;
-            }
-        }
-        return true;
-    }
 }

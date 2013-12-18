@@ -23,7 +23,6 @@ package org.hit.db.query.operators;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,6 +39,8 @@ import com.google.common.collect.Lists;
  */
 public class Select extends Decorator
 {
+    private String myTableName;
+    
     private Map<String, AggregationID> mySelectColumns;
     
     /**
@@ -47,15 +48,18 @@ public class Select extends Decorator
      */
     public Select()
     {
-        this(null, null);
+        this(null, null, null);
     }
 
     /**
      * CTOR
      */
-    public Select(QueryOperator operator, Map<String, AggregationID> selectColumns)
+    public Select(QueryOperator operator, 
+                  String tableName,
+                  Map<String, AggregationID> selectColumns)
     {
         super(operator);
+        myTableName = tableName;
         mySelectColumns = selectColumns;
     }
 
@@ -66,48 +70,49 @@ public class Select extends Decorator
     protected Collection<Row>
         doPerformOperation(Collection<Row> toBeOperatedCollection)
     {
-        if (mySelectColumns.containsKey(ColumnNameUtil.ALL_COLUMNS)) {
-            AggregationID aggregatingFunctionID = 
-                mySelectColumns.get(ColumnNameUtil.ALL_COLUMNS);
-            if (aggregatingFunctionID != null) {
-                if (aggregatingFunctionID == AggregationID.CNT) {
-                    RowMap result = new RowMap();
-                    result.setFieldValue(ColumnNameUtil.ALL_COLUMNS_SYMBOLIC, 
-                                         Integer.valueOf(
-                                             toBeOperatedCollection.size()));
-                    return Lists.<Row>newArrayList(result);
-                }
-                else {
-                    return new ArrayList<Row>();
-                }
+        // A special handling for select * and select count(*) cases.
+        AggregationID aggregationID = 
+            mySelectColumns.get(ColumnNameUtil.ALL_COLUMNS);
+        // Aggregation can only be cnt.
+        if (aggregationID != null) {
+            
+            AggregationResult result = 
+                new AggregationResult(
+                    new SelectAggregateKey(ColumnNameUtil.ALL_COLUMNS_SYMBOLIC),
+                    toBeOperatedCollection.size());
+            
+            result.setAggregate(ColumnNameUtil.ALL_COLUMNS_SYMBOLIC,
+                                new GroupValue(aggregationID));
+            return Lists.<Row>newArrayList(result);
+        }
+        else if (mySelectColumns.containsKey(ColumnNameUtil.ALL_COLUMNS)) {
+            return toBeOperatedCollection;
+        }
+        
+        boolean hasAggregation = 
+            mySelectColumns.values().iterator().next() != null;
+        
+        if (hasAggregation) {
+            AggregationResult result = 
+                new AggregationResult(
+                    new SelectAggregateKey(myTableName),
+                    toBeOperatedCollection.size());
+            
+            for (Map.Entry<String, AggregationID> selectedColumn : 
+                     mySelectColumns.entrySet())
+            {
+                Aggregator aggregator = 
+                    new Aggregator(
+                        selectedColumn.getValue(), selectedColumn.getKey());
+                
+                result.setAggregate(selectedColumn.getKey(),
+                                    aggregator.apply(toBeOperatedCollection));
+
             }
-            else {
-                return toBeOperatedCollection;
-            }
+            return Lists.<Row>newArrayList(result);
         }
         else {
-            boolean hasAggregation = 
-                mySelectColumns.values().iterator().next() != null;
-            if (hasAggregation) {
-                RowMap result = new RowMap();
-                for (Map.Entry<String, AggregationID> selectedColumn : 
-                         mySelectColumns.entrySet())
-                {
-                    Aggregator aggregator = 
-                        new Aggregator(
-                            selectedColumn.getValue(), 
-                            selectedColumn.getKey());
-                    
-                    result.setFieldValue(selectedColumn.getKey(),
-                                         aggregator.apply(toBeOperatedCollection)
-                                                   .getResult());
-
-                }
-                return Lists.<Row>newArrayList(result);
-            }
-            else {
-                return toBeOperatedCollection;
-            }
+            return toBeOperatedCollection;
         }
     }
     
@@ -141,6 +146,7 @@ public class Select extends Decorator
     public QueryOperator cloneOperator()
     {
         return new Select(getDecoratedOperator().cloneOperator(), 
+                          myTableName,
                           new HashMap<String, AggregationID>(mySelectColumns));
     }
 }

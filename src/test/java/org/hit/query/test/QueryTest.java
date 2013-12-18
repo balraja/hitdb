@@ -27,8 +27,6 @@ import java.util.Collection;
 import org.antlr.runtime.RecognitionException;
 import org.hit.db.model.Query;
 import org.hit.db.model.Row;
-import org.hit.db.query.merger.AggregationMerger;
-import org.hit.db.query.merger.QueryMerger;
 import org.hit.db.query.operators.ColumnNameUtil;
 import org.hit.db.query.operators.QueryBuildingException;
 import org.hit.db.query.operators.RowMap;
@@ -88,15 +86,11 @@ public class QueryTest
             (Collection<Row>) query.query(myTestDB);
         assertEquals(1, result.size());
         
-        RowMap cntResult = (RowMap) result.iterator().next();
+        Row cntResult = result.iterator().next();
         assertNotNull(cntResult);
         
-        Collection<String> cntResultKeys = cntResult.keySet();
-        assertEquals(1, cntResultKeys.size());
-        
-        Integer rowCount = 
-            (Integer) cntResult.getFieldValue(cntResultKeys.iterator().next());
-        assertEquals(7411, rowCount.intValue());
+        assertEquals(7411.0D,
+                     cntResult.getFieldValue(ColumnNameUtil.ALL_COLUMNS_SYMBOLIC));
     }
     
     /**
@@ -114,14 +108,8 @@ public class QueryTest
             (Collection<Row>) query.query(myTestDB);
         assertEquals(1, result.size());
         
-        RowMap cntResult = (RowMap) result.iterator().next();
-        assertNotNull(cntResult);
-        
-        Collection<String> cntResultKeys = cntResult.keySet();
-        assertEquals(1, cntResultKeys.size());
-        
-        Double maxID = 
-            (Double) cntResult.getFieldValue(cntResultKeys.iterator().next());
+        Row cntResult = result.iterator().next();
+        Double maxID = (Double) cntResult.getFieldValue("id");
         assertEquals(8844L, maxID.longValue());
     }
     
@@ -147,6 +135,7 @@ public class QueryTest
         assertEquals(1, result.size());
         
         Row firstRow = result.iterator().next();
-        assertEquals(4, firstRow.getFieldValue(ColumnNameUtil.ALL_COLUMNS_SYMBOLIC));
+        assertEquals(4.0D, 
+                     firstRow.getFieldValue(ColumnNameUtil.ALL_COLUMNS_SYMBOLIC));
     }
 }

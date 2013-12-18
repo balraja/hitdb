@@ -139,7 +139,15 @@ public class QueryBuilder
             }
         }
         else {
+            String tableName = 
+                myQueryAttributes.getJoinCriteria() != null ?
+                        myQueryAttributes.getJoinCriteria()
+                                         .getFirst()
+                                         .toString()
+                        : myQueryAttributes.getTableName();
+                                         
             operator = new Select(operator,
+                                  tableName,
                                   myQueryAttributes.getSelectedColumns());
         }
         

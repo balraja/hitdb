@@ -61,7 +61,7 @@ public class Where implements QueryOperator
      * CTOR
      */
     public Where(String tableName, 
-                  Condition filteringCondition)
+                 Condition filteringCondition)
     {
         myTableName = tableName;
         myFilteringCondition = filteringCondition;

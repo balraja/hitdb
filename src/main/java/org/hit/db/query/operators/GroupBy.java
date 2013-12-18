@@ -77,7 +77,7 @@ public class GroupBy extends Decorator
     {
         ListMultimap<GroupKey, Row> multimap = ArrayListMultimap.create();
         for (Row row : toBeOperatedCollection) {
-            multimap.put(new GroupKey(myGroupingColumns, row),
+            multimap.put(new GroupingColumnsKey(myGroupingColumns, row),
                          row);
         }
         
@@ -85,8 +85,8 @@ public class GroupBy extends Decorator
         for (Map.Entry<GroupKey, Collection<Row>> entry :
                multimap.asMap().entrySet())
         {
-            AggregatedResult row = 
-                new AggregatedResult(entry.getKey(), entry.getValue().size());
+            AggregationResult row = 
+                new AggregationResult(entry.getKey(), entry.getValue().size());
             
             // For each group, we are aggregating values in that 
             // group.
