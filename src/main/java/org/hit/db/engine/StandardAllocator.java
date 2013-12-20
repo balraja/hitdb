@@ -27,6 +27,7 @@ import gnu.trove.map.hash.TObjectDoubleHashMap;
 import gnu.trove.procedure.TObjectLongProcedure;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -117,7 +118,7 @@ public class StandardAllocator implements Allocator
                 node));
             
             LOG.info("Adding " + myServerID + " to handle data upto " +
-                tableSchema.getKeyspace().getDomain().getMaximum());
+                     tableSchema.getKeyspace().getDomain().getMaximum());
             i++;
         }
         
@@ -149,6 +150,12 @@ public class StandardAllocator implements Allocator
         for (Map.Entry<String, Schema> entry : myTableToSchemaMap.entrySet())
         {
             tableSchemaMap.put(entry.getKey(), entry.getValue());
+            if (myNodes.isEmpty() || myNodeToRowCountMap.isEmpty()) {
+                // We don't have information about other nodes to make
+                // a partitioning decision. Hencejust add the schemas and 
+                // return.
+                continue;
+            }
             if (entry.getValue().isReplicated()) {
                 
                 Partitioner<?,?> partition =
@@ -176,9 +183,8 @@ public class StandardAllocator implements Allocator
                 dataNodeMap.put(entry.getKey(), maxLoadedNode);
             }
         }
-        return new Allocation(tableSchemaMap, 
-                              partitionTableMap,
-                              dataNodeMap);
+        myNodes.add(nodeID);
+        return new Allocation(tableSchemaMap, partitionTableMap, dataNodeMap);
     }
 
     /**
@@ -271,5 +277,23 @@ public class StandardAllocator implements Allocator
                 return true;
             }
         });
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize(Set<NodeID> nodes)
+    {
+        myNodes.addAll(nodes);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Set<NodeID> getMonitoredNodes()
+    {
+        return Collections.unmodifiableSet(myNodes);
     }
 }

@@ -97,7 +97,13 @@ public class CreateTableResponseMessage extends Message
     {
         super.readExternal(in);
         myTableName = in.readUTF();
-        myPartitioner = (Partitioner<?, ?>) in.readObject();
+        boolean hasPartitioner = in.readBoolean();
+        if (hasPartitioner) {
+            myPartitioner = (Partitioner<?, ?>) in.readObject();
+        }
+        else {
+            myPartitioner = null;
+        }
         boolean hasError = in.readBoolean();
         if (hasError) {
             myErrorMessage = in.readUTF();
@@ -139,7 +145,13 @@ public class CreateTableResponseMessage extends Message
     {
         super.writeExternal(out);
         out.writeUTF(myTableName);
-        out.writeObject(myPartitioner);
+        if (myPartitioner != null) {
+            out.writeBoolean(true);
+            out.writeObject(myPartitioner);
+        }
+        else {
+            out.writeBoolean(false);
+        }
         if (myErrorMessage != null) {
             out.writeBoolean(true);
             out.writeUTF(myErrorMessage);

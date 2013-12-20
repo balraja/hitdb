@@ -21,6 +21,7 @@
 package org.hit.db.engine;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.hit.communicator.NodeID;
 import org.hit.db.model.Schema;
@@ -42,6 +43,12 @@ public interface Allocator
      * The schema to be monitored.
      */
     public void addSchema(Schema tableSchema);
+    
+    /**
+     * Initializes the allocator with the list of other hit database 
+     * servers.
+     */
+    public void initialize(Set<NodeID> nodes);
 
     /**
      * Returns the <code>Allocation</code> corresponding to the given node.
@@ -69,4 +76,10 @@ public interface Allocator
      * Listens to heartbeats from  the given <code>NodeID</code>.
      */
     public void listenTO(NodeID nodeID, Heartbeat heartbeat);
+    
+    /**
+     * Returns the list of slave server nodes that are monitored by this master 
+     * node.
+     */
+    public Set<NodeID> getMonitoredNodes();
 }

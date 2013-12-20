@@ -40,6 +40,8 @@ import org.hit.event.GossipNotificationEvent;
 import org.hit.event.SendMessageEvent;
 import org.hit.gossip.Gossip;
 import org.hit.messages.Allocation;
+import org.hit.messages.CreateTableMessage;
+import org.hit.messages.CreateTableResponseMessage;
 import org.hit.messages.DataLoadRequest;
 import org.hit.messages.DataLoadResponse;
 import org.hit.messages.Heartbeat;
@@ -202,6 +204,23 @@ public class SlaveWarden extends AbstractWarden
                 }
             }
         }
+        else if (event instanceof CreateTableMessage) {
+            CreateTableMessage ctm = (CreateTableMessage) event;
+            String errorMessage = null;
+            if (getTransactionManager().createTable(ctm.getTableSchema())) {
+                errorMessage = "Schema addition failure";
+            }
+            getEventBus().publish(
+                    ActorID.DB_ENGINE,
+                    new SendMessageEvent(
+                        Collections.singleton(ctm.getSenderId()),
+                        new CreateTableResponseMessage(
+                            getServerID(),
+                            ctm.getTableSchema().getTableName(),
+                            null,
+                            errorMessage)));
+            
+        }
         else if (event instanceof DBStatEvent) {
             DBStatEvent stat = (DBStatEvent) event;
             myScheduler.submit(new ApplyDBStatsTask(stat));
@@ -246,10 +265,9 @@ public class SlaveWarden extends AbstractWarden
     }
 
     /**
-     * {@inheritDoc}
+     * Starts the slave warden with the master node.
      */
-    @Override
-    public void start()
+    public void start(NodeID master)
     {
         getEventBus().publish(
             ActorID.DB_ENGINE,

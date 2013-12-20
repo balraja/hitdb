@@ -20,11 +20,14 @@
 
 package org.hit.db.engine;
 
+import java.util.Set;
+
 import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
 import org.hit.event.Event;
+import org.hit.util.Pair;
 
 import com.google.inject.Inject;
 
@@ -77,13 +80,17 @@ public class DBEngine extends Actor
     }
     
     /**
-     * {@inheritDoc}
+     * Starts the database engine.
      */
-    @Override
-    public void start()
+    public void start(Pair<NodeID,Set<NodeID>> serverGroup)
     {
         super.start();
-        myEngineWarden.start();
+        if (myEngineWarden instanceof MasterWarden) {
+            ((MasterWarden) myEngineWarden).start(serverGroup.getSecond());
+        }
+        else {
+            ((SlaveWarden) myEngineWarden).start(serverGroup.getFirst());
+        }
     }
     
     /**

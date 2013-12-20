@@ -20,9 +20,10 @@
 
 package org.hit.event;
 
+import org.hit.actors.Actor;
+
 /**
- * This is a marker interface for any objects passed between the components of 
- * a system.
+ * This is a marker interface for objects passed between the {@link Actor}s.
  * 
  * @author Balraja Subbiah
  */

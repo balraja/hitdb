@@ -45,6 +45,7 @@ import org.hit.gms.GroupManager;
 import org.hit.gms.GroupID;
 import org.hit.gossip.Disseminator;
 import org.hit.util.LogFactory;
+import org.hit.util.Pair;
 import org.hit.zookeeper.ZooKeeperClient;
 
 /**
@@ -81,6 +82,8 @@ public class ServerComponentManager extends Actor
     private final UnitID             myReplicationUnitID;
     
     private final UnitID             myReplicationSlaveUnitID;
+    
+    private GroupReadyEvent          myServersGroupReadyEvent;
     
     private GroupReadyEvent          myReplicatedGroupReadyEvent;
     
@@ -129,7 +132,7 @@ public class ServerComponentManager extends Actor
         if (event instanceof GroupReadyEvent) {
             GroupReadyEvent grEvent = (GroupReadyEvent) event;
             if (grEvent.getGroupID().equals(myServerGroupID)) {
-                
+                myServersGroupReadyEvent = grEvent;
                 LOG.info("Sending request to join group " 
                          + myReplicationGroupID);
                 publish(
@@ -162,7 +165,9 @@ public class ServerComponentManager extends Actor
                 LOG.info("Consensus manager started");
                 myDisseminator.start();
                 LOG.info("Gossiper started");
-                myDBEngine.start();
+                myDBEngine.start(
+                    new Pair<>(myServersGroupReadyEvent.getLeader(),
+                               myServersGroupReadyEvent.getFollowers()));
                 LOG.info("Database engine started");
                 
                 publish(

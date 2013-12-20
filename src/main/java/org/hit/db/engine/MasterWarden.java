@@ -21,6 +21,10 @@
 package org.hit.db.engine;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -45,6 +49,7 @@ import org.hit.messages.NodeAdvertisementResponse;
 import org.hit.server.ServerConfig;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
+import org.hit.util.Pair;
 
 import com.google.inject.Inject;
 
@@ -67,6 +72,8 @@ public class MasterWarden extends AbstractWarden
     private final Allocator myAllocator;
 
     private final ScheduledExecutorService myScheduler;
+    
+    private final Map<String, Pair<NodeID, Set<NodeID>>> myTableCreationState;
 
     /**
      * CTOR
@@ -84,6 +91,7 @@ public class MasterWarden extends AbstractWarden
             Executors.newScheduledThreadPool(
                 1,
                 new NamedThreadFactory(MasterWarden.class));
+        myTableCreationState = new HashMap<>();
     }
 
     /**
@@ -101,24 +109,28 @@ public class MasterWarden extends AbstractWarden
                                        ctm.getTableSchema()));
                 Schema schema = ctm.getTableSchema();
                 myAllocator.addSchema(schema);
-                boolean isSuccess =
+                boolean isSuccess = 
                     getTransactionManager().createTable(schema);
-                CreateTableResponseMessage response = null;
+                
                 if (isSuccess) {
-                    response =
-                        new CreateTableResponseMessage(
-                            getServerID(),
-                            schema.getTableName(),
-                            myAllocator.getPartitions().get(
-                                schema.getTableName()),
-                            null);
+                    myTableCreationState.put(
+                        schema.getTableName(), 
+                        new Pair<NodeID, Set<NodeID>>(
+                            ctm.getSenderId(),
+                            new HashSet<>(myAllocator.getMonitoredNodes())));
+                        
+                    getEventBus().publish(
+                        ActorID.DB_ENGINE, 
+                        new SendMessageEvent(
+                            myAllocator.getMonitoredNodes(),
+                            new CreateTableMessage(getServerID(), schema)));
+                    
 
-                    LOG.info("Schema for " + schema.getTableName()
-                             + " was successfully"
-                             + " added to the database");
+                    LOG.info(" Schema for " + schema.getTableName()
+                             + "is sent to " + myAllocator.getMonitoredNodes());
                 }
                 else {
-                    response =
+                    CreateTableResponseMessage response =
                         new CreateTableResponseMessage(
                             getServerID(),
                             schema.getTableName(),
@@ -128,12 +140,44 @@ public class MasterWarden extends AbstractWarden
 
                     LOG.info("Schema addition for " + schema.getTableName()
                              + " failed");
+                    
+                    getEventBus().publish(
+                            ActorID.DB_ENGINE,
+                            new SendMessageEvent(
+                                Collections.singleton(ctm.getSenderId()),
+                                 response));
                 }
-                getEventBus().publish(
-                    ActorID.DB_ENGINE,
-                    new SendMessageEvent(
-                        Collections.singleton(ctm.getSenderId()),
-                         response));
+            }
+            else if (event instanceof CreateTableResponseMessage) {
+                CreateTableResponseMessage ctr = 
+                    (CreateTableResponseMessage) event;
+                Pair<NodeID,Set<NodeID>> createTableState = 
+                    myTableCreationState.get(ctr.getTableName());
+                if (createTableState != null) {
+                    createTableState.getSecond().remove(ctr.getSenderId());
+                    if (createTableState.getSecond().isEmpty()) {
+                        CreateTableResponseMessage clientResponse = 
+                            new CreateTableResponseMessage(
+                                    getServerID(), 
+                                    ctr.getTableName(),
+                                    myAllocator.getPartitions()
+                                               .get(ctr.getTableName()),
+                                    null);
+                        getEventBus().publish(
+                            ActorID.DB_ENGINE,
+                            new SendMessageEvent(
+                                Collections.singleton(createTableState.getFirst()),
+                                clientResponse));
+                    }
+                }
+                else {
+                    LOG.severe("Received CreateTableResponse for "
+                               + " create table request for creating "
+                               + ctr.getTableName()
+                               + " from "
+                               + ctr.getSenderId()
+                               + " which wasn't send by us ");
+                }
             }
             else if (event instanceof DBStatEvent) {
                 DBStatEvent stat = (DBStatEvent) event;
@@ -189,12 +233,12 @@ public class MasterWarden extends AbstractWarden
     }
 
     /**
-     * {@inheritDoc}
+     * Starts the master warden to enable it to process the events.
      */
-    @Override
-    public void start()
+    public void start(Set<NodeID> otherNodes)
     {
         getIsInitialized().compareAndSet(false, true);
+        myAllocator.initialize(otherNodes);
         myScheduler.schedule(
             new Runnable()
             {

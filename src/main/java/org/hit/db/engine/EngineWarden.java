@@ -37,9 +37,6 @@ public interface EngineWarden
     /** A helper method to get the interested events */
     public void register(ActorID actorID);
 
-    /** A helper method to start the warden */
-    public void start();
-
     /** Stops the warden */
     public void stop();
 }
