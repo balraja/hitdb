@@ -290,8 +290,9 @@ public class ZooKeeperClient
                 parseSequenceNumber(
                     createdPath.substring(
                         createdPath.lastIndexOf(PATH_SEPARATOR) + 1));
+            
             if (LOG.isLoggable(Level.FINE)) {
-                LOG.info("Acquired lock with  " + id + " for " + nodeID);
+                LOG.fine("Acquired lock with  " + id + " for " + nodeID);
             }
             
             SortedSet<Pair<String,Long>> sequenceNumbers = 

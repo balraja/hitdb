@@ -20,6 +20,7 @@
 package org.hit.registry;
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 
 import java.util.List;
 
@@ -36,18 +37,22 @@ public class ZKRegistry implements RegistryService
 {
     private final ZooKeeperClient myZKClient;
     
-    private final GroupID    myElectorateID;
+    private final GroupID         myGroupID;
+    
+    private final String          myGroupZKPath;
 
     /**
      * CTOR
      */
     @Inject
-    public ZKRegistry(ZooKeeperClient zKClient, 
-                      GroupID electorateID)
+    public ZKRegistry(ZooKeeperClient                 zKClient, 
+                      @Named("ServerGroupID") GroupID groupID)
     {
         super();
         myZKClient = zKClient;
-        myElectorateID = electorateID;
+        myGroupID = groupID;
+        myGroupZKPath = 
+            ZooKeeperClient.PATH_SEPARATOR + myGroupID.toString().toLowerCase();
     }
 
     /**
@@ -56,7 +61,7 @@ public class ZKRegistry implements RegistryService
     @Override
     public List<NodeID> getServerNodes()
     {
-        return myZKClient.getNodes(myElectorateID.toString());
+        return myZKClient.getNodes(myGroupID.toString());
     }
 
     /**
@@ -65,7 +70,7 @@ public class ZKRegistry implements RegistryService
     @Override
     public NodeID getMasterNode()
     {
-        return myZKClient.getLockHolder(myElectorateID.toString()).getFirst();
+        return myZKClient.getLockHolder(myGroupZKPath).getFirst();
     }
 
     /**

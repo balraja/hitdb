@@ -24,6 +24,7 @@ import gnu.trove.iterator.TObjectDoubleIterator;
 import gnu.trove.map.TObjectDoubleMap;
 import gnu.trove.map.TObjectLongMap;
 import gnu.trove.map.hash.TObjectDoubleHashMap;
+import gnu.trove.map.hash.TObjectLongHashMap;
 import gnu.trove.procedure.TObjectLongProcedure;
 
 import java.util.ArrayList;
@@ -286,6 +287,9 @@ public class StandardAllocator implements Allocator
     public void initialize(Set<NodeID> nodes)
     {
         myNodes.addAll(nodes);
+        for (NodeID slave : nodes) {
+            myNodeToRowCountMap.put(slave, new TObjectLongHashMap<String>());
+        }
     }
 
     /**

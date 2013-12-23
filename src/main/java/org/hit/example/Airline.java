@@ -26,6 +26,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import org.hit.db.model.Persistable;
+import org.hit.db.model.mutations.MutationFactory;
 
 /**
  * Defines the contract for the table that holds information about an airline
@@ -176,5 +177,10 @@ public class Airline implements Persistable<Long>, Externalizable
         else if (!myName.equals(other.myName))
             return false;
         return true;
+    }
+    
+    public static MutationFactory<Long,Airline> getMutationFactory()
+    {
+        return new MutationFactory<>(TABLE_NAME);
     }
 }

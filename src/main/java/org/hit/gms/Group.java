@@ -32,7 +32,6 @@ import org.hit.communicator.NodeID;
 import org.hit.util.LogFactory;
 import org.hit.util.Pair;
 import org.hit.zookeeper.ZooKeeperClient;
-import org.hit.zookeeper.ZooKeeperClientPropertyConfig;
 
 /**
  * Defines the set nodes that participates in a election.

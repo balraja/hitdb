@@ -26,6 +26,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import org.hit.db.model.Persistable;
+import org.hit.db.model.mutations.MutationFactory;
 
 /**
  * Defines a class that encapsulates the information about airports.
@@ -34,6 +35,8 @@ import org.hit.db.model.Persistable;
  */
 public class Airport implements Persistable<Long>, Externalizable
 {
+    public static final String TABLE_NAME = "airports";
+    
     private double myAltitude;
 
     private String myCity;
@@ -219,5 +222,10 @@ public class Airport implements Persistable<Long>, Externalizable
         out.writeDouble(myLongitude);
         out.writeDouble(myAltitude);
         out.writeFloat(myDST);
+    }
+    
+    public static MutationFactory<Long, Airport> getMutationFactory()
+    {
+        return new MutationFactory<>(TABLE_NAME);
     }
 }

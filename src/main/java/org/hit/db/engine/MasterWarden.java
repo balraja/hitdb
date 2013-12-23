@@ -153,8 +153,10 @@ public class MasterWarden extends AbstractWarden
                     (CreateTableResponseMessage) event;
                 Pair<NodeID,Set<NodeID>> createTableState = 
                     myTableCreationState.get(ctr.getTableName());
+                
                 if (createTableState != null) {
                     createTableState.getSecond().remove(ctr.getSenderId());
+                    
                     if (createTableState.getSecond().isEmpty()) {
                         CreateTableResponseMessage clientResponse = 
                             new CreateTableResponseMessage(
@@ -230,6 +232,7 @@ public class MasterWarden extends AbstractWarden
         getEventBus().registerForEvent(FacadeInitRequest.class,
                                        actorID);
         getEventBus().registerForEvent(CreateTableMessage.class, actorID);
+        getEventBus().registerForEvent(CreateTableResponseMessage.class, actorID);
     }
 
     /**

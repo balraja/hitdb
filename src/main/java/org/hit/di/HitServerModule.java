@@ -85,9 +85,6 @@ public class HitServerModule extends HitModule
         bind(EngineWarden.class).toProvider(EngineWardenProvider.class);
         bind(ServerConfig.class).to(ServerPropertyConfig.class);
         bind(NodeID.class).toProvider(ServerIDProvider.class);
-        bind(String.class).annotatedWith(Names.named("ServerGroupName"))
-                          .toInstance("HitServers");
-       
     }
 
     /**
@@ -117,13 +114,6 @@ public class HitServerModule extends HitModule
     UnitID makeReplicationSlaveUnitID(ServerConfig config)
     {
         return new ReplicationID(config.getReplicationGroup());
-    }
-    
-    @Named("ServerGroupID")
-    @Provides
-    GroupID makeServerGroupID(@Named("ServerGroupName") String serverGroupName)
-    {
-        return new SimpleGroupID(serverGroupName);
     }
     
     @Named("ReplicationSlaveGroupID")

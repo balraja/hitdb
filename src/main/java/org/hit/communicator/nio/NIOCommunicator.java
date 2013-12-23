@@ -146,11 +146,10 @@ public class NIOCommunicator implements Communicator
                                          + sKey.channel() + " is readable");
                             }
                             Session session = myKeySessionMap.get(sKey);
-                            LOG.info(" " + sKey.channel() + " is readable");
                             if (session != null) {
                                 Message message = session.readMessage();
                                 try (CloseableLock lock =
-                                                mySessionMapLock.open())
+                                         mySessionMapLock.open())
                                 {
                                     myIdSessionMap.put(message.getSenderId(),
                                                        session);

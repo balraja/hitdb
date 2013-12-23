@@ -27,7 +27,6 @@ import org.hit.util.Application;
 import org.hit.util.ApplicationLauncher;
 import org.hit.util.ApplicationProperties;
 import org.hit.util.LogFactory;
-import org.hit.zookeeper.ZooKeeperClient;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;

@@ -66,6 +66,8 @@ import com.google.inject.Inject;
  */
 public class SlaveWarden extends AbstractWarden
 {
+    private static final String ERR_MSG = "Schema addition failure @ ";
+    
     private class ApplyDBStatsTask implements Runnable
     {
         private final DBStatEvent myDBStat;
@@ -206,10 +208,7 @@ public class SlaveWarden extends AbstractWarden
         }
         else if (event instanceof CreateTableMessage) {
             CreateTableMessage ctm = (CreateTableMessage) event;
-            String errorMessage = null;
-            if (getTransactionManager().createTable(ctm.getTableSchema())) {
-                errorMessage = "Schema addition failure";
-            }
+            getTransactionManager().createTable(ctm.getTableSchema());
             getEventBus().publish(
                     ActorID.DB_ENGINE,
                     new SendMessageEvent(
@@ -218,7 +217,7 @@ public class SlaveWarden extends AbstractWarden
                             getServerID(),
                             ctm.getTableSchema().getTableName(),
                             null,
-                            errorMessage)));
+                            null)));
             
         }
         else if (event instanceof DBStatEvent) {
@@ -249,11 +248,11 @@ public class SlaveWarden extends AbstractWarden
     public void register(ActorID actorID)
     {
         super.register(actorID);
-        getEventBus().registerForEvent(
-            GossipNotificationEvent.class, actorID);
+        getEventBus().registerForEvent(GossipNotificationEvent.class, actorID);
         getEventBus().registerForEvent(DBStatEvent.class, actorID);
         getEventBus().registerForEvent(NodeAdvertisementResponse.class, actorID);
         getEventBus().registerForEvent(DataLoadResponse.class, actorID);
+        getEventBus().registerForEvent(CreateTableMessage.class, actorID);
     }
 
     /**

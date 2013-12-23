@@ -22,6 +22,7 @@ package org.hit.client;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.ProcessBuilder.Redirect;
 import java.util.Arrays;
 
 import org.apache.commons.cli.BasicParser;
@@ -148,6 +149,8 @@ public class ClientLauncher extends AbstractLauncher
             bldr.environment().put(CLASSPATH_PREFIX,
                                    classPathBuilder.toString());
             bldr.environment().put(JAVA_OPTS, optsBuilder.toString());
+            bldr.redirectOutput(Redirect.to(new File("E:\\hitdbtest\\client.dump")));
+            bldr.redirectError(Redirect.to(new File("E:\\hitdbtest\\client.dump")));
             bldr.start();
         }
         catch (ParseException e) {

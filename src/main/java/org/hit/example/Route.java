@@ -26,6 +26,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import org.hit.db.model.Persistable;
+import org.hit.db.model.mutations.MutationFactory;
 
 /**
  * A type for defining the route serviced by an airline
@@ -223,5 +224,10 @@ public class Route implements Persistable<Long>, Externalizable
     public void readExternal(ObjectInput in)
         throws IOException, ClassNotFoundException
     {
+    }
+    
+    public static MutationFactory<Long, Route> getMutationFactory()
+    {
+        return new MutationFactory<>(TABLE_NAME);
     }
 }
