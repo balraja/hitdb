@@ -27,6 +27,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -50,6 +52,7 @@ import org.hit.messages.NodeAdvertisementResponse;
 import org.hit.server.ServerConfig;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
+import org.hit.util.Range;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -66,8 +69,6 @@ import com.google.inject.Inject;
  */
 public class SlaveWarden extends AbstractWarden
 {
-    private static final String ERR_MSG = "Schema addition failure @ ";
-    
     private class ApplyDBStatsTask implements Runnable
     {
         private final DBStatEvent myDBStat;
@@ -98,7 +99,7 @@ public class SlaveWarden extends AbstractWarden
         @Override
         public void run()
         {
-            if (myMaster != null) {
+            if (myMaster != null && getIsInitialized().get()) {
                 getEventBus().publish(
                     ActorID.DB_ENGINE,
                     new SendMessageEvent(
@@ -149,6 +150,8 @@ public class SlaveWarden extends AbstractWarden
             
             if (myAllocation.getTableToDataNodeMap().isEmpty()) {
                 getIsInitialized().compareAndSet(false, true);
+                LOG.info(
+                    "Successfully loaded data allocated data for all tables");
             }
             else {
                 sendDataFetchRequest(myAllocation);
@@ -167,7 +170,8 @@ public class SlaveWarden extends AbstractWarden
 
     private final TObjectLongMap<String> myTableRowCountMap;
     
-    private final Map<NodeID, SettableFuture<DataLoadResponse>> myNodeToResponseFutureMap;
+    private final Map<NodeID, SettableFuture<DataLoadResponse>> 
+        myNodeToResponseFutureMap;
     
     /**
      * CTOR
@@ -182,12 +186,12 @@ public class SlaveWarden extends AbstractWarden
         myPartitions = new HashMap<>();
         myTableRowCountMap = new TObjectLongHashMap<>();
         myNodeToResponseFutureMap = new HashMap<>();
-        
-        myScheduler =
-            MoreExecutors.listeningDecorator(
-                Executors.newScheduledThreadPool(
+        ScheduledExecutorService scheduler = 
+            Executors.newScheduledThreadPool(
                     1,
-                    new NamedThreadFactory("NodeCoordinatorScheduler")));
+                    new NamedThreadFactory("NodeCoordinatorScheduler"));
+        ((ThreadPoolExecutor) scheduler).prestartCoreThread();
+        myScheduler = MoreExecutors.listeningDecorator(scheduler);
     }
 
     /**
@@ -273,11 +277,15 @@ public class SlaveWarden extends AbstractWarden
             new SendMessageEvent(Collections.singletonList(myMaster),
                                  new NodeAdvertisement(getServerID())));
         
+        LOG.info("Scheduling task to publish hearbeats every  "
+                 + getServerConfig().getHeartBeatIntervalSecs() + " seconds");
         myScheduler.scheduleWithFixedDelay(
             new PublishHeartbeatTask(),
             getServerConfig().getHeartBeatIntervalSecs(),
             getServerConfig().getHeartBeatIntervalSecs(),
             TimeUnit.SECONDS);
+        
+        LOG.info("Successfully started slave warden");
     }
 
     /**
@@ -297,6 +305,14 @@ public class SlaveWarden extends AbstractWarden
                                       .next();
         NodeID targetNode = allocation.getTableToDataNodeMap()
                                       .get(tableName);
+        Range<?> range = 
+                allocation.getTable2PartitionMap()
+                          .get(tableName)
+                          .getNodeRange(getServerID());
+                          
+        LOG.info("Sending request to " + targetNode + " for fetching data "
+                 + " corresponding to " + tableName + " in the range "
+                 + range);
         
         getEventBus().publish(
             ActorID.DB_ENGINE,
@@ -304,9 +320,7 @@ public class SlaveWarden extends AbstractWarden
                 Collections.singletonList(targetNode),
                 new DataLoadRequest(getServerID(), 
                                     tableName,
-                                    allocation.getTable2PartitionMap()
-                                              .get(tableName)
-                                              .getNodeRange(getServerID()))));
+                                    range)));
         
         SettableFuture<DataLoadResponse> future = SettableFuture.create();
         Futures.addCallback(future, new LoadAllocationTask(allocation));

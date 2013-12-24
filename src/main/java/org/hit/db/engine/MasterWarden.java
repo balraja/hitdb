@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -91,6 +93,7 @@ public class MasterWarden extends AbstractWarden
             Executors.newScheduledThreadPool(
                 1,
                 new NamedThreadFactory(MasterWarden.class));
+        ((ThreadPoolExecutor) myScheduler).prestartCoreThread();
         myTableCreationState = new HashMap<>();
     }
 
@@ -240,23 +243,26 @@ public class MasterWarden extends AbstractWarden
      */
     public void start(Set<NodeID> otherNodes)
     {
-        getIsInitialized().compareAndSet(false, true);
         myAllocator.initialize(otherNodes);
-        myScheduler.schedule(
+        LOG.info("Scheduling task to publish updates to gossiper every "
+                + getServerConfig().getGossipUpdateSecs() + " seconds");
+        myScheduler.scheduleAtFixedRate(
             new Runnable()
             {
-                /**
-                 * {@inheritDoc}
-                 */
                 @Override
                 public void run()
                 {
-                    getEventBus().publish(
-                        ActorID.DB_ENGINE, myAllocator.getGossipUpdates());
+                    if (getIsInitialized().get()) {
+                        getEventBus().publish(
+                            ActorID.DB_ENGINE, myAllocator.getGossipUpdates());
+                    }
                 }
             },
             getServerConfig().getGossipUpdateSecs(),
+            getServerConfig().getGossipUpdateSecs(),
             TimeUnit.SECONDS);
+        
+        LOG.info("Started master warden");
     }
 
     /**

@@ -290,6 +290,7 @@ public class StandardAllocator implements Allocator
         for (NodeID slave : nodes) {
             myNodeToRowCountMap.put(slave, new TObjectLongHashMap<String>());
         }
+        LOG.info("Allocator is initialized with " + nodes);
     }
 
     /**

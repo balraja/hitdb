@@ -62,6 +62,8 @@ public class CommunicatingActor extends Actor
                     LOG.fine("Received " + message + " from "
                              + message.getSenderId());
                 }
+                LOG.info("Received " + message + " from "
+                        + message.getSenderId());
                 publish(message);
                 if (LOG.isLoggable(Level.FINE)) {
                     LOG.fine("Returned from publishing the message");

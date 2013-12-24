@@ -282,7 +282,7 @@ public class Disseminator extends Actor
     {
         super.start();
         myScheduler.scheduleAtFixedRate(
-            new SendDigestPeriodicTask(), 1, 1, TimeUnit.SECONDS);
+            new SendDigestPeriodicTask(), 1, 5, TimeUnit.MINUTES);
     }
     
 

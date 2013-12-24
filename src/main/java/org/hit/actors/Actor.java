@@ -23,8 +23,10 @@ package org.hit.actors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 
 import org.hit.event.Event;
+import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
 
 /**
@@ -38,6 +40,9 @@ import org.hit.util.NamedThreadFactory;
  */
 public abstract class Actor
 {
+    private static final Logger LOG = 
+        LogFactory.getInstance().getLogger(Actor.class);
+            
     private static final int DEFAULT_EVENT_QUEUE_SIZE = 128;
 
     private final ExecutorService myActorExecutor;
@@ -102,6 +107,9 @@ public abstract class Actor
                     processEvent(event);
                 }
             }});
+        
+        LOG.info("Actor " + myActorID + " has been started successfully");
+        
     }
 
     /**

@@ -158,7 +158,8 @@ public class ServerComponentManager extends Actor
             if (   myReplicatedGroupReadyEvent != null 
                 && myReplicatedSlaveGroupReadyEvent != null)
             {
-                myDBEngine.init(grEvent.getLeader());
+                
+                LOG.info("Database started");
                 myCommunicatingActor.start();
                 LOG.info("Communicator started");
                 myConsensusManager.start();
@@ -166,9 +167,9 @@ public class ServerComponentManager extends Actor
                 myDisseminator.start();
                 LOG.info("Gossiper started");
                 myDBEngine.start(
-                    new Pair<>(myServersGroupReadyEvent.getLeader(),
-                               myServersGroupReadyEvent.getFollowers()));
-                LOG.info("Database engine started");
+                        new Pair<>(myServersGroupReadyEvent.getLeader(),
+                                   myServersGroupReadyEvent.getFollowers()));
+                LOG.info("Database engine Initialized");
                 
                 publish(
                     new CreateRaftLeaderEvent(

@@ -67,7 +67,7 @@ public class DBEngine extends Actor
     @Override
     protected void processEvent(Event event)
     {
-        myEngineWarden.handleEvent(event);
+       myEngineWarden.handleEvent(event); 
     }
 
     /**
@@ -77,6 +77,7 @@ public class DBEngine extends Actor
     protected void registerEvents()
     {
         myEngineWarden.register(getActorID());
+        
     }
     
     /**
