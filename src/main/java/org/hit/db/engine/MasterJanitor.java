@@ -60,10 +60,10 @@ import com.google.inject.Inject;
  *
  * @author Balraja Subbiah
  */
-public class MasterWarden extends AbstractWarden
+public class MasterJanitor extends AbstractJanitor
 {
     private static final Logger LOG =
-       LogFactory.getInstance().getLogger(MasterWarden.class);
+       LogFactory.getInstance().getLogger(MasterJanitor.class);
 
     private static final String TABLE_CREATION_FAILURE_MSG =
         "Creation of table %s has failed";
@@ -81,7 +81,7 @@ public class MasterWarden extends AbstractWarden
      * CTOR
      */
     @Inject
-    public MasterWarden(TransactionManager transactionManager,
+    public MasterJanitor(TransactionManager transactionManager,
                         ServerConfig engineConfig,
                         EventBus eventBus,
                         NodeID masterID,
@@ -92,7 +92,7 @@ public class MasterWarden extends AbstractWarden
         myScheduler =
             Executors.newScheduledThreadPool(
                 1,
-                new NamedThreadFactory(MasterWarden.class));
+                new NamedThreadFactory(MasterJanitor.class));
         ((ThreadPoolExecutor) myScheduler).prestartCoreThread();
         myTableCreationState = new HashMap<>();
     }
@@ -130,7 +130,7 @@ public class MasterWarden extends AbstractWarden
                     
 
                     LOG.info(" Schema for " + schema.getTableName()
-                             + "is sent to " + myAllocator.getMonitoredNodes());
+                             + " is sent to " + myAllocator.getMonitoredNodes());
                 }
                 else {
                     CreateTableResponseMessage response =
@@ -152,15 +152,23 @@ public class MasterWarden extends AbstractWarden
                 }
             }
             else if (event instanceof CreateTableResponseMessage) {
+                
                 CreateTableResponseMessage ctr = 
                     (CreateTableResponseMessage) event;
+                
+                LOG.info("Received response from " + ctr.getSenderId()
+                        + " towards adding schema for " 
+                        + ctr.getTableName());
+                
                 Pair<NodeID,Set<NodeID>> createTableState = 
                     myTableCreationState.get(ctr.getTableName());
                 
                 if (createTableState != null) {
+                    
                     createTableState.getSecond().remove(ctr.getSenderId());
                     
                     if (createTableState.getSecond().isEmpty()) {
+                        
                         CreateTableResponseMessage clientResponse = 
                             new CreateTableResponseMessage(
                                     getServerID(), 
@@ -168,6 +176,7 @@ public class MasterWarden extends AbstractWarden
                                     myAllocator.getPartitions()
                                                .get(ctr.getTableName()),
                                     null);
+                        
                         getEventBus().publish(
                             ActorID.DB_ENGINE,
                             new SendMessageEvent(
@@ -183,10 +192,6 @@ public class MasterWarden extends AbstractWarden
                                + ctr.getSenderId()
                                + " which wasn't send by us ");
                 }
-            }
-            else if (event instanceof DBStatEvent) {
-                DBStatEvent stat = (DBStatEvent) event;
-                myAllocator.listenTO(stat);
             }
             else if (event instanceof NodeAdvertisement) {
                 NodeAdvertisement na = (NodeAdvertisement) event;
@@ -243,6 +248,8 @@ public class MasterWarden extends AbstractWarden
      */
     public void start(Set<NodeID> otherNodes)
     {
+        super.start();
+        
         myAllocator.initialize(otherNodes);
         LOG.info("Scheduling task to publish updates to gossiper every "
                 + getServerConfig().getGossipUpdateSecs() + " seconds");
@@ -272,5 +279,14 @@ public class MasterWarden extends AbstractWarden
     public void stop()
     {
         myScheduler.shutdownNow();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void handleDbStats(DBStatEvent dbStats)
+    {
+        myAllocator.listenTO(dbStats);
     }
 }

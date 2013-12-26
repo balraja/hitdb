@@ -30,6 +30,7 @@ import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
 import org.hit.db.model.DBOperation;
 import org.hit.event.ConsensusResponseEvent;
+import org.hit.event.DBStatEvent;
 import org.hit.event.Event;
 import org.hit.event.ProposalNotificationEvent;
 import org.hit.event.SendMessageEvent;
@@ -46,7 +47,7 @@ import org.hit.util.LogFactory;
  *
  * @author Balraja Subbiah
  */
-public abstract class AbstractWarden implements EngineWarden
+public abstract class AbstractJanitor implements EngineJanitor
 {
     private static final String DB_OPERATION_LOG =
         "Received request from %s for performing %s";
@@ -67,7 +68,7 @@ public abstract class AbstractWarden implements EngineWarden
     /**
      * CTOR
      */
-    public AbstractWarden(TransactionManager transactionManager,
+    public AbstractJanitor(TransactionManager transactionManager,
                           ServerConfig       serverConfig,
                           EventBus           eventBus,
                           NodeID             serverID)
@@ -206,5 +207,13 @@ public abstract class AbstractWarden implements EngineWarden
         myEventBus.registerForEvent(ProposalNotificationEvent.class, actorID);
         myEventBus.registerForEvent(ConsensusResponseEvent.class, actorID);
         myEventBus.registerForEvent(DataLoadRequest.class, actorID);
+    }
+    
+    /**
+     * Initializes the {@link TransactionManager} with reference to this janitor.
+     */
+    public void start()
+    {
+        myTransactionManager.initialize(this);
     }
 }

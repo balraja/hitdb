@@ -23,6 +23,7 @@ package org.hit.actors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.event.Event;
@@ -104,7 +105,15 @@ public abstract class Actor
             public void run() {
                 while (!myShouldStop.get()) {
                     Event event = myEventBus.consume(myActorID);
-                    processEvent(event);
+                    try {
+                        processEvent(event);
+                    }
+                    catch (Throwable e) {
+                        LOG.log(Level.SEVERE, 
+                                "Received exception while processing " 
+                                + event + " for actor " + myActorID,
+                                e);
+                    }
                 }
             }});
         

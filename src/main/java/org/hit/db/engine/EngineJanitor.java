@@ -21,6 +21,7 @@
 package org.hit.db.engine;
 
 import org.hit.actors.ActorID;
+import org.hit.event.DBStatEvent;
 import org.hit.event.Event;
 
 /**
@@ -29,7 +30,7 @@ import org.hit.event.Event;
  *
  * @author Balraja Subbiah
  */
-public interface EngineWarden
+public interface EngineJanitor
 {
     /** Handles the interested events */
     public void handleEvent(Event event);
@@ -39,4 +40,10 @@ public interface EngineWarden
 
     /** Stops the warden */
     public void stop();
+    
+    /** 
+     * The interface via which <code>TransactionManager</code> provides 
+     * stats about tables stored in the ddatabase.
+     */
+    public void handleDbStats(DBStatEvent dbStats);
 }

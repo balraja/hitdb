@@ -122,7 +122,6 @@ public class Session
             if (message != null) {
                 myConnection.send(mySerializer.serialize(message));
             }
-
             if (LOG.isLoggable(Level.FINE)) {
                 LOG.fine("Successfully sent the  " + message);
             }

@@ -278,8 +278,10 @@ public class TransactionManager
                 myExecutionPahse = false;
             }
             else if (event instanceof Memento && !myExecutionPahse) {
+                
                 myEventBus.publish(
                     ActorID.DB_ENGINE, myDatabase.getStatistics());
+                
                 if (myTransaction instanceof WriteTransaction) {
                     myEventBus.publish(
                         ActorID.DB_ENGINE,
@@ -438,8 +440,12 @@ public class TransactionManager
                 @SuppressWarnings("unchecked")
                 Memento<TransactionResult> result = 
                     (Memento<TransactionResult>) event;
-                myEventBus.publish(ActorID.DB_ENGINE, 
-                                   myDatabase.getStatistics());
+                
+                // THis is wrong. Figure out a way to fix this */
+                
+                /* myEventBus.publish(ActorID.DB_ENGINE, 
+                                      myDatabase.getStatistics()); */
+                
                 if (myTransaction instanceof WriteTransaction) {
                     myEventBus.publish(
                         ActorID.DB_ENGINE,
@@ -610,6 +616,8 @@ public class TransactionManager
     
     private final UnitID myReplicationUnitID;
     
+    private EngineJanitor myJanitor;
+    
     /**
      * CTOR
      */
@@ -634,6 +642,15 @@ public class TransactionManager
                 Executors.newFixedThreadPool(
                     20,
                     new NamedThreadFactory(TransactionManager.class)));
+    }
+    
+    /** 
+     * Initializes reference to the Janitor that's responsible for this 
+     * TransactionManager.
+     */
+    public void initialize(EngineJanitor janitor)
+    {
+        myJanitor = janitor;
     }
     
     /**

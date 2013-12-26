@@ -54,7 +54,7 @@ import com.google.inject.Inject;
 
 /**
  * Implements <code>Communicator</code> using NIO's nonblocking channels. By
- * default it binds to the port 17000 and starts listening for incoming
+ * default it binds to the port specified via  and starts listening for incoming
  * connections.
  *
  * @author Balraja Subbiah
@@ -74,15 +74,17 @@ public class NIOCommunicator implements Communicator
         public void run()
         {
             try {
-                LOG.info("Selector started");
+                LOG.info("The selector for processing IO events  has been "
+                         + "started");
+                
                 while (!myShouldStop.get()) {
-                    try (CloseableLock lock =
-                                    mySessionMapLock.open())
+                    try (CloseableLock lock = mySessionMapLock.open())
                     {
                         for (Session session : myIdSessionMap.values()) {
                             session.write();
                         }
                     }
+                    
                     int n = mySelector.select(1000);
                     if (n == 0) {
                         continue;
@@ -127,8 +129,7 @@ public class NIOCommunicator implements Communicator
                                 new Session(channel,
                                             mySerializerFactory.makeSerializer());
 
-                            try (CloseableLock lock =
-                                     mySessionMapLock.open())
+                            try (CloseableLock lock = mySessionMapLock.open())
                             {
                                 myKeySessionMap.put(key, session);
                             }
@@ -151,9 +152,18 @@ public class NIOCommunicator implements Communicator
                                 try (CloseableLock lock =
                                          mySessionMapLock.open())
                                 {
+                                    if (myIdSessionMap.containsKey(
+                                            message.getSenderId())) 
+                                    {
+                                        LOG.severe("Created another session "
+                                                + " for " + message.getSenderId()
+                                                + " to which a session already "
+                                                + "exists ");
+                                    }
                                     myIdSessionMap.put(message.getSenderId(),
                                                        session);
                                 }
+                                
                                 for (MessageHandler handler : myHandlers)
                                 {
                                     handler.handle(message);
@@ -240,9 +250,14 @@ public class NIOCommunicator implements Communicator
         if (LOG.isLoggable(Level.FINE)) {
             LOG.fine("Sending message " + m + " to node"  + node);
         }
+        
+        LOG.info("Sending message " + m + " to node "  + node);
+        
         try (CloseableLock lock = mySessionMapLock.open()) {
+            
             Session session = myIdSessionMap.get(node);
             if (session == null) {
+                LOG.info("Creating new session for " + node);
                 SocketChannel socketChannel =
                     SocketChannel.open(((IPNodeID) node).getIPAddress());
                 socketChannel.configureBlocking(false);
@@ -253,14 +268,17 @@ public class NIOCommunicator implements Communicator
                 session =
                     new Session(socketChannel,
                                 mySerializerFactory.makeSerializer());
+                
                 myKeySessionMap.put(key, session);
                 myIdSessionMap.put(node, session);
                 session.cacheForWrite(m);
             }
             else {
+                
                 if (LOG.isLoggable(Level.FINE)) {
                     LOG.fine("Adding message to the cache");
                 }
+                
                 session.cacheForWrite(m);
                 if (LOG.isLoggable(Level.FINE)) {
                     LOG.fine("Successfully added message to the cache");
@@ -276,7 +294,7 @@ public class NIOCommunicator implements Communicator
     @Override
     public void start() throws CommunicatorException
     {
-        LOG.info("Starting NIO communicator");
+        LOG.info("Binding NIO communicator to " + myId.getIPAddress());
         try {
             ServerSocket serverSocket = myServerSocketChannel.socket();
             serverSocket.bind(myId.getIPAddress());

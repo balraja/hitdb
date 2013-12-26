@@ -67,7 +67,7 @@ import com.google.inject.Inject;
  *
  * @author Balraja Subbiah
  */
-public class SlaveWarden extends AbstractWarden
+public class SlaveJanitor extends AbstractJanitor
 {
     private class ApplyDBStatsTask implements Runnable
     {
@@ -160,7 +160,7 @@ public class SlaveWarden extends AbstractWarden
     }
 
     private static final Logger LOG =
-        LogFactory.getInstance().getLogger(SlaveWarden.class);
+        LogFactory.getInstance().getLogger(SlaveJanitor.class);
 
     private NodeID myMaster;
 
@@ -177,7 +177,7 @@ public class SlaveWarden extends AbstractWarden
      * CTOR
      */
     @Inject
-    public SlaveWarden(TransactionManager transactionManager,
+    public SlaveJanitor(TransactionManager transactionManager,
                        ServerConfig       serverConfig,
                        EventBus           eventBus,
                        NodeID             slaveID)
@@ -200,6 +200,8 @@ public class SlaveWarden extends AbstractWarden
     @Override
     public void handleEvent(Event event)
     {
+        // XXX Should we cache messages till the data is loaded from other 
+        // nodes. Probably notify master also.
         super.handleEvent(event);
         if (event instanceof GossipNotificationEvent) {
             GossipNotificationEvent gne = (GossipNotificationEvent) event;
@@ -211,8 +213,13 @@ public class SlaveWarden extends AbstractWarden
             }
         }
         else if (event instanceof CreateTableMessage) {
+            
             CreateTableMessage ctm = (CreateTableMessage) event;
+            // XXX Handle failure scenario also.
             getTransactionManager().createTable(ctm.getTableSchema());
+            LOG.info("Notifying " + ctm.getSenderId() + " about "
+                     + " the response for adding schema  " 
+                     + ctm.getTableSchema());
             getEventBus().publish(
                     ActorID.DB_ENGINE,
                     new SendMessageEvent(
@@ -223,10 +230,6 @@ public class SlaveWarden extends AbstractWarden
                             null,
                             null)));
             
-        }
-        else if (event instanceof DBStatEvent) {
-            DBStatEvent stat = (DBStatEvent) event;
-            myScheduler.submit(new ApplyDBStatsTask(stat));
         }
         else if (event instanceof NodeAdvertisementResponse) {
             NodeAdvertisementResponse nar = 
@@ -272,6 +275,10 @@ public class SlaveWarden extends AbstractWarden
      */
     public void start(NodeID master)
     {
+        super.start();
+        myMaster = master;
+        
+        LOG.info("Notifying " + myMaster + " about this node ");
         getEventBus().publish(
             ActorID.DB_ENGINE,
             new SendMessageEvent(Collections.singletonList(myMaster),
@@ -299,6 +306,14 @@ public class SlaveWarden extends AbstractWarden
     
     private void sendDataFetchRequest(Allocation allocation)
     {
+        if (!allocation.shouldFetchDataFromOtherNodes()) {
+            getIsInitialized().compareAndSet(false, true);
+            LOG.info("Allocation sent from the master is empty. So we are "
+                     + " marking the db server to be ready to process requests"
+                    + " from clients");
+            return;
+        }
+        
         String tableName = allocation.getTableToDataNodeMap()
                                       .keySet()
                                       .iterator()
@@ -325,5 +340,14 @@ public class SlaveWarden extends AbstractWarden
         SettableFuture<DataLoadResponse> future = SettableFuture.create();
         Futures.addCallback(future, new LoadAllocationTask(allocation));
         myNodeToResponseFutureMap.put(targetNode, future);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void handleDbStats(DBStatEvent dbStats)
+    {
+        myScheduler.submit(new ApplyDBStatsTask(dbStats));
     }
 }

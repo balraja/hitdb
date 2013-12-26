@@ -24,7 +24,7 @@ import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.UnitID;
 import org.hit.db.engine.Allocator;
-import org.hit.db.engine.EngineWarden;
+import org.hit.db.engine.EngineJanitor;
 import org.hit.db.engine.ReplicationID;
 import org.hit.db.engine.StandardAllocator;
 import org.hit.db.engine.TransactionManager;
@@ -82,7 +82,7 @@ public class HitServerModule extends HitModule
         bind(TransactableDatabase.class).to(TransactableHitDatabase.class);
         bind(TransactionManager.class).toProvider(
             TransactionManagerProvider.class);
-        bind(EngineWarden.class).toProvider(EngineWardenProvider.class);
+        bind(EngineJanitor.class).toProvider(EngineJanitorProvider.class);
         bind(ServerConfig.class).to(ServerPropertyConfig.class);
         bind(NodeID.class).toProvider(ServerIDProvider.class);
     }

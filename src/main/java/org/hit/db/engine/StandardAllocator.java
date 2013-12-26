@@ -53,7 +53,7 @@ import com.google.inject.Inject;
 
 /**
  * Defines the contract for a simple allocator that allocates the key space of
- * a table to the incoming node.
+ * tables to the incoming node. 
  *
  * @author Balraja Subbiah
  */
@@ -100,7 +100,7 @@ public class StandardAllocator implements Allocator
     {
         myTableToSchemaMap.put(tableSchema.getTableName(), tableSchema);
         
-        if (!tableSchema.isReplicated()) {
+        if (tableSchema.isReplicated()) {
             return;
         }
         
@@ -118,8 +118,8 @@ public class StandardAllocator implements Allocator
                 domain.elementAt(i * perNodeRange),
                 node));
             
-            LOG.info("Adding " + myServerID + " to handle data upto " +
-                     tableSchema.getKeyspace().getDomain().getMaximum());
+            LOG.info("Adding " + node + " to handle data upto " +
+                     domain.elementAt(i * perNodeRange));
             i++;
         }
         

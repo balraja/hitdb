@@ -39,13 +39,13 @@ import com.google.inject.Inject;
  */
 public class DBEngine extends Actor
 {
-    private final EngineWarden myEngineWarden;
+    private final EngineJanitor myEngineWarden;
     
     /**
      * CTOR
      */
     @Inject
-    public DBEngine(EventBus eventBus, EngineWarden warden)
+    public DBEngine(EventBus eventBus, EngineJanitor warden)
     {
         super(eventBus, ActorID.DB_ENGINE);
         myEngineWarden = warden;
@@ -56,8 +56,8 @@ public class DBEngine extends Actor
      */
     public void init(NodeID masterNode)
     {
-        if (myEngineWarden instanceof SlaveWarden) {
-            ((SlaveWarden) myEngineWarden).setMaster(masterNode);
+        if (myEngineWarden instanceof SlaveJanitor) {
+            ((SlaveJanitor) myEngineWarden).setMaster(masterNode);
         }
     }
 
@@ -86,11 +86,11 @@ public class DBEngine extends Actor
     public void start(Pair<NodeID,Set<NodeID>> serverGroup)
     {
         super.start();
-        if (myEngineWarden instanceof MasterWarden) {
-            ((MasterWarden) myEngineWarden).start(serverGroup.getSecond());
+        if (myEngineWarden instanceof MasterJanitor) {
+            ((MasterJanitor) myEngineWarden).start(serverGroup.getSecond());
         }
         else {
-            ((SlaveWarden) myEngineWarden).start(serverGroup.getFirst());
+            ((SlaveJanitor) myEngineWarden).start(serverGroup.getFirst());
         }
     }
     

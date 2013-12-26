@@ -111,6 +111,8 @@ public class Disseminator extends Actor
         public void run()
         {
             if (!myParticipants.contains(myDigestOwner)) {
+                LOG.info("Adding " + myDigestOwner + " to "
+                         + myOwner + "'s gossip neighbours list");
                 myParticipants.add(myDigestOwner);
             }
             publish(
@@ -259,7 +261,7 @@ public class Disseminator extends Actor
         else if (event instanceof ReconcillationRequest) {
             ReconcillationRequest rr = (ReconcillationRequest) event;
             myScheduler.submit(new ApplyDigestTask(
-                myOwner, rr.getDigest()));
+                rr.getSenderId(), rr.getDigest()));
         }
         else if (event instanceof NodeAdvertisement) {
             NodeAdvertisement advertisement = 

@@ -91,6 +91,15 @@ public class Allocation implements Externalizable
     {
         return myTableToDataNodeMap;
     }
+    
+    /**
+     * Returns true if master has allocated data, that in turn has to be 
+     * fetched from other nodes.
+     */
+    public boolean shouldFetchDataFromOtherNodes()
+    {
+        return !myTableToDataNodeMap.isEmpty();
+    }
 
     /**
      * {@inheritDoc}
