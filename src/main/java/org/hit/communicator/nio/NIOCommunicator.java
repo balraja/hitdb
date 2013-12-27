@@ -54,8 +54,8 @@ import com.google.inject.Inject;
 
 /**
  * Implements <code>Communicator</code> using NIO's nonblocking channels. By
- * default it binds to the port specified via  and starts listening for incoming
- * connections.
+ * default it binds to the IpAddress specified via {@link IPNodeID}
+ *  and starts listening for incoming connections.
  *
  * @author Balraja Subbiah
  */
@@ -149,6 +149,9 @@ public class NIOCommunicator implements Communicator
                             Session session = myKeySessionMap.get(sKey);
                             if (session != null) {
                                 Message message = session.readMessage();
+                                if (message == null) {
+                                    continue;
+                                }
                                 try (CloseableLock lock =
                                          mySessionMapLock.open())
                                 {
@@ -251,8 +254,6 @@ public class NIOCommunicator implements Communicator
             LOG.fine("Sending message " + m + " to node"  + node);
         }
         
-        LOG.info("Sending message " + m + " to node "  + node);
-        
         try (CloseableLock lock = mySessionMapLock.open()) {
             
             Session session = myIdSessionMap.get(node);
@@ -303,6 +304,7 @@ public class NIOCommunicator implements Communicator
                                            SelectionKey.OP_ACCEPT);
             LOG.info("Bound server to the address "
                      + myId.getIPAddress());
+            
             mySelectableExecutor.execute(new SelectTask());
         }
         catch (IOException e) {

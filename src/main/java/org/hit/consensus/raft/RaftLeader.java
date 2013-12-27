@@ -24,6 +24,8 @@ import gnu.trove.map.hash.TLongObjectHashMap;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
@@ -34,18 +36,25 @@ import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
 import org.hit.consensus.raft.log.WAL;
 import org.hit.consensus.raft.log.WALPropertyConfig;
-import org.hit.event.ConsensusResponseEvent;
 import org.hit.event.SendMessageEvent;
+import org.hit.util.LogFactory;
 
 /**
  * Extends {@link ConsensusLeader} to support raft specific version.
  * 
  * @author Balraja Subbiah
  */
-public class RaftLeader extends ConsensusLeader 
-    implements RaftProtocol
+public class RaftLeader extends ConsensusLeader implements RaftProtocol
 {
-    private class Trace
+    /** LOGGER */
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(RaftLeader.class);
+                
+    /**
+     * A simple class to keep track of progress of a {@link Proposal}
+     * being replicated across the followers.
+     */
+    private class ProposalTracker
     {
         private final Set<NodeID> myLogAcceptors;
         
@@ -62,17 +71,17 @@ public class RaftLeader extends ConsensusLeader
         /**
          * CTOR
          */
-        public Trace(Proposal proposal, 
-                          long     termID,
-                          long     sequenceNO,
-                          long     lcTermID,
-                          long     lcSeqNo)
+        public ProposalTracker(Proposal proposal, 
+                     long     termID,
+                     long     sequenceNO,
+                     long     lcTermID,
+                     long     lcSeqNo)
         {
             myProposal        = proposal;
             myLogAcceptors    = new HashSet<>(getAcceptors());
             myTermID          = termID;
             mySequenceNO      = sequenceNO;
-            myLCTermNo        = termID;
+            myLCTermNo        = lcTermID;
             myLCSeqNo         = lcSeqNo;
         }
         
@@ -97,20 +106,28 @@ public class RaftLeader extends ConsensusLeader
         
         public void receivedAcceptance(NodeID acceptedNodeID)
         {
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Received acceptance for " 
+                         + myTermID 
+                         + " : " 
+                         + mySequenceNO
+                         + " from " + acceptedNodeID);
+            }
             myLogAcceptors.remove(acceptedNodeID);
             if (myLogAcceptors.isEmpty()) {
                 myProtocolState.setCommitted(myTermID, mySequenceNO);
-                getEventBus().publish(
-                    ActorID.CONSENSUS_MANAGER,
-                    new ConsensusResponseEvent(myProposal, true));
-                myProtocolState.deleteSupervisor(myTermID, mySequenceNO);
+                myProtocolState.deleteTracker(myTermID, mySequenceNO);
             }
         }
     }
     
+    /**
+     * This class tracks the progress of all {@link Proposal}s submitted
+     * using their {@link ProposalTracker}s.
+     */
     private static class State
     {
-        private final TLongObjectMap<TLongObjectMap<Trace>> myProposalLog;
+        private final TLongObjectMap<TLongObjectMap<ProposalTracker>> myProposalLog;
         
         private long myTermNo;
         
@@ -127,7 +144,7 @@ public class RaftLeader extends ConsensusLeader
         {
             myProposalLog = new TLongObjectHashMap<>();
             myTermNo      = termNo;
-            mySequenceNo  = 1L;
+            mySequenceNo  = -1L;
             myLastCommittedSeqNo = -1L;
             myLastCommittedTermNo = -1L;
         }
@@ -156,6 +173,11 @@ public class RaftLeader extends ConsensusLeader
             return ++mySequenceNo;
         }
         
+        public long getSeqNumber()
+        {
+            return mySequenceNo;
+        }
+        
         /**
          * Returns the value of lastCommittedTermNo
          */
@@ -172,19 +194,16 @@ public class RaftLeader extends ConsensusLeader
             return myLastCommittedSeqNo;
         }
 
-        public Trace getSuperVisor(long termID, long sequenceNo)
+        public ProposalTracker getTracker(long termID, long sequenceNo)
         {
-            TLongObjectMap<Trace> seqMap =
-                myProposalLog.get(termID);
+            TLongObjectMap<ProposalTracker> seqMap = myProposalLog.get(termID);
             return seqMap != null ? seqMap.get(sequenceNo) : null;
         }
         
-        public void setSupervisor(long termID, 
-                                  long sequenceNo, 
-                                  Trace supervisor)
+        public void setTracker(
+            long termID, long sequenceNo, ProposalTracker supervisor)
         {
-            TLongObjectMap<Trace> seqMap =
-                myProposalLog.get(termID);
+            TLongObjectMap<ProposalTracker> seqMap = myProposalLog.get(termID);
             if (seqMap == null) {
                 seqMap = new TLongObjectHashMap<>();
                 myProposalLog.put(termID, seqMap);
@@ -192,9 +211,9 @@ public class RaftLeader extends ConsensusLeader
             seqMap.put(sequenceNo, supervisor);
         }
         
-        public void deleteSupervisor(long termID, long sequenceNo)
+        public void deleteTracker(long termID, long sequenceNo)
         {
-            TLongObjectMap<Trace> seqMap =
+            TLongObjectMap<ProposalTracker> seqMap =
                 myProposalLog.get(termID);
             if (seqMap != null) {
                 seqMap.remove(sequenceNo);
@@ -205,6 +224,13 @@ public class RaftLeader extends ConsensusLeader
         {
             myLastCommittedTermNo = termNo;
             myLastCommittedSeqNo  = sequenceNo;
+            
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("The last committed proposal is  " 
+                         + myLastCommittedTermNo
+                         + " : " 
+                         + myLastCommittedSeqNo);
+            }
         }
     }
     
@@ -233,15 +259,36 @@ public class RaftLeader extends ConsensusLeader
     @Override
     public void handle(Message message)
     {
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("The raft leader corresponding to " + getConsensusUnitID()
+                    + " has received " + message.getClass()
+                    + " from " + message.getSenderId());
+        } 
         if (message instanceof RaftReplicationResponse) {
             RaftReplicationResponse response = 
                 (RaftReplicationResponse) message;
-            Trace supervisor = 
-                myProtocolState.getSuperVisor(
-                    response.getAcceptedTermID(),
-                    response.getAcceptedSeqNo());
-            if (supervisor != null) {
-                supervisor.receivedAcceptance(response.getSenderId());
+            
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Replication response "
+                          + response.getAcceptedTermID() 
+                          + " : "
+                          + response.getAcceptedSeqNo());
+            } 
+            
+            if (response.isAccepted()) {
+                ProposalTracker supervisor = 
+                    myProtocolState.getTracker(
+                        response.getAcceptedTermID(),
+                        response.getAcceptedSeqNo());
+                if (supervisor != null) {
+                    supervisor.receivedAcceptance(response.getSenderId());
+                }
+            }
+            else {
+                // It can fail because:
+                // a. Term is not known to be elected by the remote server
+                // b. Last seen sequence number by that server doesn't match
+                //    the current sequence number.
             }
         }
     }
@@ -252,14 +299,30 @@ public class RaftLeader extends ConsensusLeader
     @Override
     public void getConsensus(Proposal proposal)
     {
-        Trace trace = 
-            new Trace(proposal,
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Received " + proposal + " for replication");
+            LOG.fine("The current term-number:seq-no is  " 
+                     + myProtocolState.getTermNo()
+                     + " : "
+                     + myProtocolState.getSeqNumber());
+        }
+        ProposalTracker trace = 
+            new ProposalTracker(proposal,
                        myProtocolState.getTermNo(),
                        myProtocolState.incAndGetSeqNum(),
                        myProtocolState.getLastCommittedTermNo(),
                        myProtocolState.getLastCommittedSeqNo());
         
-        myProtocolState.setSupervisor(
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("The term-number:seq-no assigned is  " 
+                     + myProtocolState.getTermNo()
+                     + " : "
+                     + myProtocolState.getSeqNumber()
+                     + " and replicated across the nodes " 
+                     + getAcceptors());
+        }
+        
+        myProtocolState.setTracker(
             trace.myTermID,
             trace.mySequenceNO,
             trace);

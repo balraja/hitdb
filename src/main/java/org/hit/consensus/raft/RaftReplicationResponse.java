@@ -91,6 +91,15 @@ public class RaftReplicationResponse extends ConsensusMessage
     }
     
     /**
+     * Returns true if the consensus proposal has been accepted by the 
+     * other server, else returns false.
+     */
+    public boolean isAccepted()
+    {
+        return myAccepted;
+    }
+    
+    /**
      * {@inheritDoc}
      */
     @Override

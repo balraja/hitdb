@@ -22,6 +22,7 @@ package org.hit.db.engine;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Date;
 
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
@@ -121,5 +122,15 @@ public class ReplicationProposal implements Proposal
         return myEndTime;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString()
+    {
+        return "ReplicationProposal [myUnitID=" + myUnitID + ", myMutation="
+                + myMutation + ", myStart=" + new Date(myStart) + ", myEndTime="
+                + new Date(myEndTime) + "]";
+    }
     
 }

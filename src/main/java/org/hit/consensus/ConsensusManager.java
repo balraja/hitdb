@@ -22,6 +22,7 @@ package org.hit.consensus;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
@@ -34,6 +35,7 @@ import org.hit.event.CreateConsensusLeaderEvent;
 import org.hit.event.Event;
 import org.hit.event.ProposalNotificationResponse;
 import org.hit.messages.ConsensusMessage;
+import org.hit.util.LogFactory;
 
 import com.google.inject.Inject;
 
@@ -45,6 +47,10 @@ import com.google.inject.Inject;
  */
 public class ConsensusManager extends Actor
 {
+    /** LOGGER */
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(ConsensusManager.class);
+        
     private final Map<UnitID, ConsensusProtocol> myUnitToConsensusProtocolMap;
     
     private final NodeID                         myNodeID;
@@ -53,8 +59,7 @@ public class ConsensusManager extends Actor
      * CTOR
      */
     @Inject
-    public ConsensusManager(EventBus                  eventBus,
-                            NodeID                    myID)
+    public ConsensusManager(EventBus eventBus, NodeID myID)
     {
         super(eventBus, ActorID.CONSENSUS_MANAGER);
         myUnitToConsensusProtocolMap = new HashMap<>();
@@ -75,6 +80,7 @@ public class ConsensusManager extends Actor
         if (event instanceof CreateConsensusLeaderEvent) {
             CreateConsensusLeaderEvent ccle =
                 (CreateConsensusLeaderEvent) event;
+            LOG.info("Creating consenus leader for " + ccle.getUnitID());
             myUnitToConsensusProtocolMap.put(
                 ccle.getUnitID(),
                 makeProvider(ccle.getUnitID()).makeLeader(
@@ -85,7 +91,7 @@ public class ConsensusManager extends Actor
         else if (event instanceof CreateConsensusAcceptorEvent) {
             CreateConsensusAcceptorEvent ccae =
                 (CreateConsensusAcceptorEvent) event;
-            
+            LOG.info("Creating consenus acceptor for " + ccae.getUnitID());
             myUnitToConsensusProtocolMap.put(
                 ccae.getUnitID(),
                 makeProvider(ccae.getUnitID()).makeAcceptor(

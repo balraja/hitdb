@@ -125,7 +125,7 @@ public class TransactionManager
     }
     
     /**
-     * Defines a workflow where the transaction is performed only 
+     * Defines a workflow wherein the transaction is performed only 
      * on the data present in this server.
      */
     private class SimpleWorkflow extends AbstractWokflow
@@ -134,7 +134,7 @@ public class TransactionManager
         
         private final AbstractTransaction myTransaction;
         
-        private boolean myExecutionPahse;
+        private boolean myExecutionPhase;
         
         private Memento<Boolean> myMemento;
 
@@ -147,7 +147,7 @@ public class TransactionManager
             super();
             myClientInfo = clientInfo;
             myTransaction = transaction;
-            myExecutionPahse = true;
+            myExecutionPhase = true;
         }
 
         /**
@@ -189,6 +189,9 @@ public class TransactionManager
                new SendMessageEvent(
                    Collections.singleton(myClientInfo.getClientID()),
                    message));
+            
+            // Remove the workflow as it's no longer needed.
+            myWorkFlowMap.remove(myTransaction.getTransactionID());
         }
 
         /**
@@ -208,6 +211,9 @@ public class TransactionManager
                            exception.getMessage(),
                            exception)));
             }
+            
+            // Remove the workflow as it's no longer needed.
+            myWorkFlowMap.remove(myTransaction.getTransactionID());
         }
         
         /**
@@ -216,6 +222,7 @@ public class TransactionManager
         public void initiateCommit()
         {
             if (myMemento != null) {
+                myExecutionPhase = false;
                 ListenableFuture<Memento<TransactionResult>> future =
                     myExecutor.submit(
                        new PhasedTransactionExecutor<TransactionResult>(
@@ -232,7 +239,7 @@ public class TransactionManager
          */
         public void start()
         {
-            if (myExecutionPahse) {
+            if (myExecutionPhase) {
                 ListenableFuture<Memento<Boolean>> future =
                     myExecutor.submit(
                        new PhasedTransactionExecutor<Boolean>(
@@ -256,7 +263,7 @@ public class TransactionManager
         @Override
         public void respondTO(Object event)
         {
-            if (event instanceof Memento && myExecutionPahse) {
+            if (event instanceof Memento && myExecutionPhase) {
                 
                 @SuppressWarnings("unchecked")
                 Memento<Boolean> result = (Memento<Boolean>) event;
@@ -264,6 +271,7 @@ public class TransactionManager
                     myMemento = result;
                     TLongSet precedentTransactions = 
                         Registry.getPrecedencyFor(getTransactionID());
+                    
                     if (   precedentTransactions == null
                         || precedentTransactions.isEmpty())
                     {
@@ -275,21 +283,23 @@ public class TransactionManager
                     sendErrorToClient(new DatabaseException(
                         "Transaction validation failed"));
                 }
-                myExecutionPahse = false;
             }
-            else if (event instanceof Memento && !myExecutionPahse) {
+            else if (event instanceof Memento && !myExecutionPhase) {
                 
-                myEventBus.publish(
-                    ActorID.DB_ENGINE, myDatabase.getStatistics());
+                if (myJanitor != null) {
+                    myJanitor.handleDbStats(myDatabase.getStatistics());
+                }
                 
                 if (myTransaction instanceof WriteTransaction) {
+                    
                     myEventBus.publish(
                         ActorID.DB_ENGINE,
-                        new ReplicationProposal(
-                            myReplicationUnitID,
-                            ((WriteTransaction) myTransaction).getMutation(),
-                            myTransaction.getStartTime(),
-                            myTransaction.getEndTime()));
+                        new ConsensusRequestEvent(
+                            new ReplicationProposal(
+                                myReplicationUnitID,
+                                ((WriteTransaction) myTransaction).getMutation(),
+                                myTransaction.getStartTime(),
+                                myTransaction.getEndTime())));
                 }
                 
                 @SuppressWarnings("unchecked")
@@ -307,6 +317,10 @@ public class TransactionManager
         }
     }
     
+    /**
+     * Defines a workflow to delete the data present in this server and send 
+     * them to the requesting server.
+     */
     private class DeletionWorkflow extends SimpleWorkflow
     {
         private final DeleteRangeMutation myMutation;
@@ -340,9 +354,17 @@ public class TransactionManager
                                                        .get(0)
                                                        .getClass(),
                                              myMutation.getDeletedData()))));
+            
+            
+            // Remove the workflow as it's no longer needed.
+            myWorkFlowMap.remove(getTransactionID());
         }
     }
     
+    /**
+     * Defines a workflow wherein the transaction is performed across multitude  
+     * of servers using two phase commit.
+     */
     private class DistributedWorkflow extends AbstractWokflow
     {
         private final AbstractTransaction myTransaction;
@@ -441,19 +463,19 @@ public class TransactionManager
                 Memento<TransactionResult> result = 
                     (Memento<TransactionResult>) event;
                 
-                // THis is wrong. Figure out a way to fix this */
-                
-                /* myEventBus.publish(ActorID.DB_ENGINE, 
-                                      myDatabase.getStatistics()); */
+                if (myJanitor != null) {
+                    myJanitor.handleDbStats(myDatabase.getStatistics());
+                }
                 
                 if (myTransaction instanceof WriteTransaction) {
                     myEventBus.publish(
                         ActorID.DB_ENGINE,
-                        new ReplicationProposal(
-                            myReplicationUnitID,
-                            ((WriteTransaction) myTransaction).getMutation(),
-                            myTransaction.getStartTime(),
-                            myTransaction.getEndTime()));
+                        new ConsensusRequestEvent(
+                            new ReplicationProposal(
+                                myReplicationUnitID,
+                                ((WriteTransaction) myTransaction).getMutation(),
+                                myTransaction.getStartTime(),
+                                myTransaction.getEndTime())));
                 }
                 if (myClientInfo != null) {
                     Message message =
@@ -472,6 +494,9 @@ public class TransactionManager
                        new SendMessageEvent(
                            Collections.singleton(myClientInfo.getClientID()),
                            message));
+                    
+                    // Remove the workflow as it's no longer needed.
+                    myWorkFlowMap.remove(myTransaction.getTransactionID());
                 }
                 
                 // scheduleNextTransactions(myTransaction.getTransactionID());
@@ -794,9 +819,12 @@ public class TransactionManager
     
     public void processOperation(ConsensusResponseEvent response)
     {
-        WorkFlow workflow = 
-            myConsensusToWorkFlowMap.get(response.getProposal().getUnitID());
-        workflow.respondTO(response);
+        if (!(response.getProposal() instanceof ReplicationProposal)) {
+            WorkFlow workflow = 
+                myConsensusToWorkFlowMap.get(response.getProposal().getUnitID());
+            workflow.respondTO(response);
+        }
+        // XXX Should handle replication failures.
     }
 
     /**
@@ -809,6 +837,10 @@ public class TransactionManager
             ReplicationProposal replicationProposal = 
                 (ReplicationProposal) pne.getProposal();
             long id = myIdAssigner.getTransactionID();
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Applying " + replicationProposal 
+                         + " to the database");
+            }
             ReplicatedWriteTransaction transaction =
                 new ReplicatedWriteTransaction(
                     id, 

@@ -93,8 +93,8 @@ public class EventBus
                     + " registered itself with the event bus ");
             return;
         }
-        if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine("Publishing data into " + to + " 's queue");
+        if (LOG.isLoggable(Level.FINEST)) {
+            LOG.finest("Publishing data into " + to + " 's queue");
         }
         epq.publish(from, event);
     }
@@ -104,12 +104,23 @@ public class EventBus
      */
     public void publish(ActorID from, Event event) 
     {
-        if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine("Publishing event " + event.getClass().getSimpleName()
+        if (LOG.isLoggable(Level.FINEST)) {
+            LOG.finest("Publishing event " + event.getClass().getSimpleName()
                      + " on " + toString());
         }
         Collection<ActorID> actors = myEvent2Actors.get(event.getClass());
-        if (actors != null) {
+        if (actors == null || actors.isEmpty()) {
+            for (Map.Entry<Class<? extends Event>, Collection<ActorID>> entry : 
+                     myEvent2Actors.asMap().entrySet())
+            {
+                if (entry.getKey().isAssignableFrom(event.getClass()))
+                {
+                    actors = entry.getValue();
+                    break;
+                }
+            }
+        }
+        if (actors != null && !actors.isEmpty()) {
             for (ActorID to : actors) {
                 if (LOG.isLoggable(Level.FINE)) {
                     LOG.fine("Publishing the event "
@@ -118,6 +129,10 @@ public class EventBus
                 }
                 publish(from, to, event);
             }
+        }
+        else {
+            LOG.severe("No actor has registered to receive event of type " + 
+                       event.getClass().getName());
         }
     }
 

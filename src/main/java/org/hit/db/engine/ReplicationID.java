@@ -121,7 +121,6 @@ public class ReplicationID extends UnitID
     @Override
     public String toString()
     {
-        return "ReplicationID [myServerName=" + myServerName + ", UnitID ="
-            + super.toString() + "]";
+        return getConsensusType().name() + " " + myServerName;
     }
 }

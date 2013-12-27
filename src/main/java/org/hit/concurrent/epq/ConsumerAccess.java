@@ -70,8 +70,8 @@ public class ConsumerAccess extends AbstractAccess
             waitFor();
         }
         myConsumedIndex = myEPQ.nextIndex(myConsumedIndex);
-        if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine("The " + myAccessorID + " is consuming message "
+        if (LOG.isLoggable(Level.FINEST)) {
+            LOG.finest("The " + myAccessorID + " is consuming message "
                      + " at " + myConsumedIndex);
         }
         return myEPQ.eventAt(myConsumedIndex);

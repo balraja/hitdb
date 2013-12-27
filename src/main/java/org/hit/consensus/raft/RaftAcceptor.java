@@ -21,6 +21,8 @@ package org.hit.consensus.raft;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import gnu.trove.map.TLongObjectMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
@@ -41,13 +43,21 @@ import org.hit.consensus.raft.log.WALPropertyConfig;
 import org.hit.event.ProposalNotificationEvent;
 import org.hit.event.ProposalNotificationResponse;
 import org.hit.event.SendMessageEvent;
+import org.hit.util.LogFactory;
 
 /**
+ * Extends {@link ConsensusAcceptor} to play it's role in the raft protocol
+ * to receive and process the replication requests.
+ * 
  * @author Balraja Subbiah
  */
 public class RaftAcceptor extends ConsensusAcceptor 
     implements RaftProtocol
 {
+    /** LOGGER */
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(RaftAcceptor.class);
+                
     private long myTermID;
     
     private final TLongObjectMap<TLongObjectMap<Proposal>> myProposalLog;
@@ -83,12 +93,21 @@ public class RaftAcceptor extends ConsensusAcceptor
             if (replicationMessage.getTermID() > myTermID) {
                 // Reject if it comes from a new term that's not known 
                 // to be elected.
+                LOG.severe("Received replication request : " 
+                           + replicationMessage.getProposal()
+                           + " for " 
+                           + replicationMessage.getTermID()
+                           + " : "
+                           + replicationMessage.getSequenceNumber()
+                           + " from " + replicationMessage.getSenderId()
+                           + " and the term is not known to be accepted");
+                
                 getEventBus().publish(
                     ActorID.CONSENSUS_MANAGER,
                     new SendMessageEvent(
                         Collections.singleton(replicationMessage.getSenderId()),
                         new RaftReplicationResponse(
-                            replicationMessage.getSenderId(),
+                            getNodeID(),
                             replicationMessage.getUnitID())));
             }
             
@@ -107,21 +126,43 @@ public class RaftAcceptor extends ConsensusAcceptor
                 // Reject if we receive a request if it's sequence 
                 // number is not equal to 1 + the max sequence
                 // number known for that term.
-                if ((replicationMessage.getSequenceNumber() - 1) == 
+                if ((replicationMessage.getSequenceNumber() - 1) != 
                         sequenceNumbers[sequenceNumbers.length - 1])
                 {
+                    LOG.severe("Received replication request : " 
+                            + replicationMessage.getProposal()
+                            + " for " 
+                            + replicationMessage.getTermID()
+                            + " : "
+                            + replicationMessage.getSequenceNumber()
+                            + " from " + replicationMessage.getSenderId()
+                            + " and the seqno doesn't match 1 + "
+                            + sequenceNumbers[sequenceNumbers.length - 1]);
+                    
                     getEventBus().publish(
                         ActorID.CONSENSUS_MANAGER,
                         new SendMessageEvent(
                             Collections.singleton(replicationMessage.getSenderId()),
                             new RaftReplicationResponse(
-                                replicationMessage.getSenderId(),
+                                getNodeID(),
                                 replicationMessage.getUnitID())));
                     return;
                 }
             }
             seqMap.put(replicationMessage.getSequenceNumber(), 
                        replicationMessage.getProposal());
+            
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("The replication proposal : " 
+                        + replicationMessage.getProposal()
+                        + " for " 
+                        + replicationMessage.getTermID()
+                        + " : "
+                        + replicationMessage.getSequenceNumber()
+                        + " from " + replicationMessage.getSenderId()
+                        + " is added to the replication log");
+            }
+            
             myWAL.addProposal(
                 replicationMessage.getTermID(),
                 replicationMessage.getSequenceNumber(),
@@ -132,7 +173,7 @@ public class RaftAcceptor extends ConsensusAcceptor
                 new SendMessageEvent(
                     Collections.singleton(replicationMessage.getSenderId()),
                     new RaftReplicationResponse(
-                        replicationMessage.getSenderId(),
+                        getNodeID(),
                         replicationMessage.getUnitID(),
                         true,
                         replicationMessage.getTermID(),
@@ -154,6 +195,16 @@ public class RaftAcceptor extends ConsensusAcceptor
                             ActorID.CONSENSUS_MANAGER,
                             new ProposalNotificationEvent(
                                 value, true, true));
+                        
+                        if (LOG.isLoggable(Level.FINE)) {
+                            LOG.fine("The replication proposal : " 
+                                    + value
+                                    + " at " 
+                                    + replicationMessage.getLastCommittedTermID()
+                                    + " : "
+                                    + key
+                                    + " is advertised to the clients ");
+                        }
                         removedKeys.add(key);
                     }
                     return true;

@@ -41,7 +41,6 @@ import org.hit.time.SimpleSystemClock;
 
 import com.google.inject.Provides;
 import com.google.inject.name.Named;
-import com.google.inject.name.Names;
 
 /**
  * Extends <code>HitModule</code> to support adding bindings for the server

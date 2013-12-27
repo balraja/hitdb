@@ -91,8 +91,8 @@ public class PublisherAccess extends AbstractAccess
             if (myConsumers.isEmpty()
                 && (myEPQ.getCursor() == (myEPQ.getSize() - 1)))
             {
-                if (LOG.isLoggable(Level.FINE)) {
-                    LOG.fine("The queue is full  " + myEPQ.getCursor()
+                if (LOG.isLoggable(Level.FINEST)) {
+                    LOG.finest("The queue is full  " + myEPQ.getCursor()
                              + " and the current queue size "
                              + myEPQ.getSize()
                              + "and there are no consumers "
@@ -104,8 +104,8 @@ public class PublisherAccess extends AbstractAccess
             // Get the next slot to publish.
             int currIndex = myEPQ.getCursor();
             int publishIndex = myEPQ.nextIndex(myEPQ.getCursor());
-            if (LOG.isLoggable(Level.FINE)) {
-                LOG.fine("Next published index " + publishIndex
+            if (LOG.isLoggable(Level.FINEST)) {
+                LOG.finest("Next published index " + publishIndex
                          + " curr index " + currIndex);
             }
             boolean canPublish = true;
@@ -115,8 +115,8 @@ public class PublisherAccess extends AbstractAccess
                 if (publishIndex == consumer.getConsumedIndex()
                     && myEPQ.getCursor() != -1)
                 {
-                    if (LOG.isLoggable(Level.FINE)) {
-                        LOG.fine("The consumed index for " 
+                    if (LOG.isLoggable(Level.FINEST)) {
+                        LOG.finest("The consumed index for " 
                                  + consumer.getAccessorID() 
                                  + " is at " 
                                  + consumer.getConsumedIndex());
@@ -126,8 +126,8 @@ public class PublisherAccess extends AbstractAccess
                 }
             }
             if (canPublish && myEPQ.publish(event, currIndex, publishIndex)) {
-                if (LOG.isLoggable(Level.FINE)) {
-                    LOG.fine(" The " + myAccessorID + " has successfully "
+                if (LOG.isLoggable(Level.FINEST)) {
+                    LOG.finest(" The " + myAccessorID + " has successfully "
                              + " published the message " 
                              + event.getClass().getSimpleName()
                              + " to the slot " + publishIndex); 

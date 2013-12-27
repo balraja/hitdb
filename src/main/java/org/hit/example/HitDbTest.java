@@ -137,6 +137,6 @@ public class HitDbTest extends DBClient
         catch (ExecutionException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
         }
-        updateTable();
+        //updateTable();
     }
 }

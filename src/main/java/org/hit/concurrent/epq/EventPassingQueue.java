@@ -154,8 +154,8 @@ public class EventPassingQueue
                 myPublishers.put(accessorID, access);
             }
         }
-        if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine("Accessing the queue as publisher for " + accessorID);
+        if (LOG.isLoggable(Level.FINEST)) {
+            LOG.finest("Accessing the queue as publisher for " + accessorID);
         }
         access.publish(event);
     }

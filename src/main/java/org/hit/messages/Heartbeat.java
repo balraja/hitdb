@@ -33,6 +33,14 @@ import org.hit.communicator.Message;
 public class Heartbeat extends Message
 {
     private TObjectLongHashMap<String> myTableToRowCountMap;
+    
+    /**
+     * CTOR
+     */
+    public Heartbeat()
+    {
+        this(null);
+    }
 
     /**
      * CTOR
@@ -40,7 +48,9 @@ public class Heartbeat extends Message
     public Heartbeat(TObjectLongMap<String> tableRowCountMap)
     {
         super();
-        myTableToRowCountMap = new TObjectLongHashMap<>(tableRowCountMap);
+        myTableToRowCountMap = 
+            tableRowCountMap != null ? 
+                new TObjectLongHashMap<>(tableRowCountMap) : null;
     }
 
     /**

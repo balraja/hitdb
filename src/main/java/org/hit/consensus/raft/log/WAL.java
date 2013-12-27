@@ -139,10 +139,14 @@ public class WAL
         myConfig = config;
         myPersistedTransactionCount = new AtomicInteger(0);
         myFacacde.makeDirectory(myConfig.getBaseDirectoryPath());
-        myLogStream =
-            myFacacde.createFile(
-                makeFileName(myPersistedTransactionCount.get()),
-                false);
+        LOG.info("Persisting transaction logs under " 
+                 + myConfig.getBaseDirectoryPath()
+                 + " with " + myConfig.getTransactionsPerFile()
+                 + " transactions per file to the "
+                 + myFacacde.getClass().getSimpleName() 
+                 + " file system");
+        String fileName = makeFileName(myPersistedTransactionCount.get());
+        myLogStream = myFacacde.createFile(fileName, false);
     }
 
     /**

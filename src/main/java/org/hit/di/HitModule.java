@@ -28,6 +28,7 @@ import org.hit.communicator.SerializerFactory;
 import org.hit.communicator.nio.NIOCommunicator;
 import org.hit.gms.GroupID;
 import org.hit.gms.SimpleGroupID;
+import org.hit.util.ApplicationProperties;
 import org.hit.zookeeper.ZooKeeperClient;
 import org.hit.zookeeper.ZooKeeperClientConfig;
 import org.hit.zookeeper.ZooKeeperClientPropertyConfig;
@@ -69,7 +70,8 @@ public abstract class HitModule extends AbstractModule
 
     protected Integer getBoundPort()
     {
-        String boundPort = System.getProperty(HIT_COMM_PORT_PROPERTY);
+        String boundPort = 
+            ApplicationProperties.getProperty(HIT_COMM_PORT_PROPERTY);
         return boundPort != null ? Integer.valueOf(boundPort)
                                  : getDefaultBoundPort();
     }
