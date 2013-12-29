@@ -23,6 +23,7 @@ package org.hit.db.transactions.impl;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Logger;
 
 import org.hit.db.keyspace.HashKeyspace;
 import org.hit.db.model.Persistable;
@@ -30,6 +31,7 @@ import org.hit.db.model.Schema;
 import org.hit.db.transactions.TransactableDatabase;
 import org.hit.db.transactions.TransactableTable;
 import org.hit.event.DBStatEvent;
+import org.hit.util.LogFactory;
 
 /**
  * Defines an implementation for the hit database that stores the
@@ -39,7 +41,9 @@ import org.hit.event.DBStatEvent;
  */
 public class TransactableHitDatabase implements TransactableDatabase
 {
-    private static final long UNLOCKED_VALUE = Long.MIN_VALUE;
+    /** LOGGER */
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(TransactableHitDatabase.class);
     
     private final Map<String, TransactableTable<?, ?>> myDatabaseTables;
 
@@ -124,6 +128,8 @@ public class TransactableHitDatabase implements TransactableDatabase
     @Override
     public boolean lock(long transactionID)
     {
+        LOG.info("The transaction " + transactionID + " has requested for "
+                 + " locking the database");
         return myLock.compareAndSet(UNLOCKED_VALUE, transactionID);   
     }
 
@@ -144,6 +150,15 @@ public class TransactableHitDatabase implements TransactableDatabase
     {
         return (   myLock.get() == UNLOCKED_VALUE
                 || myLock.get() == transactionID);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getLockedTransaction()
+    {
+        return myLock.get();
     }
 }
 

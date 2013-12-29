@@ -19,14 +19,14 @@
 */
 package org.hit.consensus.raft;
 
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import gnu.trove.map.TLongObjectMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
-import gnu.trove.procedure.TLongObjectProcedure;
 import gnu.trove.procedure.TLongProcedure;
 import gnu.trove.set.TLongSet;
 import gnu.trove.set.hash.TLongHashSet;
@@ -60,7 +60,7 @@ public class RaftAcceptor extends ConsensusAcceptor
                 
     private long myTermID;
     
-    private final TLongObjectMap<TLongObjectMap<Proposal>> myProposalLog;
+    private final TLongObjectMap<TreeMap<Long,Proposal>> myProposalLog;
     
     private final WAL myWAL;
     
@@ -111,23 +111,22 @@ public class RaftAcceptor extends ConsensusAcceptor
                             replicationMessage.getUnitID())));
             }
             
-            TLongObjectMap<Proposal> seqMap =
-                myProposalLog.get(
-                    replicationMessage.getTermID());
+            TreeMap<Long,Proposal> seqMap =
+                myProposalLog.get(replicationMessage.getTermID());
             
             if (seqMap == null) {
-                seqMap = new TLongObjectHashMap<>();
+                seqMap = new TreeMap<Long,Proposal>();
                 myProposalLog.put(
                     replicationMessage.getTermID(), seqMap);
             }
             else {
-                long[] sequenceNumbers = seqMap.keys();
-                Arrays.sort(sequenceNumbers);
+                long maxSequenceNumber = seqMap.lastKey();
+                
                 // Reject if we receive a request if it's sequence 
                 // number is not equal to 1 + the max sequence
                 // number known for that term.
                 if ((replicationMessage.getSequenceNumber() - 1) != 
-                        sequenceNumbers[sequenceNumbers.length - 1])
+                       maxSequenceNumber)
                 {
                     LOG.severe("Received replication request : " 
                             + replicationMessage.getProposal()
@@ -137,7 +136,7 @@ public class RaftAcceptor extends ConsensusAcceptor
                             + replicationMessage.getSequenceNumber()
                             + " from " + replicationMessage.getSenderId()
                             + " and the seqno doesn't match 1 + "
-                            + sequenceNumbers[sequenceNumbers.length - 1]);
+                            + maxSequenceNumber);
                     
                     getEventBus().publish(
                         ActorID.CONSENSUS_MANAGER,
@@ -160,7 +159,11 @@ public class RaftAcceptor extends ConsensusAcceptor
                         + " : "
                         + replicationMessage.getSequenceNumber()
                         + " from " + replicationMessage.getSenderId()
-                        + " is added to the replication log");
+                        + " is added to the replication log. "
+                        + " The lcTermNo " 
+                        + replicationMessage.getLastCommittedTermID()
+                        + " : " 
+                        + replicationMessage.getLastCommittedSeqNo());
             }
             
             myWAL.addProposal(
@@ -179,47 +182,44 @@ public class RaftAcceptor extends ConsensusAcceptor
                         replicationMessage.getTermID(),
                         replicationMessage.getSequenceNumber())));
             
-            final TLongObjectMap<Proposal> termLog = 
+            final TreeMap<Long, Proposal> termLog = 
                 myProposalLog.get(
                     replicationMessage.getLastCommittedTermID());
             
-            final TLongSet removedKeys = new TLongHashSet();
-            termLog.forEachEntry(new TLongObjectProcedure<Proposal>() {
-
-                @Override
-                public boolean execute(long key, Proposal value)
-                {
-                    if (key <= replicationMessage.getLastCommittedSeqNo())
+            if (termLog != null) {
+            
+                final TLongSet removedKeys = new TLongHashSet();
+                for (Map.Entry<Long, Proposal> entry : termLog.entrySet()) {
+                    if (entry.getKey() <= replicationMessage.getLastCommittedSeqNo())
                     {
                         getEventBus().publish(
                             ActorID.CONSENSUS_MANAGER,
                             new ProposalNotificationEvent(
-                                value, true, true));
+                                entry.getValue(), true, true));
                         
                         if (LOG.isLoggable(Level.FINE)) {
                             LOG.fine("The replication proposal : " 
-                                    + value
+                                    + entry.getValue()
                                     + " at " 
                                     + replicationMessage.getLastCommittedTermID()
                                     + " : "
-                                    + key
+                                    + entry.getKey()
                                     + " is advertised to the clients ");
                         }
-                        removedKeys.add(key);
+                        removedKeys.add(entry.getKey());
                     }
-                    return true;
                 }
-            });
-            
-            removedKeys.forEach(new TLongProcedure() {
                 
-                @Override
-                public boolean execute(long key)
-                {
-                    termLog.remove(key);
-                    return true;
-                }
-            });
+                removedKeys.forEach(new TLongProcedure() {
+                    
+                    @Override
+                    public boolean execute(long key)
+                    {
+                        termLog.remove(key);
+                        return true;
+                    }
+                });
+            }
         }
     }
 

@@ -32,6 +32,8 @@ import org.hit.event.DBStatEvent;
  */
 public interface TransactableDatabase
 {
+    public static final long UNLOCKED_VALUE = Long.MIN_VALUE;
+    
     /** Creates a table with the specified schema in the database */
     public void createTable(Schema schema);
 
@@ -64,9 +66,14 @@ public interface TransactableDatabase
     
     /**
      * Returns true if the database can process a transaction, false 
-     * otherwise. Database will not allow transactions to execute
+     * otherwise. Database will allow transactions to execute
      * if it has been not locked by a transaction. Else it will allow
      * only that transaction that locked the database to continue.
      */
     public boolean canProcess(long transactionID);
+    
+    /**
+     * Returns the transaction that has locked the database.
+     */
+    public long getLockedTransaction();
 }

@@ -70,6 +70,7 @@ public class RaftReplicationResponse extends ConsensusMessage
         long acceptedSeqNO)
     {
         super(nodeId, unitID, null);
+        myAccepted = accepted;
         myAcceptedTermID = acceptedTermID;
         myAcceptedSeqNo = acceptedSeqNO;
     }

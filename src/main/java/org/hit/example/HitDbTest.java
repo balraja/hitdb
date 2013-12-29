@@ -80,7 +80,11 @@ public class HitDbTest extends DBClient
             LOG.info("Creation of table " + result.getTableName()
                      + " is successful ");
             myTestData.addAll(new AirportDataLoader().loadTestData());
-            updateTable();
+            while (!myTestData.isEmpty()) {
+                updateTable();
+            }
+            LOG.info("Successfully added all records corresponding to " 
+                     + TABLE_NAME);
         }
         catch (InterruptedException e) {
             // ignore
@@ -88,6 +92,7 @@ public class HitDbTest extends DBClient
         catch (ExecutionException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
         }
+        shutdown();
     }
     
     /**
@@ -118,6 +123,8 @@ public class HitDbTest extends DBClient
         }
         BatchAddMutation<Long, Airport> mutation = new BatchAddMutation<>(
                 TABLE_NAME, batchedData);
+        
+        LOG.info("Updating table with key range " + mutation.getKeyRange());
 
         ListenableFuture<DBOperationResponse> futureResponse =
             getFacade().apply(mutation);
@@ -137,6 +144,5 @@ public class HitDbTest extends DBClient
         catch (ExecutionException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
         }
-        //updateTable();
     }
 }

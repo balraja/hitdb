@@ -22,6 +22,7 @@ package org.hit.consensus.twopc;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.actors.ActorID;
@@ -69,7 +70,10 @@ public class TwoPCAcceptor extends ConsensusAcceptor
     public void handle(Message message)
     {
         if (message instanceof SolicitConsensusMessage) {
-            LOG.info("Received consensus request from " + message.getSenderId());
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Received consensus request from " 
+                         + message.getSenderId());
+            }
             SolicitConsensusMessage scm = (SolicitConsensusMessage) message;
             myProposalToConsensusMap.put(scm.getProposal(), scm);
             getEventBus().publish(
@@ -78,9 +82,11 @@ public class TwoPCAcceptor extends ConsensusAcceptor
         }
         else if (message instanceof CommitRequest) {
             CommitRequest commitRequest = (CommitRequest) message;
-            LOG.info("Received commit " + commitRequest.shouldCommit()
-                     + " for " + commitRequest.getProposal()
-                     + " from " + commitRequest.getSenderId());
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.info("Received commit " + commitRequest.shouldCommit()
+                         + " for " + commitRequest.getProposal()
+                         + " from " + commitRequest.getSenderId());
+            }
             getEventBus().publish(
                 ActorID.CONSENSUS_MANAGER,
                 new ProposalNotificationEvent(
@@ -101,8 +107,10 @@ public class TwoPCAcceptor extends ConsensusAcceptor
             myProposalToConsensusMap.get(
                 response.getProposalNotification().getProposal());
         
-        LOG.info("Publishing " + response.canAccept() + " for proposal "
-                 + scm.getProposal() + " from " + scm.getSenderId());
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.info("Publishing " + response.canAccept() + " for proposal "
+                    + scm.getProposal() + " from " + scm.getSenderId());
+        }
         
         getEventBus().publish(
             ActorID.CONSENSUS_MANAGER,

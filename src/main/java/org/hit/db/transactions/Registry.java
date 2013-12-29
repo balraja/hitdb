@@ -26,8 +26,11 @@ import gnu.trove.set.TLongSet;
 import gnu.trove.set.hash.TLongHashSet;
 
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.hit.concurrent.CloseableRWLock;
+import org.hit.util.LogFactory;
 
 /**
  * Defines the contract for a type that defines context of transactions.
@@ -36,6 +39,10 @@ import org.hit.concurrent.CloseableRWLock;
  */
 public final class Registry
 {
+    /** LOGGER */
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(Registry.class);
+        
     private static CloseableRWLock ourLock = 
          new CloseableRWLock(new ReentrantReadWriteLock(true));
     
@@ -78,6 +85,10 @@ public final class Registry
      */
     public static void addDependency(long from, long to)
     {
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Dependency " + from + " -> " + to + " has been added");
+        }
+        
         try (CloseableRWLock l = ourLock.openWriteLock()) {
             TLongSet dependentTransactions = 
                 ourDependentTransactions.get(from);
@@ -106,14 +117,14 @@ public final class Registry
     public static void addDependencyToAll(long to)
     {
         try (CloseableRWLock l = ourLock.openWriteLock()) {
-            // We are repeating thecode here but that's ok.
+            // We are repeating the code here but that's ok.
             for (long from : ourStateMap.keys()) {
                 TLongSet dependentTransactions = 
                     ourDependentTransactions.get(from);
                 if (dependentTransactions == null) {
                     dependentTransactions = new TLongHashSet();
                     ourDependentTransactions.putIfAbsent(from, 
-                                                          dependentTransactions);
+                                                         dependentTransactions);
                 }
                 dependentTransactions.add(to);
                 
@@ -125,7 +136,11 @@ public final class Registry
                                                          dependeningTransactions);
                 }
                 dependeningTransactions.add(from);
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("Dependency " + from + " -> " + to + " has been added");
+                }
             }
+            
         }
     }
     
@@ -135,8 +150,11 @@ public final class Registry
      */
     public static TLongSet freeDependentTransactionsOn(long from)
     {
+        
         TLongSet result = new TLongHashSet();
         try (CloseableRWLock l = ourLock.openWriteLock()) {
+            
+            ourStateMap.remove(from);
             ourPrecedentTransactions.remove(from);
             
             TLongSet dependentTransactions = 

@@ -71,11 +71,12 @@ public class RaftLeader extends ConsensusLeader implements RaftProtocol
         /**
          * CTOR
          */
-        public ProposalTracker(Proposal proposal, 
-                     long     termID,
-                     long     sequenceNO,
-                     long     lcTermID,
-                     long     lcSeqNo)
+        public ProposalTracker(
+             Proposal proposal, 
+             long     termID,
+             long     sequenceNO,
+             long     lcTermID,
+             long     lcSeqNo)
         {
             myProposal        = proposal;
             myLogAcceptors    = new HashSet<>(getAcceptors());
@@ -264,6 +265,7 @@ public class RaftLeader extends ConsensusLeader implements RaftProtocol
                     + " has received " + message.getClass()
                     + " from " + message.getSenderId());
         } 
+        
         if (message instanceof RaftReplicationResponse) {
             RaftReplicationResponse response = 
                 (RaftReplicationResponse) message;
@@ -272,7 +274,9 @@ public class RaftLeader extends ConsensusLeader implements RaftProtocol
                 LOG.fine("Replication response "
                           + response.getAcceptedTermID() 
                           + " : "
-                          + response.getAcceptedSeqNo());
+                          + response.getAcceptedSeqNo()
+                          + " is accepted " 
+                          + response.isAccepted());
             } 
             
             if (response.isAccepted()) {
@@ -307,11 +311,12 @@ public class RaftLeader extends ConsensusLeader implements RaftProtocol
                      + myProtocolState.getSeqNumber());
         }
         ProposalTracker trace = 
-            new ProposalTracker(proposal,
-                       myProtocolState.getTermNo(),
-                       myProtocolState.incAndGetSeqNum(),
-                       myProtocolState.getLastCommittedTermNo(),
-                       myProtocolState.getLastCommittedSeqNo());
+           new ProposalTracker(
+               proposal,
+               myProtocolState.getTermNo(),
+               myProtocolState.incAndGetSeqNum(),
+               myProtocolState.getLastCommittedTermNo(),
+               myProtocolState.getLastCommittedSeqNo());
         
         if (LOG.isLoggable(Level.FINE)) {
             LOG.fine("The term-number:seq-no assigned is  " 
@@ -323,9 +328,7 @@ public class RaftLeader extends ConsensusLeader implements RaftProtocol
         }
         
         myProtocolState.setTracker(
-            trace.myTermID,
-            trace.mySequenceNO,
-            trace);
+            trace.myTermID, trace.mySequenceNO, trace);
         
         trace.start();
     }

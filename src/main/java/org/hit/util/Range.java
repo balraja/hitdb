@@ -148,4 +148,13 @@ public class Range<T extends Comparable<T>> implements Externalizable
         myMinValue = (T) in.readObject();
         myMaxValue = (T) in.readObject();
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString()
+    {
+        return "[ " + myMinValue + " - " + myMaxValue + " ]";
+    }
 }

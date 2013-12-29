@@ -22,6 +22,7 @@ package org.hit.consensus.twopc;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.actors.ActorID;
@@ -67,16 +68,20 @@ public class TwoPCLeader extends ConsensusLeader
         
         public void handleAccept(ConsensusAcceptMessage accept)
         {
-            LOG.info("Received " + accept.isAccepted()
-                     + " from " + accept.getSenderId()
-                     + " on " + accept.getProposal());
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Received " + accept.isAccepted() + " from "
+                        + accept.getSenderId() 
+                        + " on " + accept.getProposal());
+            }
             
             if (myAcceptors.remove(accept.getSenderId())) {
                 myShouldCommit = accept.isAccepted();
                 if (myAcceptors.isEmpty()) {
-                    LOG.info("Sending the commit request as " 
-                             + myShouldCommit);
                     
+                    if (LOG.isLoggable(Level.FINE)) {
+                        LOG.fine("Sending the commit request as "
+                                + myShouldCommit);
+                    }
                     getEventBus().publish(
                         ActorID.CONSENSUS_MANAGER,
                         new SendMessageEvent(
@@ -130,7 +135,10 @@ public class TwoPCLeader extends ConsensusLeader
     @Override
     public void getConsensus(Proposal proposal)
     {
-        LOG.info("Initiating consensus on proposal " + proposal); 
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Initiating consensus on proposal " + proposal); 
+        }
+        
         myProposalToAcceptanceInfo.put(proposal,
                                        new AcceptanceInfo(getAcceptors()));
         

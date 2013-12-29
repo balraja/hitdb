@@ -22,13 +22,10 @@ package org.hit.db.engine;
 
 import gnu.trove.set.TLongSet;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -118,7 +115,7 @@ public class TransactionManager
                 Registry.freeDependentTransactionsOn(transactionID);
             
             if (!toBeProcessedTransactions.isEmpty()) {
-                myExecutor.submit(new ScheduleTransactionCommitTask(
+                myExecutor.submit(new ScheduleDependentTransactionsTask(
                     toBeProcessedTransactions));
             }
         }
@@ -499,11 +496,7 @@ public class TransactionManager
                     myWorkFlowMap.remove(myTransaction.getTransactionID());
                 }
                 
-                // scheduleNextTransactions(myTransaction.getTransactionID());
-                List<WorkFlow> queued =
-                    new ArrayList<>(myQueuedWorkFlows);
-                myQueuedWorkFlows.clear();
-                myExecutor.submit(new ScheduleTransactionExecutionTask(queued));
+                scheduleNextTransactions(myTransaction.getTransactionID());
             }
         }
 
@@ -558,39 +551,14 @@ public class TransactionManager
         }
     }
     
-    private class ScheduleTransactionExecutionTask implements Runnable
-    {
-        private final List<WorkFlow> myList;
-        
-        /**
-         * CTOR
-         */
-        public ScheduleTransactionExecutionTask(List<WorkFlow> list)
-        {
-            super();
-            myList = list;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void run()
-        {
-            for (WorkFlow workFlow : myList) {
-                workFlow.start();
-            }
-        }
-    }
-    
-    private class ScheduleTransactionCommitTask implements Runnable
+    private class ScheduleDependentTransactionsTask implements Runnable
     {
         private final TLongSet myTransactionSet;
         
         /**
          * CTOR
          */
-        public ScheduleTransactionCommitTask(TLongSet transactionSet)
+        public ScheduleDependentTransactionsTask(TLongSet transactionSet)
         {
             super();
             myTransactionSet = transactionSet;
@@ -610,7 +578,39 @@ public class TransactionManager
                         workFlow.initiateCommit();
                     }
                     else {
-                        workFlow.start();
+                        TLongSet precedents =
+                            Registry.getPrecedencyFor(transactionID);
+                        if (precedents == null || precedents.isEmpty()) {
+                            long lockedTransaction = 
+                                myDatabase.getLockedTransaction();
+                            if (lockedTransaction == transactionID) {
+                                workFlow.start();
+                            }
+                            else if (lockedTransaction == 
+                                        TransactableDatabase.UNLOCKED_VALUE)
+                            {
+                                if (myDatabase.lock(transactionID)) {
+                                    workFlow.start();
+                                }
+                                else {
+                                    while (lockedTransaction == 
+                                              TransactableDatabase.UNLOCKED_VALUE)
+                                    {
+                                        // I am bit nervous about this while
+                                        // loop, but i am sticking with tit right 
+                                        // now.
+                                        lockedTransaction = 
+                                            myDatabase.getLockedTransaction();
+                                    }
+                                    Registry.addDependency(lockedTransaction, 
+                                                           transactionID);
+                                }
+                            }
+                            else {
+                                Registry.addDependency(lockedTransaction, 
+                                                       transactionID);
+                            }
+                        }
                     }
                 }
             }
@@ -633,8 +633,6 @@ public class TransactionManager
 
     private final NodeID myServerID;
 
-    private final List<WorkFlow> myQueuedWorkFlows; 
-    
     private final Map<Long, WorkFlow> myWorkFlowMap;
     
     private final Map<UnitID, WorkFlow> myConsensusToWorkFlowMap;
@@ -658,7 +656,6 @@ public class TransactionManager
         myIdAssigner = new IDAssigner();
         myServerID = serverID;
         myEventBus = eventBus;
-        myQueuedWorkFlows = new CopyOnWriteArrayList<>();
         myWorkFlowMap = new ConcurrentHashMap<>();
         myConsensusToWorkFlowMap = new ConcurrentHashMap<>();
         myReplicationUnitID = replicationID;
@@ -766,8 +763,19 @@ public class TransactionManager
                                 new WorkflowProcessor<>(workFlow));
         }
         else {
-            myQueuedWorkFlows.add(workFlow);
+            addDependencyToLockedTransaction(id);
         }
+    }
+    
+    private void addDependencyToLockedTransaction(long dependentID)
+    {
+        long lockedTransaction = myDatabase.getLockedTransaction();
+        while (lockedTransaction != 
+                   TransactableDatabase.UNLOCKED_VALUE)
+        {
+            lockedTransaction = myDatabase.getLockedTransaction();
+        }
+        Registry.addDependency(lockedTransaction, dependentID);
     }
 
     /**
@@ -782,6 +790,7 @@ public class TransactionManager
             Sets.difference(operations.keySet(),
                             Collections.singleton(myServerID));
         UnitID unitID = new DistributedTrnID(clientID, sequenceNumber);
+        
         myEventBus.publish(
             ActorID.DB_ENGINE,
             new CreateConsensusLeaderEvent(unitID, acceptors));
@@ -805,15 +814,15 @@ public class TransactionManager
         myEventBus.publish(
             ActorID.DB_ENGINE,
             new ConsensusRequestEvent(
-                new DistributedTrnProposal(
-                    new DistributedTrnID(clientID, sequenceNumber),
-                    operations,
-                    id)));
+                new DistributedTrnProposal(unitID, operations, id)));
         
         if (myDatabase.lock(id)) {
             // The new distributed transaction will be 
             // dependent on all other transactions to complete.
             Registry.addDependencyToAll(id);
+        }
+        else {
+            addDependencyToLockedTransaction(id);
         }
     }
     
@@ -865,6 +874,12 @@ public class TransactionManager
            DBOperation operation =
                distributedTrnProposal.getNodeToDBOperationMap()
                                      .get(myServerID);
+           
+           if (LOG.isLoggable(Level.FINE)) {
+               LOG.info("Received a distributed transaction proposal "
+                        + " with " + distributedTrnProposal.getUnitID()
+                        + " for " + operation);
+           }
 
            long id = myIdAssigner.getTransactionID();
            AbstractTransaction transaction =
@@ -881,9 +896,16 @@ public class TransactionManager
                                         workFlow);
 
            if (myDatabase.lock(id)) {
+               if (LOG.isLoggable(Level.FINE)) {
+                   LOG.fine("Successfully locked the database. Adding "
+                           + id + " to be dependent on all active transactions");
+               }
                // The new distributed transaction will be 
                // dependent on all other transactions to complete.
                Registry.addDependencyToAll(id);
+           }
+           else {
+               addDependencyToLockedTransaction(id);
            }
        }
     }

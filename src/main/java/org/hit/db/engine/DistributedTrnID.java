@@ -35,6 +35,8 @@ import org.hit.consensus.UnitID;
  */
 class DistributedTrnID extends UnitID
 {
+    private static final String SEPARATOR  = ":";
+    
     private String myConsensusID;
     
     /**
@@ -52,7 +54,11 @@ class DistributedTrnID extends UnitID
     {
         super(ConsensusType.TW0_PC);
         myConsensusID = 
-            clientId.toString() + sequenceNo + new Date().toString();
+            clientId.toString()
+            + SEPARATOR 
+            + sequenceNo 
+            + SEPARATOR
+            +  new Date().toString();
     }
 
     /**
