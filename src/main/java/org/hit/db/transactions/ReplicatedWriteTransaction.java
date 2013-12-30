@@ -44,7 +44,7 @@ public class ReplicatedWriteTransaction extends WriteTransaction
         long startTime,
         long endTime)
     {
-        super(transactionId, database, clock, mutation);
+        super(transactionId, database, clock, mutation, false);
         myStartTime = startTime;
         myEndTime   = endTime;
     }

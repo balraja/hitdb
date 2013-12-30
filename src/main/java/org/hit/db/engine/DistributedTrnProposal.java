@@ -114,4 +114,45 @@ public class DistributedTrnProposal implements Proposal
         myNodeToDBOperationMap = (Map<NodeID, DBOperation>) in.readObject();
         
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int hashCode()
+    {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result
+                + (int) (myTransactionNumber ^ (myTransactionNumber >>> 32));
+        result = prime * result
+                + ((myUnitID == null) ? 0 : myUnitID.hashCode());
+        return result;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        DistributedTrnProposal other = (DistributedTrnProposal) obj;
+        if (myTransactionNumber != other.myTransactionNumber)
+            return false;
+        if (myUnitID == null) {
+            if (other.myUnitID != null)
+                return false;
+        }
+        else if (!myUnitID.equals(other.myUnitID))
+            return false;
+        return true;
+    }
+    
+    
 }

@@ -25,6 +25,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -40,18 +42,27 @@ public class ObjectStreamSerializer implements MessageSerializer
 {
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(ObjectStreamSerializer.class);
+    
+    private static final int LENGTH_FIELD_OFFSET = 4;
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public Message parse(ByteBuffer binaryMessage)
+    public Collection<Message> parse(ByteBuffer binaryMessage)
     {
         try {
-            ByteArrayInputStream byteStream =
-                new ByteArrayInputStream(binaryMessage.array());
-            ObjectInputStream oStream = new ObjectInputStream(byteStream);
-            return (Message) oStream.readObject();
+            ArrayList<Message> messages = new ArrayList<>();
+            while (binaryMessage.hasRemaining()) {
+                int size = binaryMessage.getInt();
+                byte[] serializedValue = new byte[size];
+                binaryMessage.get(serializedValue);
+                ByteArrayInputStream byteStream =
+                    new ByteArrayInputStream(serializedValue);
+                ObjectInputStream oStream = new ObjectInputStream(byteStream);
+                messages.add((Message) oStream.readObject());
+            }
+            return messages;
         }
         catch (Exception e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
@@ -69,7 +80,13 @@ public class ObjectStreamSerializer implements MessageSerializer
             ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
             ObjectOutputStream oStream = new ObjectOutputStream(byteStream);
             oStream.writeObject(message);
-            return ByteBuffer.wrap(byteStream.toByteArray());
+            byte[] serializedData = byteStream.toByteArray();
+            ByteBuffer buffer = 
+                ByteBuffer.allocate(serializedData.length + LENGTH_FIELD_OFFSET);
+            buffer.putInt(serializedData.length);
+            buffer.put(serializedData);
+            buffer.flip();
+            return buffer;
         }
         catch (Exception e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);

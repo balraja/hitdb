@@ -20,6 +20,7 @@
 package org.hit.consensus.twopc;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -140,7 +141,8 @@ public class TwoPCLeader extends ConsensusLeader
         }
         
         myProposalToAcceptanceInfo.put(proposal,
-                                       new AcceptanceInfo(getAcceptors()));
+                                       new AcceptanceInfo(
+                                          new HashSet<>(getAcceptors())));
         
         getEventBus().publish(
             ActorID.CONSENSUS_MANAGER,

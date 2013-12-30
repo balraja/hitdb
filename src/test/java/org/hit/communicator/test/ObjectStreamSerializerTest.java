@@ -45,7 +45,7 @@ public class ObjectStreamSerializerTest
         MessageSerializer serializer = new ObjectStreamSerializer();
         ByteBuffer buffer = serializer.serialize(message);
         TestMessage deserializedMessage =
-            (TestMessage) serializer.parse(buffer);
+            (TestMessage) serializer.parse(buffer).iterator().next();
         
         assertNotNull(deserializedMessage);
         assertEquals(nodeID, deserializedMessage.getSenderId());

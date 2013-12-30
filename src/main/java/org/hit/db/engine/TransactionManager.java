@@ -903,6 +903,10 @@ public class TransactionManager
                // The new distributed transaction will be 
                // dependent on all other transactions to complete.
                Registry.addDependencyToAll(id);
+               TLongSet precedents = Registry.getPrecedencyFor(id);
+               if (precedents == null || precedents.isEmpty()) {
+                   workFlow.start();
+               }
            }
            else {
                addDependencyToLockedTransaction(id);

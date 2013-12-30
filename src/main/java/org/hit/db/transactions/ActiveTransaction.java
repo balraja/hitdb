@@ -37,9 +37,10 @@ public abstract class ActiveTransaction extends AbstractTransaction
     public ActiveTransaction(
         long transactionId,
         TransactableDatabase database,
+        boolean updateRegistry,
         Clock clock)
     {
-        super(transactionId, database);
+        super(transactionId, database, updateRegistry);
         myClock = clock;
     }
 

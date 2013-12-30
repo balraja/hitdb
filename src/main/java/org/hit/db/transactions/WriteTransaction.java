@@ -42,7 +42,19 @@ public class WriteTransaction extends ActiveTransaction
                             Clock clock,
                             Mutation mutation)
     {
-        super(transactionId, database, clock);
+        this(transactionId, database, clock, mutation, true);
+    }
+    
+    /**
+     * CTOR
+     */
+    public WriteTransaction(long transactionId,
+                            TransactableDatabase database,
+                            Clock clock,
+                            Mutation mutation,
+                            boolean updateRegistry)
+    {
+        super(transactionId, database, updateRegistry, clock);
         myMutation = mutation;
     }
 

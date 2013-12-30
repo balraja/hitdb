@@ -33,6 +33,8 @@ import org.hit.time.Clock;
 public abstract class AbstractTransaction implements Transaction
 {
     private final DatabaseAdaptor myAdaptedDatabase;
+    
+    private final boolean myShouldUpdateRegistry;
 
     private long myEndTime;
 
@@ -40,18 +42,22 @@ public abstract class AbstractTransaction implements Transaction
 
     private TransactionState myState;
     
-    private long myTransactionID;
+    private final long myTransactionID;
+    
+    
 
     /**
      * CTOR
      */
     public AbstractTransaction(long transactionId,
-                               TransactableDatabase database)
+                               TransactableDatabase database,
+                               boolean updateRegistry)
     {
         myState = TransactionState.NOT_STARTED;
         myTransactionID = transactionId;
         myAdaptedDatabase =
             new DatabaseAdaptor(database, myTransactionID);
+        myShouldUpdateRegistry = updateRegistry;
     }
 
     /**
@@ -144,7 +150,9 @@ public abstract class AbstractTransaction implements Transaction
     private void updateState(TransactionState state)
     {
         myState = state;
-        Registry.updateTransactionState(myTransactionID, myState);
+        if (myShouldUpdateRegistry) {
+            Registry.updateTransactionState(myTransactionID, myState);
+        }
     }
 
     /**

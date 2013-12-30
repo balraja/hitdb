@@ -44,7 +44,7 @@ public class ReadTransaction extends ActiveTransaction
                            Clock clock,
                            Query query)
     {
-        super(transactionId, database, clock);
+        super(transactionId, database, true, clock);
         myQuery = query;
         myResult = null;
     }

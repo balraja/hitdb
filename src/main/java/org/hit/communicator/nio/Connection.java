@@ -75,13 +75,13 @@ public class Connection
 
         while ((readBytes = myChannel.read(buffer)) > 0) {
             buffer.flip();
-
             if (messageBuffer.remaining() < readBytes) {
                 messageBuffer = resize(messageBuffer);
             }
             messageBuffer.put(buffer.array(), 0, readBytes);
             buffer.clear();
         }
+        messageBuffer.flip();
         return messageBuffer;
     }
 

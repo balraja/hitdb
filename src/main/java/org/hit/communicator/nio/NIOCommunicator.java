@@ -60,7 +60,6 @@ import com.google.inject.Inject;
  */
 public class NIOCommunicator implements Communicator
 {
-    
     private static final Logger LOG = LogFactory.getInstance().getLogger(
             NIOCommunicator.class);
     
@@ -149,12 +148,8 @@ public class NIOCommunicator implements Communicator
                         }
                         else if (sKey.isWritable()) {
                             Session session = (Session) sKey.attachment();
-                            if (session == null) {
-                                sKey.interestOps(SelectionKey.OP_WRITE);
-                            }
-                            else {
+                            if (session != null) {
                                 session.write();
-                                sKey.interestOps(SelectionKey.OP_READ);
                             }
                         }
                         else if (sKey.isReadable()) {
@@ -164,17 +159,18 @@ public class NIOCommunicator implements Communicator
                             }
                             Session session = (Session) sKey.attachment();
                             if (session != null) {
-                                Message message = session.readMessage();
-                                if (message == null) {
+                                Collection<Message> messages = session.readMessage();
+                                if (messages == null) {
                                     continue;
                                 }
-                                for (MessageHandler handler : myHandlers)
-                                {
-                                    handler.handle(message);
-                                }
-                                
-                                if (session.hasMessagesToBeSent()) {
-                                    sKey.interestOps(SelectionKey.OP_WRITE);
+                                for (Message message : messages) {
+                                    if (message == null) {
+                                        continue;
+                                    }
+                                    for (MessageHandler handler : myHandlers)
+                                    {
+                                        handler.handle(message);
+                                    }
                                 }
                             }
                         }
@@ -251,7 +247,8 @@ public class NIOCommunicator implements Communicator
                                 m);
                 selectionKey =
                     socketChannel.register(mySelector,
-                                           SelectionKey.OP_WRITE);
+                                           SelectionKey.OP_READ
+                                           | SelectionKey.OP_WRITE);
                 
                 selectionKey.attach(session);
                 myIdSelectKeyMap.put(node, selectionKey);
@@ -271,9 +268,6 @@ public class NIOCommunicator implements Communicator
                 session.cacheForWrite(m);
                 if (LOG.isLoggable(Level.FINE)) {
                     LOG.fine("Successfully added message to the cache");
-                }
-                if (!selectionKey.isReadable()) {
-                    selectionKey.interestOps(SelectionKey.OP_WRITE);
                 }
             }
         }

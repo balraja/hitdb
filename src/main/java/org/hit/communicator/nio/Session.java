@@ -21,8 +21,10 @@
 package org.hit.communicator.nio;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.Collection;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
@@ -49,8 +51,6 @@ public class Session
 
     private final MessageSerializer mySerializer;
     
-    private SelectionKey mySelectionKey;
-    
     /**
      * CTOR
      */
@@ -71,15 +71,6 @@ public class Session
     {
         this(socketChannel, serializer);
         myBufferredMessages.add(message);
-    }
-    
-    /**
-     * A helper method to set the {@link SelectionKey} corresponding 
-     * to this session.
-     */
-    public void setSelectionKey(SelectionKey selectionKey)
-    {
-        mySelectionKey = selectionKey;
     }
 
     /**
@@ -120,10 +111,14 @@ public class Session
      * Reads the <code>Message</code> published by the target node from the
      * underlying session.
      */
-    public Message readMessage() throws CommunicatorException
+    public Collection<Message> readMessage() throws CommunicatorException
     {
         try {
-            return mySerializer.parse(myConnection.read());
+            ByteBuffer readBuffer = myConnection.read();
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Received bytes for reading " + readBuffer.remaining());
+            }
+            return mySerializer.parse(readBuffer);
         }
         catch (IOException e) {
             throw new CommunicatorException(e);

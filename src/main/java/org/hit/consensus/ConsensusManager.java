@@ -168,6 +168,8 @@ public class ConsensusManager extends Actor
                                        getActorID());
         getEventBus().registerForEvent(ConsensusMessage.class,
                                        getActorID());
+        getEventBus().registerForEvent(ProposalNotificationResponse.class,
+                                       getActorID());
         
     }
 }

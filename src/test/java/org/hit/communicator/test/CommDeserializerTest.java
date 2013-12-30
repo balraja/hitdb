@@ -61,7 +61,7 @@ public class CommDeserializerTest
         ByteBuffer readData = simulateTcpRead(buffer);
         assertNotNull(readData);
         DBOperationMessage deserailizedMessage = 
-            (DBOperationMessage) serializer.parse(readData);
+            (DBOperationMessage) serializer.parse(readData).iterator().next();
         assertNotNull(deserailizedMessage);
         
     }
@@ -76,6 +76,7 @@ public class CommDeserializerTest
             while ((readBytes = bin.read(buffer)) != -1) {
                 messageBuffer.put(buffer, 0, readBytes);
             }
+            messageBuffer.flip();
             return messageBuffer;
         }
         catch (IOException e) {
