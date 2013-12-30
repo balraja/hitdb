@@ -21,6 +21,7 @@
 package org.hit.communicator.nio;
 
 import java.io.IOException;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -47,7 +48,9 @@ public class Session
     private final Connection myConnection;
 
     private final MessageSerializer mySerializer;
-
+    
+    private SelectionKey mySelectionKey;
+    
     /**
      * CTOR
      */
@@ -57,6 +60,26 @@ public class Session
         myConnection = new Connection(socketChannel);
         mySerializer = serializer;
         myBufferredMessages = new ConcurrentLinkedQueue<>();
+    }
+    
+    /**
+     * CTOR
+     */
+    public Session(SocketChannel     socketChannel,
+                   MessageSerializer serializer,
+                   Message           message)
+    {
+        this(socketChannel, serializer);
+        myBufferredMessages.add(message);
+    }
+    
+    /**
+     * A helper method to set the {@link SelectionKey} corresponding 
+     * to this session.
+     */
+    public void setSelectionKey(SelectionKey selectionKey)
+    {
+        mySelectionKey = selectionKey;
     }
 
     /**
@@ -106,6 +129,11 @@ public class Session
             throw new CommunicatorException(e);
         }
     }
+    
+    public boolean hasMessagesToBeSent()
+    {
+        return !myBufferredMessages.isEmpty();
+    }
 
     /**
      * Writes message to the target node when the channel is selected by
@@ -117,17 +145,28 @@ public class Session
             if (myBufferredMessages.isEmpty()) {
                 return;
             }
-
-            Message message = myBufferredMessages.poll();
-            if (message != null) {
-                myConnection.send(mySerializer.serialize(message));
-            }
-            if (LOG.isLoggable(Level.FINE)) {
-                LOG.fine("Successfully sent the  " + message);
+            
+            while (!myBufferredMessages.isEmpty()) {
+                Message message = myBufferredMessages.poll();
+                if (message != null) {
+                    myConnection.send(mySerializer.serialize(message));
+                }
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("Successfully sent the  " + message);
+                }
             }
         }
         catch (IOException e) {
             throw new CommunicatorException(e);
         }
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString()
+    {
+        return myConnection.toString();
     }
 }

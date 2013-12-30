@@ -20,10 +20,15 @@
 
 package org.hit.messages;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 import gnu.trove.map.TObjectLongMap;
 import gnu.trove.map.hash.TObjectLongHashMap;
 
 import org.hit.communicator.Message;
+import org.hit.communicator.NodeID;
 
 /**
  * Defines the heart beat to be published by client nodes to the master.
@@ -39,15 +44,15 @@ public class Heartbeat extends Message
      */
     public Heartbeat()
     {
-        this(null);
+        this(null, null);
     }
 
     /**
      * CTOR
      */
-    public Heartbeat(TObjectLongMap<String> tableRowCountMap)
+    public Heartbeat(NodeID from, TObjectLongMap<String> tableRowCountMap)
     {
-        super();
+        super(from);
         myTableToRowCountMap = 
             tableRowCountMap != null ? 
                 new TObjectLongHashMap<>(tableRowCountMap) : null;
@@ -59,5 +64,38 @@ public class Heartbeat extends Message
     public TObjectLongHashMap<String> getTableToRowCountMap()
     {
         return myTableToRowCountMap;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public void readExternal(ObjectInput in) throws IOException,
+            ClassNotFoundException
+    {
+        super.readExternal(in);
+        if (in.readBoolean()) {
+            myTableToRowCountMap = (TObjectLongHashMap<String>) in.readObject();
+        }
+        else {
+            myTableToRowCountMap = null;
+        }
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        super.writeExternal(out);
+        if (myTableToRowCountMap != null) {
+            out.writeBoolean(true);
+            out.writeObject(myTableToRowCountMap);
+        }
+        else {
+            out.writeBoolean(false);
+        }
     }
 }

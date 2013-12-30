@@ -28,7 +28,6 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -61,6 +60,34 @@ import com.google.inject.Inject;
  */
 public class NIOCommunicator implements Communicator
 {
+    
+    private static final Logger LOG = LogFactory.getInstance().getLogger(
+            NIOCommunicator.class);
+    
+    /** 
+     * The time to wait till the channels are made available by a 
+     * selector.
+     */
+    private static final long SELECTION_WAIT_TIME_MILLIS = 1000L;
+
+    private final Collection<MessageHandler> myHandlers;
+
+    private final IPNodeID myId;
+
+    private final Map<NodeID, SelectionKey> myIdSelectKeyMap;
+
+    private final ExecutorService mySelectableExecutor;
+
+    private final Selector mySelector;
+
+    private final SerializerFactory mySerializerFactory;
+
+    private final ServerSocketChannel myServerSocketChannel;
+
+    private final CloseableLock mySessionMapLock;
+
+    private final AtomicBoolean myShouldStop;
+    
     /**
      * A simple task to take care of selecting keys from the selector and
      * scheduling tasks for further work.
@@ -74,26 +101,17 @@ public class NIOCommunicator implements Communicator
         public void run()
         {
             try {
-                LOG.info("The selector for processing IO events  has been "
-                         + "started");
+                LOG.info("The NIO selector has been started");
                 
                 while (!myShouldStop.get()) {
-                    try (CloseableLock lock = mySessionMapLock.open())
-                    {
-                        for (Session session : myIdSessionMap.values()) {
-                            session.write();
-                        }
-                    }
                     
-                    int n = mySelector.select(1000);
+                    int n = mySelector.select(SELECTION_WAIT_TIME_MILLIS);
                     if (n == 0) {
                         continue;
                     }
 
-                    Set<SelectionKey> selectedKeys =
-                        mySelector.selectedKeys();
-                    Iterator<SelectionKey>
-                        keyIterator = selectedKeys.iterator();
+                    Set<SelectionKey> selectedKeys = mySelector.selectedKeys();
+                    Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
 
                     while(keyIterator.hasNext()) {
 
@@ -108,8 +126,7 @@ public class NIOCommunicator implements Communicator
                             ServerSocketChannel serverSocketChannel =
                                 (ServerSocketChannel) sKey.channel();
 
-                            SocketChannel channel =
-                                serverSocketChannel.accept();
+                            SocketChannel channel = serverSocketChannel.accept();
 
                             if (channel == null) {
                                 continue;
@@ -121,24 +138,23 @@ public class NIOCommunicator implements Communicator
                             }
 
                             channel.configureBlocking(false);
+                            Session session =
+                                    new Session(channel,
+                                                mySerializerFactory.makeSerializer());
                             SelectionKey key =
                                 channel.register(mySelector,
                                                  SelectionKey.OP_READ);
 
-                            Session session =
-                                new Session(channel,
-                                            mySerializerFactory.makeSerializer());
-
-                            try (CloseableLock lock = mySessionMapLock.open())
-                            {
-                                myKeySessionMap.put(key, session);
-                            }
+                            key.attach(session);
                         }
-                        else if (sKey.isConnectable()) {
-
-                            Session session = myKeySessionMap.get(sKey);
-                            if (session != null) {
-                                session.connected();
+                        else if (sKey.isWritable()) {
+                            Session session = (Session) sKey.attachment();
+                            if (session == null) {
+                                sKey.interestOps(SelectionKey.OP_WRITE);
+                            }
+                            else {
+                                session.write();
+                                sKey.interestOps(SelectionKey.OP_READ);
                             }
                         }
                         else if (sKey.isReadable()) {
@@ -146,30 +162,19 @@ public class NIOCommunicator implements Communicator
                                 LOG.fine("The channel "
                                          + sKey.channel() + " is readable");
                             }
-                            Session session = myKeySessionMap.get(sKey);
+                            Session session = (Session) sKey.attachment();
                             if (session != null) {
                                 Message message = session.readMessage();
                                 if (message == null) {
                                     continue;
                                 }
-                                try (CloseableLock lock =
-                                         mySessionMapLock.open())
-                                {
-                                    if (myIdSessionMap.containsKey(
-                                            message.getSenderId())) 
-                                    {
-                                        LOG.severe("Created another session "
-                                                + " for " + message.getSenderId()
-                                                + " to which a session already "
-                                                + "exists ");
-                                    }
-                                    myIdSessionMap.put(message.getSenderId(),
-                                                       session);
-                                }
-                                
                                 for (MessageHandler handler : myHandlers)
                                 {
                                     handler.handle(message);
+                                }
+                                
+                                if (session.hasMessagesToBeSent()) {
+                                    sKey.interestOps(SelectionKey.OP_WRITE);
                                 }
                             }
                         }
@@ -187,28 +192,6 @@ public class NIOCommunicator implements Communicator
         }
     }
 
-    private static final Logger LOG = LogFactory.getInstance().getLogger(
-            NIOCommunicator.class);
-
-    private final Collection<MessageHandler> myHandlers;
-
-    private final IPNodeID myId;
-
-    private final Map<NodeID, Session> myIdSessionMap;
-
-    private final Map<SelectionKey, Session> myKeySessionMap;
-
-    private final ExecutorService mySelectableExecutor;
-
-    private final Selector mySelector;
-
-    private final SerializerFactory mySerializerFactory;
-
-    private final ServerSocketChannel myServerSocketChannel;
-
-    private final CloseableLock mySessionMapLock;
-
-    private final AtomicBoolean myShouldStop;
 
     /** CTOR */
     @Inject
@@ -221,13 +204,12 @@ public class NIOCommunicator implements Communicator
             mySerializerFactory = factory;
             myHandlers = new ArrayList<>();
             myId       = (IPNodeID) nodeID;
-            myIdSessionMap = new HashMap<NodeID, Session>();
             mySelectableExecutor =
                 Executors.newSingleThreadExecutor(
                     new NamedThreadFactory(NIOCommunicator.class, true));
-            myKeySessionMap = new ConcurrentHashMap<>();
             myShouldStop = new AtomicBoolean(false);
             mySessionMapLock = new CloseableLock(new ReentrantLock());
+            myIdSelectKeyMap = new ConcurrentHashMap<>();
         }
         catch (IOException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
@@ -256,23 +238,28 @@ public class NIOCommunicator implements Communicator
         
         try (CloseableLock lock = mySessionMapLock.open()) {
             
-            Session session = myIdSessionMap.get(node);
-            if (session == null) {
+            //Session session = myIdSessionMap.get(node);
+            SelectionKey selectionKey = myIdSelectKeyMap.get(node);
+            if (selectionKey == null) {
                 LOG.info("Creating new session for " + node);
                 SocketChannel socketChannel =
                     SocketChannel.open(((IPNodeID) node).getIPAddress());
                 socketChannel.configureBlocking(false);
-                SelectionKey key =
-                    socketChannel.register(mySelector,
-                                           SelectionKey.OP_READ
-                                           | SelectionKey.OP_CONNECT);
-                session =
+                Session session =
                     new Session(socketChannel,
-                                mySerializerFactory.makeSerializer());
+                                mySerializerFactory.makeSerializer(),
+                                m);
+                selectionKey =
+                    socketChannel.register(mySelector,
+                                           SelectionKey.OP_WRITE);
                 
-                myKeySessionMap.put(key, session);
-                myIdSessionMap.put(node, session);
-                session.cacheForWrite(m);
+                selectionKey.attach(session);
+                myIdSelectKeyMap.put(node, selectionKey);
+                
+               // myKeySessionMap.put(key, session);
+               // myIdSessionMap.put(node, session);
+               // session.cacheForWrite(m);
+                
             }
             else {
                 
@@ -280,9 +267,13 @@ public class NIOCommunicator implements Communicator
                     LOG.fine("Adding message to the cache");
                 }
                 
+                Session session = (Session) selectionKey.attachment();
                 session.cacheForWrite(m);
                 if (LOG.isLoggable(Level.FINE)) {
                     LOG.fine("Successfully added message to the cache");
+                }
+                if (!selectionKey.isReadable()) {
+                    selectionKey.interestOps(SelectionKey.OP_WRITE);
                 }
             }
         }
@@ -326,8 +317,11 @@ public class NIOCommunicator implements Communicator
             mySelectableExecutor.shutdownNow();
             mySelector.close();
             myServerSocketChannel.close();
-            for (Session session : myIdSessionMap.values()) {
-                session.close();
+            for (SelectionKey key : myIdSelectKeyMap.values()) {
+                Session session = (Session) key.attachment();
+                if (session != null) {
+                    session.close();
+                }
             }
         }
         catch (IOException e) {

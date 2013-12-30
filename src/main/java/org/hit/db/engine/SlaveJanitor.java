@@ -104,7 +104,7 @@ public class SlaveJanitor extends AbstractJanitor
                     ActorID.DB_ENGINE,
                     new SendMessageEvent(
                         Collections.singletonList(myMaster),
-                        new Heartbeat(myTableRowCountMap)));
+                        new Heartbeat(getServerID(), myTableRowCountMap)));
             }
         }
     }

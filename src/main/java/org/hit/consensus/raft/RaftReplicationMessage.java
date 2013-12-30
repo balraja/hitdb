@@ -129,4 +129,13 @@ public class RaftReplicationMessage extends ConsensusMessage
         out.writeLong(myLastCommittedTermID);
         out.writeLong(myLastCommittedSeqNo);
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString()
+    {
+        return "Raft replication message " + myTermID + " : " + mySequenceNumber;
+    }
 }
