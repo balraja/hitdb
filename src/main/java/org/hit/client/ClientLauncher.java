@@ -20,10 +20,14 @@
 
 package org.hit.client;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.ProcessBuilder.Redirect;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
@@ -54,12 +58,47 @@ public class ClientLauncher extends AbstractLauncher
     }
 
     private final Options myClientCommandLineOptions;
+    
+    private final AtomicBoolean myIsAlive;
+    
+    private class OutputStreamGobbler implements Runnable
+    {
+        private final BufferedReader myReader;
+        
+        /**
+         * CTOR
+         */
+        public OutputStreamGobbler(InputStream in)
+        {
+            myReader = new BufferedReader(new InputStreamReader(in));
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void run()
+        {
+            while (myIsAlive.get()) {
+                String line;
+                try {
+                    while((line = myReader.readLine()) != null) {
+                        System.out.println(line);
+                    }
+                    
+                }
+                catch (IOException e) {
+                }
+            }
+        }
+    }
 
     /**
      * CTOR
      */
     public ClientLauncher()
     {
+        myIsAlive = new AtomicBoolean(true);
         myClientCommandLineOptions = new Options();
         myClientCommandLineOptions.addOption(
             LOG_FILE,
@@ -149,9 +188,17 @@ public class ClientLauncher extends AbstractLauncher
             bldr.environment().put(CLASSPATH_PREFIX,
                                    classPathBuilder.toString());
             bldr.environment().put(JAVA_OPTS, optsBuilder.toString());
-            bldr.redirectOutput(Redirect.to(new File("E:\\hitdbtest\\client.dump")));
-            bldr.redirectError(Redirect.to(new File("E:\\hitdbtest\\client.dump")));
-            bldr.start();
+            bldr.redirectOutput(Redirect.PIPE);
+            bldr.redirectError(Redirect.PIPE);
+            Process p = bldr.start();
+            Thread t = new Thread(new OutputStreamGobbler(p.getInputStream()));
+            t.start();
+            try {
+                p.waitFor();
+                myIsAlive.compareAndSet(true, false);
+            }
+            catch (InterruptedException e) {
+            }
         }
         catch (ParseException e) {
             HelpFormatter formatter = new HelpFormatter();
