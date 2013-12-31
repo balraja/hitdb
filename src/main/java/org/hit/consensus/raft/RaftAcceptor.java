@@ -194,8 +194,7 @@ public class RaftAcceptor extends ConsensusAcceptor
                     {
                         getEventBus().publish(
                             ActorID.CONSENSUS_MANAGER,
-                            new ProposalNotificationEvent(
-                                entry.getValue(), true, true));
+                            new ProposalNotificationEvent(entry.getValue()));
                         
                         if (LOG.isLoggable(Level.FINE)) {
                             LOG.fine("The replication proposal : " 

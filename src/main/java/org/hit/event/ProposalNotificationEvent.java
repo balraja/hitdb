@@ -33,38 +33,13 @@ import org.hit.consensus.Proposal;
 public class ProposalNotificationEvent implements Event
 {
     private final Proposal myProposal;
-    
-    private final boolean myCommitNotification;
-    
-    private final boolean myShouldCommit;
 
     /**
      * CTOR
      */
     public ProposalNotificationEvent(Proposal proposal)
     {
-        this(proposal, false, false);
-    }
-    
-    /**
-     * CTOR
-     */
-    public ProposalNotificationEvent(Proposal proposal,
-                                     boolean commitNotification,
-                                     boolean shouldCommit)
-    {
-        super();
         myProposal = proposal;
-        myCommitNotification = commitNotification;
-        myShouldCommit = shouldCommit;
-    }
-
-    /**
-     * Returns the value of commitNotification
-     */
-    public boolean isCommitNotification()
-    {
-        return myCommitNotification;
     }
 
     /**
@@ -73,13 +48,5 @@ public class ProposalNotificationEvent implements Event
     public Proposal getProposal()
     {
         return myProposal;
-    }
-
-    /**
-     * Returns the value of shouldCommit
-     */
-    public boolean shouldCommit()
-    {
-        return myShouldCommit;
     }
 }

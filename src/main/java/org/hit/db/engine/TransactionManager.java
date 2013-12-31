@@ -370,9 +370,26 @@ public class TransactionManager
         
         private final ProposalNotificationEvent myPne;
         
+        private final DistributedTrnProposal myProposal;
+        
         private boolean myExecutionPhase;
         
         private Memento<Boolean> myMemento;
+        
+        /**
+         * CTOR
+         */
+        public DistributedWorkflow(AbstractTransaction transaction,
+                                   ClientInfo clientInfo,
+                                   DistributedTrnProposal proposal)
+        {
+            super();
+            myTransaction = transaction;
+            myClientInfo = clientInfo;
+            myPne = null;
+            myExecutionPhase = true;
+            myProposal = proposal;
+        }
 
         /**
          * CTOR
@@ -386,6 +403,7 @@ public class TransactionManager
             myClientInfo = clientInfo;
             myPne = pne;
             myExecutionPhase = true;
+            myProposal = null;
         }
 
         /**
@@ -404,6 +422,10 @@ public class TransactionManager
         public void start()
         {
             if (myDatabase.canProcess(getTransactionID())) {
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("Initiating execution phase for distributed"
+                             + " transaction " + getTransactionID());
+                }
                 // Now schedule a distributed transaction to 
                 // execute.
                 ListenableFuture<Memento<Boolean>> future =
@@ -416,6 +438,13 @@ public class TransactionManager
                 Futures.addCallback(future, 
                                     new WorkflowProcessor<>(
                                         DistributedWorkflow.this));
+            }
+            else if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("The database is locked by " 
+                         + myDatabase.getLockedTransaction()
+                         + " hence " + getTransactionID() 
+                         + " couldn't proceed ");
+                
             }
         }
 
@@ -435,21 +464,25 @@ public class TransactionManager
                             myPne,
                             result.getPhase().getResult()));
                 }
+                else if (myProposal != null
+                         && result.getPhase().getResult()) 
+                {
+                    myEventBus.publish(
+                        ActorID.DB_ENGINE,
+                        new ConsensusRequestEvent(myProposal));
+                }
                 myMemento = result;
             }
-            else if (event instanceof Memento && myExecutionPhase) {
-                myEventBus.publish(
-                   ActorID.DB_ENGINE,
-                   new ProposalNotificationResponse(myPne, false));
-            }
-            else if (   event instanceof ProposalNotificationEvent
-                     && ((ProposalNotificationEvent) event).isCommitNotification()
+            else if (   event instanceof ConsensusResponseEvent
                      && myMemento != null) 
             {
-                myExecutionPhase = false;
-                initiateCommit();
-            }
-            else if ( event instanceof ConsensusResponseEvent) {
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("Initiating commit for " 
+                             + myTransaction.getTransactionID()
+                             + " as we have received commit notification on "
+                             + ((ConsensusResponseEvent) event).getProposal()
+                                                               .getUnitID());
+                }
                 myExecutionPhase = false;
                 initiateCommit();
             }
@@ -475,6 +508,7 @@ public class TransactionManager
                                 myTransaction.getEndTime())));
                 }
                 if (myClientInfo != null) {
+                    
                     Message message =
                         result.getPhase().getResult().isCommitted() ?
                             new DBOperationSuccessMessage(
@@ -492,8 +526,18 @@ public class TransactionManager
                            Collections.singleton(myClientInfo.getClientID()),
                            message));
                     
+                    if (LOG.isLoggable(Level.FINE)) {
+                        LOG.fine("Notifying " + myClientInfo.getClientID()
+                                 + " about " 
+                                 + message.getClass().getSimpleName());
+                    }
+                    
                     // Remove the workflow as it's no longer needed.
                     myWorkFlowMap.remove(myTransaction.getTransactionID());
+                }
+                else if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("The clients will be notified by the initiator"
+                             + " of this transaction");
                 }
                 
                 scheduleNextTransactions(myTransaction.getTransactionID());
@@ -507,6 +551,10 @@ public class TransactionManager
         public void initiateCommit()
         {
             if (myMemento != null) {
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("Initiating commit for " 
+                             + myTransaction.getTransactionID());
+                }
                 ListenableFuture<Memento<TransactionResult>> future =
                     myExecutor.submit(
                        new PhasedTransactionExecutor<TransactionResult>(
@@ -807,19 +855,25 @@ public class TransactionManager
         
         ClientInfo clientInfo = new ClientInfo(clientID, sequenceNumber);
         WorkFlow workFlow = 
-            new DistributedWorkflow(transaction, clientInfo, null);
+            new DistributedWorkflow(
+                transaction, 
+                clientInfo, 
+                new DistributedTrnProposal(unitID, operations, id));
+        
         myWorkFlowMap.put(Long.valueOf(id), workFlow);
         myConsensusToWorkFlowMap.put(unitID, workFlow);
-        
-        myEventBus.publish(
-            ActorID.DB_ENGINE,
-            new ConsensusRequestEvent(
-                new DistributedTrnProposal(unitID, operations, id)));
         
         if (myDatabase.lock(id)) {
             // The new distributed transaction will be 
             // dependent on all other transactions to complete.
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Successfully locked the database for " + id);
+            }
             Registry.addDependencyToAll(id);
+            TLongSet precedents = Registry.getPrecedencyFor(id);
+            if (precedents == null || precedents.isEmpty()) {
+                workFlow.start();
+            }
         }
         else {
             addDependencyToLockedTransaction(id);
@@ -860,13 +914,6 @@ public class TransactionManager
                     replicationProposal.getEndTime());
             myExecutor.submit(new ReplicationExecutor(transaction));
         }
-        else if (pne.isCommitNotification()) {
-           WorkFlow workFlow = 
-               myConsensusToWorkFlowMap.get(pne.getProposal().getUnitID());
-           if (workFlow != null) {
-               workFlow.initiateCommit();
-           }
-       }
        else {        
            DistributedTrnProposal distributedTrnProposal =
                (DistributedTrnProposal) pne.getProposal();

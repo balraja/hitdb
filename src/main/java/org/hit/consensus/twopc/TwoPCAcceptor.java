@@ -32,6 +32,7 @@ import org.hit.communicator.NodeID;
 import org.hit.consensus.ConsensusAcceptor;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
+import org.hit.event.ConsensusResponseEvent;
 import org.hit.event.ProposalNotificationEvent;
 import org.hit.event.ProposalNotificationResponse;
 import org.hit.event.SendMessageEvent;
@@ -88,11 +89,9 @@ public class TwoPCAcceptor extends ConsensusAcceptor
                          + " from " + commitRequest.getSenderId());
             }
             getEventBus().publish(
-                ActorID.CONSENSUS_MANAGER,
-                new ProposalNotificationEvent(
-                   commitRequest.getProposal(), 
-                   true, 
-                   commitRequest.shouldCommit()));
+                ActorID.CONSENSUS_MANAGER, 
+                new ConsensusResponseEvent(commitRequest.getProposal(),
+                                           commitRequest.shouldCommit()));
         }
     }
 
@@ -108,8 +107,9 @@ public class TwoPCAcceptor extends ConsensusAcceptor
                 response.getProposalNotification().getProposal());
         
         if (LOG.isLoggable(Level.FINE)) {
-            LOG.info("Publishing " + response.canAccept() + " for proposal "
-                    + scm.getProposal() + " from " + scm.getSenderId());
+            LOG.info("Publishing canAccept " + response.canAccept() 
+                     + " for proposal " + scm.getProposal() 
+                     + " from " + scm.getSenderId());
         }
         
         getEventBus().publish(

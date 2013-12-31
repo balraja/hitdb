@@ -21,6 +21,10 @@
 package org.hit.db.transactions;
 
 import java.util.concurrent.Callable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.hit.util.LogFactory;
 
 /**
  * Defines the contract for the interface that perfoms two phased execution 
@@ -31,6 +35,10 @@ import java.util.concurrent.Callable;
  */
 public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
 {
+    /** LOGGER */
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(PhasedTransactionExecutor.class);
+        
     /**
      * Defines the contract for the phase of transaction execution.
      */
@@ -121,6 +129,11 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
                 myTransaction.abort();
             }
             
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("The transaction " + myTransaction.getTransactionID()
+                         + " is in state " + myTransaction.getMyState()); 
+            }
+            
             if (myTransaction instanceof ReadTransaction) {
                 myResult =
                     new TransactionResult(myTransaction.getTransactionID(),
@@ -187,10 +200,12 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
     {
         if (myPhase != null) {
             myPhase.execute();
-            return new Memento<>(myTransaction, 
-                                 myPhase);
+            return new Memento<>(myTransaction, myPhase);
         }
         else {
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("The next phase of transaction is not found");
+            }
             throw new NullPointerException(
                  "The phase for this execution is not defined");
         }

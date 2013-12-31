@@ -36,8 +36,8 @@ public class ProposalNotificationResponse implements Event
      * CTOR
      */
     public ProposalNotificationResponse(
-                                        ProposalNotificationEvent proposalNotification,
-                                        boolean canAccept)
+        ProposalNotificationEvent proposalNotification,
+        boolean canAccept)
     {
         super();
         myProposalNotification = proposalNotification;

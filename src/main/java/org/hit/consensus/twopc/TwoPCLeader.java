@@ -83,6 +83,7 @@ public class TwoPCLeader extends ConsensusLeader
                         LOG.fine("Sending the commit request as "
                                 + myShouldCommit);
                     }
+                    
                     getEventBus().publish(
                         ActorID.CONSENSUS_MANAGER,
                         new SendMessageEvent(
