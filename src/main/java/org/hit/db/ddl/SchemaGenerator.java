@@ -28,19 +28,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.regex.Matcher;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.hit.util.LogFactory;
 import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroup;
 import org.stringtemplate.v4.STGroupFile;
@@ -56,8 +48,8 @@ import org.xml.sax.helpers.DefaultHandler;
  */
 public class SchemaGenerator
 {
-    private static final Logger LOG =
-        LogFactory.getInstance().getLogger(SchemaGenerator.class);
+   /* private static final Logger LOG =
+        LogFactory.getInstance().getLogger(SchemaGenerator.class);*/
                                                        
     private static final String TABLE_ELEMENT = "table";
     
@@ -67,7 +59,7 @@ public class SchemaGenerator
     
     private static final String TYPE = "type";
     
-    private static final String KEY_TYPE = "keyType";
+    private static final String KEY_TYPE = "keyClass";
     
     private static final String IS_PRIMARY = "isPrimary";
     
@@ -160,8 +152,8 @@ public class SchemaGenerator
             getContext().getColumnInfo()
                         .add(new MetaColumn(isPrimary, 
                                             index, 
-                                            columnType,
-                                            columnName));
+                                            columnName,
+                                            columnType));
         }
     }
     
@@ -200,23 +192,12 @@ public class SchemaGenerator
     
     private final Context myContext;
     
-    private final Options myOptions;
-    
     /**
      * CTOR
      */
     public SchemaGenerator()
     {
         myContext = new Context();
-        myOptions = new Options();
-        myOptions.addOption(SCHEMA_FILE, 
-                            SCHEMA_FILE, 
-                            true, 
-                            "The file that specifies the schema definition");
-        myOptions.addOption(PACKAGE_NAME,
-                            PACKAGE_NAME,
-                            true,
-                            "THe package under which src files are to be created");
     }
 
     /**
@@ -227,10 +208,12 @@ public class SchemaGenerator
         return myContext;
     }
     
-    private File makePkgDirectories(String packageName)
+    private File makePkgDirectories(File sourceDirectory, String packageName)
     {
-        File path = new File(packageName.replaceAll(DOT_SEPARATOR,
-                                                    File.separator));
+        File path = new File(sourceDirectory,
+                             packageName.replaceAll(DOT_SEPARATOR,
+                                                    Matcher.quoteReplacement(
+                                                        File.separator)));
         if (!path.exists()) {
             path.mkdirs();
         }
@@ -252,13 +235,16 @@ public class SchemaGenerator
      * A helper method to parse schema information out of an xml file 
      * and generate classes out of it.
      */
-    public void parseAndGenerateTable(File file, String packageName)
+    public void parseAndGenerateTable(File file, 
+                                      File sourceDirectory,
+                                      String packageName)
     {
         try {
             SAXParserFactory factory = SAXParserFactory.newInstance();
             factory.newSAXParser().parse(file, new ElementHandler());
             
-            File tableType = new File(makePkgDirectories(packageName),
+            File tableType = new File(makePkgDirectories(
+                                          sourceDirectory, packageName),
                                       makeJavaFileName(
                                           myContext.getTable().getTableName()));
             if (tableType.exists()) {
@@ -280,37 +266,17 @@ public class SchemaGenerator
             writer.close();
         }
         catch (SAXException | IOException | ParserConfigurationException e) {
-            LOG.log(Level.SEVERE, e.getMessage(), e);
-        }
-    }
-    
-    /** Method for processing the given arguments */
-    public void process(String[] args)
-    {
-        CommandLineParser parser = new BasicParser();
-        try {
-            CommandLine cl = parser.parse(myOptions, args);
-            if (   !cl.hasOption(SCHEMA_FILE)
-                || !cl.hasOption(PACKAGE_NAME)) 
-            {
-                HelpFormatter formatter = new HelpFormatter();
-                formatter.printHelp("run_schema_generator", myOptions);
-                System.exit(0);
-            }
-            else {
-                String schemaFile = cl.getOptionValue(SCHEMA_FILE);
-                String packageName = cl.getOptionValue(PACKAGE_NAME);
-                parseAndGenerateTable(new File(schemaFile), packageName);
-            }
-        }
-        catch (ParseException e) {
-            LOG.log(Level.SEVERE, e.getMessage(), e);
+            e.printStackTrace();
         }
     }
     
     public static void main(String[] args)
     {
         SchemaGenerator generator = new SchemaGenerator();
-        generator.process(args);
+        generator.parseAndGenerateTable(
+            new File("E:\\projects\\java-projects\\hitdb\\target\\classes\\test-schema.xml"),
+            new File("E:\\hitdbtest"),
+            "org.hittest");
+            
     }
 }

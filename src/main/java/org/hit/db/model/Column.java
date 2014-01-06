@@ -21,7 +21,7 @@
 package org.hit.db.model;
 
 /**
- * Defines the contract for a column in  the table.
+ * Defines the contract for a column in the table.
  * 
  * @author Balraja Subbiah
  */

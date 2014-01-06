@@ -1,0 +1,4 @@
+<table name="Airlines" keyClass="Long">
+	<column name="id" type="Long"/>
+	<column name="name" type ="String"/>
+</table>
