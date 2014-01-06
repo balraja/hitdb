@@ -1,0 +1,28 @@
+#qp-header {
+    -fx-background-color :  #D2D6E5
+} 
+
+#qp-header-label {
+    -fx-background-color:
+        linear-gradient(#6F75BF 0%, #4A4E7F 25%, #4A4E7F 75%, #6F75BF 100%);
+        
+    -fx-background-insets: 0,1;
+    -fx-background-radius: 9,6;
+    -fx-padding: 15 30 15 30;
+    -fx-font-family: "Lucida Console";
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+#qp-about {
+     -fx-background-color: white
+}
+
+#qp-about-text {
+    -fx-background-color: white;
+    -fx-font-family: "Lucida Console";
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill : #0076a3;
+}

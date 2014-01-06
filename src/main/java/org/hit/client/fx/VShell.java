@@ -31,15 +31,12 @@ import javafx.stage.Stage;
  */
 public class VShell extends Application 
 {
-    private static final String WINDOW_TITLE = "Visual Shell - 0.1";
-    
     /**
      * {@inheritDoc}
      */
 	@Override
 	public void start(Stage primaryStage) 
 	{
-	    primaryStage.setTitle(WINDOW_TITLE);
 	    QueryEditorScene queryEditor = new QueryEditorScene();
 	    queryEditor.addTo(primaryStage);
 	    primaryStage.show();

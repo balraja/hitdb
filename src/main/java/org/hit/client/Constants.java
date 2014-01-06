@@ -41,8 +41,8 @@ public final class Constants
     
     public static final String ABOUT = 
         "Hit stands for Humungous agIle Transactional database. "
-        + "This is built and maintained by Balraja Subbiah. The project is "
-        + "hosted on git.";
+        + "This is built and maintained by Balraja Subbiah (C) 2014. "
+        + "The project is hosted on git https://github.com/balraja/hitdb.";
 
     /**
      * CTOR

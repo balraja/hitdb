@@ -19,27 +19,28 @@
 */
 package org.hit.client.fx;
 
+import java.net.URISyntaxException;
+
 import org.hit.client.Constants;
 
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
-import javafx.scene.control.LabelBuilder;
 import javafx.scene.control.SeparatorBuilder;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextAreaBuilder;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageViewBuilder;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 
 /**
@@ -50,6 +51,8 @@ import javafx.stage.Stage;
  */
 public class QueryEditorScene
 {
+    private static final String WINDOW_TITLE = "Visual Shell - 0.1";
+    
     private final BorderPane myScene;
     
     private final TextArea myQueryEditorArea;
@@ -63,29 +66,18 @@ public class QueryEditorScene
     {
         myScene = new BorderPane();
         
-        // set the header 
-        HBox header = new HBox();
+        // Set the header 
+        BorderPane header = new BorderPane();
         header.setPadding(new Insets(15, 12, 15, 12));
-        header.setSpacing(10);
-        
-        Label banner = new Label(Constants.BANNER);
-        banner.setFont(Font.font("Calibri", 25));
-        Image image = 
-            new Image(getClass().getClassLoader()
-                                .getResourceAsStream(Constants.APP_ICON_FILE));
-        banner.setGraphic(ImageViewBuilder.create()
-                                          .image(image)
-                                          .fitHeight(60)
-                                          .preserveRatio(true)
-                                          .build());
-        banner.setTextFill(Color.web("#0076a3"));
-        
-        header.getChildren().add(banner);
+        header.setId("qp-header");
+        Label banner = 
+           new Label(Constants.TITLE + " - " + WINDOW_TITLE);
+        banner.setAlignment(Pos.CENTER);
+        banner.setId("qp-header-label");
+        header.setCenter(banner);
         myScene.setTop(header);
         
-        // set the body
-        
-        // code pane
+        // Query pane
         GridPane layout = new GridPane();
         myQueryEditorArea = TextAreaBuilder.create()
                                        .prefRowCount(20)
@@ -101,15 +93,18 @@ public class QueryEditorScene
                                          .orientation(Orientation.HORIZONTAL)
                                          .build());
         
-        // result component
+        // Result component
         myQueryResulPanel = new TabPane();
         Tab version = new Tab("About");
-        version.setContent(LabelBuilder.create()
-                                        .text(Constants.ABOUT)
-                                        .font(Font.font("Calibri", 12))
-                                        .textFill(Color.web("#0076a3"))
-                                        .build());
+        StackPane aboutContent = new StackPane();
+        Label aboutLabel = new Label(Constants.ABOUT);
+        aboutLabel.setId("qp-about-text");
+        Rectangle rectangle = new Rectangle(100, 100, Color.WHITE);
+        rectangle.heightProperty().bind(aboutLabel.heightProperty().add(100));
+        aboutContent.getChildren().addAll(rectangle, aboutLabel);
+        version.setContent(aboutContent);
         myQueryResulPanel.getTabs().add(version);
+        
         layout.addRow(2, myQueryResulPanel);
         GridPane.setHalignment(myQueryResulPanel, HPos.CENTER);
         GridPane.setValignment(myQueryResulPanel, VPos.CENTER);
@@ -120,6 +115,23 @@ public class QueryEditorScene
     /** A helper method to add the scene graph to the display stage */
     public void addTo(Stage stage)
     {
-        stage.setScene(new Scene(myScene));
+        Scene scene = new Scene(myScene);
+        String stylePath;
+        try {
+            stylePath = getClass().getClassLoader()
+                                  .getResource("query-editor.css")
+                                  .toURI()
+                                  .toString();
+            
+            scene.getStylesheets().add(stylePath);
+        }
+        catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+        
+        stage.setScene(scene);
+        stage.getIcons().add(
+            new Image(getClass().getClassLoader()
+                    .getResourceAsStream(Constants.APP_ICON_FILE)));
     }
 }
