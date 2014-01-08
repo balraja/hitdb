@@ -40,8 +40,6 @@ public class HitTableSchema extends TableSchema
 
     private Class<? extends Persistable<?>> myPersistableClass;
 
-    private String myTableName;
-    
     private boolean myReplicated;
 
     /**
@@ -55,12 +53,13 @@ public class HitTableSchema extends TableSchema
     /**
      * CTOR
      */
-    public HitTableSchema(String tableName,
-                  List<String> tableColumns,
-                  List<String> primaryColumns,
-                  Class<? extends Persistable<?>> persistableclass,
-                  Class<? extends Comparable<?>> keyclass,
-                  Keyspace<?,?> keyspace)
+    public HitTableSchema(
+        String tableName,
+        List<String> tableColumns,
+        List<String> primaryColumns,
+        Class<? extends Persistable<?>> persistableclass,
+        Class<? extends Comparable<?>> keyclass,
+        Keyspace<?,?> keyspace)
     {
         this(tableName, 
              tableColumns, 
@@ -83,7 +82,6 @@ public class HitTableSchema extends TableSchema
                   boolean replicated)
     {
         super(tableName, tableColumns, primaryColumns);
-        myTableName = tableName;
         myPersistableClass = persistableclass;
         myKeyClass = keyclass;
         myKeyspace = keyspace;
@@ -131,7 +129,7 @@ public class HitTableSchema extends TableSchema
     public void readExternal(ObjectInput in)
         throws IOException, ClassNotFoundException
     {
-        myTableName = in.readUTF();
+        super.readExternal(in);
         myPersistableClass = (Class<? extends Persistable<?>>) in.readObject();
         myKeyClass = (Class<? extends Comparable<?>>) in.readObject();
         myKeyspace = (Keyspace<?,?>) in.readObject();
@@ -144,7 +142,7 @@ public class HitTableSchema extends TableSchema
     @Override
     public String toString()
     {
-        return "Schema [myTableName=" + get
+        return "Schema [myTableName=" + getTableName()
                + ", myPersistableClass="
                + myPersistableClass
                + ", myKeyClass="

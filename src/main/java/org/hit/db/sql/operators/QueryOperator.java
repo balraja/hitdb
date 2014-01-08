@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -17,34 +17,30 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package org.hit.db.model.query;
 
-import org.hit.db.model.Query;
-import org.hit.db.sql.merger.QueryResultMerger;
+package org.hit.db.sql.operators;
+
+import java.io.Externalizable;
+import java.util.Collection;
+
+import org.hit.db.model.Database;
+import org.hit.db.model.Row;
 import org.hit.util.Range;
 
 /**
- * Defines the contract for a query whose queryable range can be modified
- * at run time.
+ * Defines the contract for the interface that can be used for performing
+ * the intended query operation.
  * 
  * @author Balraja Subbiah
  */
-public interface RewritableQuery extends Query
+public interface QueryOperator extends Externalizable
 {
-    /**
-     * Clones a new {@link RewritableQuery} out of the attributes of existing
-     * {@link Query}.
-     */
-    public RewritableQuery cloneQuery();
+    /** Returns the result of query */
+    public Collection<Row> getResult(Database database);
     
-    /**
-     * Returns the {@link QueryResultMerger} that's used for merging values
-     * from multiple queries.
-     */
-    public QueryResultMerger getQueryMerger();
+    /** Sets the new range whose data is to be queried */
+    <K extends Comparable<K>> void updateRange(Range<K> newRange);
     
-    /**
-     * Updates query to query within the new query range.
-     */
-    public <K extends Comparable<K>> void updateRange(Range<K> newRange);
+    /** Defines the contract for cloning */
+    public QueryOperator cloneOperator();
 }

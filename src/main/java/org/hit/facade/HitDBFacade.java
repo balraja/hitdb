@@ -53,13 +53,13 @@ import org.hit.db.model.query.RewritableQuery;
 import org.hit.db.partitioner.DistributedHashTable;
 import org.hit.db.partitioner.Partitioner;
 import org.hit.db.partitioner.TablePartitionInfo;
-import org.hit.db.query.merger.QueryMerger;
-import org.hit.db.query.merger.SimpleQueryMerger;
-import org.hit.db.query.operators.QueryBuilder;
-import org.hit.db.query.operators.QueryBuildingException;
-import org.hit.db.query.parser.HitSQLLexer;
-import org.hit.db.query.parser.HitSQLParser;
-import org.hit.db.query.parser.HitSQLTree;
+import org.hit.db.sql.merger.QueryResultMerger;
+import org.hit.db.sql.merger.SimpleQueryResultMerger;
+import org.hit.db.sql.operators.QueryBuilder;
+import org.hit.db.sql.operators.QueryBuildingException;
+import org.hit.db.sql.parser.HitSQLLexer;
+import org.hit.db.sql.parser.HitSQLParser;
+import org.hit.db.sql.parser.HitSQLTree;
 import org.hit.di.HitFacadeModule;
 import org.hit.messages.CreateTableMessage;
 import org.hit.messages.CreateTableResponseMessage;
@@ -209,7 +209,7 @@ public class HitDBFacade
 
         private final Long myOperationId;
 
-        private final QueryMerger myQueryMerger;
+        private final QueryResultMerger myQueryMerger;
 
         private final Set<NodeID> myServerNodes;
 
@@ -219,7 +219,7 @@ public class HitDBFacade
         public RangeQueryResponserHandler(
             Long operationId,
             Set<NodeID> serverNodes,
-            QueryMerger queryMerger,
+            QueryResultMerger queryMerger,
             SettableFuture<QueryResponse> clientFuture)
         {
             super();
@@ -765,7 +765,7 @@ public class HitDBFacade
             new RangeQueryResponserHandler(
                 id,
                 new HashSet<>(myRegistryService.getServerNodes()),
-                new SimpleQueryMerger(),
+                new SimpleQueryResultMerger(),
                 queryResponse);
         
         for (NodeID server : myRegistryService.getServerNodes()) {

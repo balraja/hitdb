@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -17,34 +17,16 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package org.hit.db.model.query;
 
-import org.hit.db.model.Query;
-import org.hit.db.sql.merger.QueryResultMerger;
-import org.hit.util.Range;
+package org.hit.db.sql.operators;
+
+import java.io.Externalizable;
 
 /**
- * Defines the contract for a query whose queryable range can be modified
- * at run time.
+ * Defines the contract for key that can be used in grouping operations
  * 
  * @author Balraja Subbiah
  */
-public interface RewritableQuery extends Query
+public interface GroupKey extends Externalizable
 {
-    /**
-     * Clones a new {@link RewritableQuery} out of the attributes of existing
-     * {@link Query}.
-     */
-    public RewritableQuery cloneQuery();
-    
-    /**
-     * Returns the {@link QueryResultMerger} that's used for merging values
-     * from multiple queries.
-     */
-    public QueryResultMerger getQueryMerger();
-    
-    /**
-     * Updates query to query within the new query range.
-     */
-    public <K extends Comparable<K>> void updateRange(Range<K> newRange);
 }

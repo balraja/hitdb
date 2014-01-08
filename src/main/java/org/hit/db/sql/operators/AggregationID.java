@@ -17,34 +17,30 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package org.hit.db.model.query;
-
-import org.hit.db.model.Query;
-import org.hit.db.sql.merger.QueryResultMerger;
-import org.hit.util.Range;
+package org.hit.db.sql.operators;
 
 /**
- * Defines the contract for a query whose queryable range can be modified
- * at run time.
- * 
- * @author Balraja Subbiah
+ * Defines an enum to capture various aggregating functions.
  */
-public interface RewritableQuery extends Query
+public enum AggregationID
 {
-    /**
-     * Clones a new {@link RewritableQuery} out of the attributes of existing
-     * {@link Query}.
-     */
-    public RewritableQuery cloneQuery();
+    MIN,
+    MAX,
+    AVG,
+    CNT,
+    SUM;
     
-    /**
-     * Returns the {@link QueryResultMerger} that's used for merging values
-     * from multiple queries.
+    /** 
+     * A static factory method to match the aggregate function 
+     * irrespective if id.
      */
-    public QueryResultMerger getQueryMerger();
-    
-    /**
-     * Updates query to query within the new query range.
-     */
-    public <K extends Comparable<K>> void updateRange(Range<K> newRange);
+    public static AggregationID lookup(String name)
+    {
+        for (AggregationID id : values()) {
+            if (id.name().equalsIgnoreCase(name)) {
+                return id;
+            }
+        }
+        return null;
+    }
 }

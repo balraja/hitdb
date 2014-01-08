@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -17,34 +17,49 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package org.hit.db.model.query;
 
-import org.hit.db.model.Query;
-import org.hit.db.sql.merger.QueryResultMerger;
-import org.hit.util.Range;
+package org.hit.db.sql.merger;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+import org.hit.db.model.Row;
 
 /**
- * Defines the contract for a query whose queryable range can be modified
- * at run time.
+ * A simple query merger which just collects the partial result and returns
+ * the final collected value.
  * 
  * @author Balraja Subbiah
  */
-public interface RewritableQuery extends Query
+public class SimpleQueryResultMerger implements QueryResultMerger
 {
-    /**
-     * Clones a new {@link RewritableQuery} out of the attributes of existing
-     * {@link Query}.
-     */
-    public RewritableQuery cloneQuery();
+    private final List<Row> myCollectedResult;
     
     /**
-     * Returns the {@link QueryResultMerger} that's used for merging values
-     * from multiple queries.
+     * CTOR
      */
-    public QueryResultMerger getQueryMerger();
-    
+    public SimpleQueryResultMerger()
+    {
+        super();
+        myCollectedResult = new ArrayList<>();
+    }
+
     /**
-     * Updates query to query within the new query range.
+     * {@inheritDoc}
      */
-    public <K extends Comparable<K>> void updateRange(Range<K> newRange);
+    @Override
+    public void addPartialResult(Collection<Row> result)
+    {
+        myCollectedResult.addAll(result);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<Row> getMergedResult()
+    {
+        return myCollectedResult;
+    }
 }

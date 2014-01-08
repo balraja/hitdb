@@ -30,7 +30,6 @@ import java.util.logging.Logger;
 import org.hit.client.DBClient;
 import org.hit.db.keyspace.LinearKeyspace;
 import org.hit.db.keyspace.domain.LongDomain;
-import org.hit.db.model.Column;
 import org.hit.db.model.HitTableSchema;
 import org.hit.db.model.mutations.BatchAddMutation;
 import org.hit.facade.DBOperationResponse;
@@ -67,7 +66,8 @@ public class HitDbTest extends DBClient
     {
         HitTableSchema schema =
             new HitTableSchema(TABLE_NAME,
-                       new ArrayList<Column>(),
+                       new ArrayList<String>(),
+                       new ArrayList<String>(),
                        Airport.class,
                        Long.class,
                        new LinearKeyspace<Long>(new LongDomain(1L, 7000L)));

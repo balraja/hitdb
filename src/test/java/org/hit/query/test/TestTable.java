@@ -54,10 +54,14 @@ public class TestTable<K extends Comparable<K>, P extends Persistable<K>>
                      DataLoader<P>      dataLoader)
     {
         myData = new TreeMap<>();
-        mySchema = new HitTableSchema(tableName,
-                              tableClass,
-                              keyClass,
-                              keySpace);
+        mySchema = 
+            new HitTableSchema(
+                  tableName,
+                  new ArrayList<String>(),
+                  new ArrayList<String>(),
+                  tableClass,
+                  keyClass,
+                  keySpace);
         
         List<P> data = dataLoader.loadTestData();
         for (P persistable : data) {
