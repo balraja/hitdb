@@ -18,33 +18,38 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.event;
+package org.hit.client.command;
 
-import org.hit.db.model.HitTableSchema;
+import java.util.Map;
+
+import org.hit.facade.HitDBFacade;
 
 /**
- * Defines an <code>Event</code> to notify the addition of <code>Schema</code>
+ * Implements the {@link Command} to display the help message.
  * 
  * @author Balraja Subbiah
  */
-public class SchemaNotificationEvent implements Event
+public class HelpCommand implements Command
 {
-    private final HitTableSchema mySchema;
+    private final Map<String, String> myCommand2HelpMap;
 
     /**
      * CTOR
      */
-    public SchemaNotificationEvent(HitTableSchema schema)
+    public HelpCommand(Map<String,String> command2Help)
     {
-        super();
-        mySchema = schema;
+        myCommand2HelpMap = command2Help;
     }
 
     /**
-     * Returns the value of schema
+     * {@inheritDoc}
      */
-    public HitTableSchema getSchema()
+    @Override
+    public void execute(HitDBFacade facade)
     {
-        return mySchema;
+        for (Map.Entry<String,String> entry : myCommand2HelpMap.entrySet())
+        {
+            System.out.println(entry.getKey() + " " + entry.getValue());
+        }
     }
 }

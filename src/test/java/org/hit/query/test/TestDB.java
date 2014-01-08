@@ -27,7 +27,7 @@ import org.hit.db.keyspace.LinearKeyspace;
 import org.hit.db.keyspace.domain.LongDomain;
 import org.hit.db.model.Database;
 import org.hit.db.model.Persistable;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.model.Table;
 import org.hit.example.Airline;
 import org.hit.example.AirlineDataLoader;
@@ -80,7 +80,7 @@ public class TestDB implements Database
      * {@inheritDoc}
      */
     @Override
-    public void createTable(Schema schema)
+    public void createTable(HitTableSchema schema)
     {
     }
 

@@ -39,7 +39,7 @@ import org.hit.db.model.DBOperation;
 import org.hit.db.model.DatabaseException;
 import org.hit.db.model.Mutation;
 import org.hit.db.model.Query;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.model.mutations.MutationWrapper;
 import org.hit.db.transactions.AbstractTransaction;
 import org.hit.db.transactions.IDAssigner;
@@ -726,7 +726,7 @@ public class TransactionManager
     /**
      * Creates a table with the given <code>Schema</code>
      */
-    public boolean createTable(Schema schema)
+    public boolean createTable(HitTableSchema schema)
     {
         try {
             myDatabase.createTable(schema);

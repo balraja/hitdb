@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,35 +18,29 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.client.fx;
+package org.hit.client.command;
 
-import javafx.application.Application;
-import javafx.stage.Stage;
+import org.hit.facade.HitDBFacade;
+
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
- * An javafx application to provide a visual client for interacting with
- * hit database servers.
+ * Defines the contract for the {@link Command} where results are 
+ * returned from the server.
  * 
  * @author Balraja Subbiah
  */
-public class VShell extends Application 
+public abstract class AsyncCommand implements Command
 {
     /**
      * {@inheritDoc}
      */
-	@Override
-	public void start(Stage primaryStage) 
-	{
-	    QueryEditorScene queryEditor = new QueryEditorScene();
-	    queryEditor.addTo(primaryStage);
-	    primaryStage.show();
-	}
-
-	/**
-	 * The main class that launches the application.
-	 */
-	public static void main(String[] args) 
-	{
-		launch(args);
-	}
+    @Override
+    public void execute(HitDBFacade facade)
+    {
+        
+    }
+    
+    protected abstract <T> ListenableFuture<T> doExecute(HitDBFacade facade);
+    
 }

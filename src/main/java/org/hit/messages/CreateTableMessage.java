@@ -26,7 +26,7 @@ import java.io.ObjectOutput;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 
 /**
  * Message for instructing the database to create table with the specified
@@ -36,7 +36,7 @@ import org.hit.db.model.Schema;
  */
 public class CreateTableMessage extends Message
 {
-    private Schema myTableSchema;
+    private HitTableSchema myTableSchema;
 
     /**
      * CTOR
@@ -50,7 +50,7 @@ public class CreateTableMessage extends Message
     /**
      * CTOR
      */
-    public CreateTableMessage(NodeID nodeId, Schema tableSchema)
+    public CreateTableMessage(NodeID nodeId, HitTableSchema tableSchema)
     {
         super(nodeId);
         myTableSchema = tableSchema;
@@ -59,7 +59,7 @@ public class CreateTableMessage extends Message
     /**
      * Returns the value of tableSchema
      */
-    public Schema getTableSchema()
+    public HitTableSchema getTableSchema()
     {
         return myTableSchema;
     }
@@ -72,7 +72,7 @@ public class CreateTableMessage extends Message
         throws IOException, ClassNotFoundException
     {
         super.readExternal(in);
-        myTableSchema = (Schema) in.readObject();
+        myTableSchema = (HitTableSchema) in.readObject();
     }
     
     /**

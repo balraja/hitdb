@@ -31,7 +31,7 @@ import org.hit.client.DBClient;
 import org.hit.db.keyspace.LinearKeyspace;
 import org.hit.db.keyspace.domain.LongDomain;
 import org.hit.db.model.Column;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.model.mutations.BatchAddMutation;
 import org.hit.facade.DBOperationResponse;
 import org.hit.facade.TableCreationResponse;
@@ -65,8 +65,8 @@ public class HitDbTest extends DBClient
     /** Creates the climate data table */
     public void createTable()
     {
-        Schema schema =
-            new Schema(TABLE_NAME,
+        HitTableSchema schema =
+            new HitTableSchema(TABLE_NAME,
                        new ArrayList<Column>(),
                        Airport.class,
                        Long.class,

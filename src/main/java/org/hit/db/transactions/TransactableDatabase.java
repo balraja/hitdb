@@ -21,7 +21,7 @@
 package org.hit.db.transactions;
 
 import org.hit.db.model.Persistable;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 import org.hit.event.DBStatEvent;
 
 /**
@@ -35,7 +35,7 @@ public interface TransactableDatabase
     public static final long UNLOCKED_VALUE = Long.MIN_VALUE;
     
     /** Creates a table with the specified schema in the database */
-    public void createTable(Schema schema);
+    public void createTable(HitTableSchema schema);
 
     /** Returns the <code>TransactableTable</code> from the database. */
     public <K extends Comparable<K>, P extends Persistable<K>> TransactableTable<K, P>

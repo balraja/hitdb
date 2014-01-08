@@ -46,7 +46,7 @@ import org.hit.db.model.DBOperation;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Query;
 import org.hit.db.model.Row;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.model.mutations.RangeMutation;
 import org.hit.db.model.mutations.SingleKeyMutation;
 import org.hit.db.model.query.RewritableQuery;
@@ -458,14 +458,14 @@ public class HitDBFacade
     {
         private final SettableFuture<TableCreationResponse> myFuture;
 
-        private final Schema mySchema;
+        private final HitTableSchema mySchema;
 
         /**
          * CTOR
          */
         public SubmitTableCreationTask(
             SettableFuture<TableCreationResponse> future,
-            Schema schema)
+            HitTableSchema schema)
         {
             super();
             myFuture = future;
@@ -669,7 +669,7 @@ public class HitDBFacade
     /**
      * Creates a new table in the database with the given <code>Schema</code>
      */
-    public ListenableFuture<TableCreationResponse> createTable(Schema schema)
+    public ListenableFuture<TableCreationResponse> createTable(HitTableSchema schema)
     {
         final SettableFuture<TableCreationResponse> clientFuture =
             SettableFuture.create();

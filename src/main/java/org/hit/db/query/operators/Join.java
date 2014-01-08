@@ -121,7 +121,7 @@ public class Join implements QueryOperator
             }
             
             myHasData = incrIndex();
-            return new TableIndexedQueryable(tableQueryableMap);
+            return new TableIndexedRow(tableQueryableMap);
         }
         
         private boolean incrIndex()

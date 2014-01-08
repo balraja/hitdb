@@ -37,7 +37,7 @@ import java.util.logging.Logger;
 
 import org.hit.communicator.NodeID;
 import org.hit.db.keyspace.domain.DiscreteDomain;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.partitioner.Partitioner;
 import org.hit.event.DBStatEvent;
 import org.hit.event.GossipUpdateEvent;
@@ -74,7 +74,7 @@ public class StandardAllocator implements Allocator
 
     private final Map<String, Partitioner<?, ?>> myTableToPartitionMap;
 
-    private final Map<String, Schema> myTableToSchemaMap;
+    private final Map<String, HitTableSchema> myTableToSchemaMap;
 
     /**
      * CTOR
@@ -96,7 +96,7 @@ public class StandardAllocator implements Allocator
      * {@inheritDoc}
      */
     @Override
-    public void addSchema(Schema tableSchema)
+    public void addSchema(HitTableSchema tableSchema)
     {
         myTableToSchemaMap.put(tableSchema.getTableName(), tableSchema);
         
@@ -145,10 +145,10 @@ public class StandardAllocator implements Allocator
                 "Trying get allocation from a non master node");
         }
 
-        Map<String, Schema> tableSchemaMap = new HashMap<>();
+        Map<String, HitTableSchema> tableSchemaMap = new HashMap<>();
         Map<String, Partitioner<?,?>> partitionTableMap = new HashMap<>();
         Map<String, NodeID> dataNodeMap = new HashMap<>();
-        for (Map.Entry<String, Schema> entry : myTableToSchemaMap.entrySet())
+        for (Map.Entry<String, HitTableSchema> entry : myTableToSchemaMap.entrySet())
         {
             tableSchemaMap.put(entry.getKey(), entry.getValue());
             if (myNodes.isEmpty() || myNodeToRowCountMap.isEmpty()) {

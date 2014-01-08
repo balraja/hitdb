@@ -66,7 +66,7 @@ public interface Table<K extends Comparable<K>, P extends Persistable<K>>
 
 
     /** Returns schema of the table */
-    public Schema getSchema();
+    public HitTableSchema getSchema();
     
     /**
      * Updates the old object with the new object

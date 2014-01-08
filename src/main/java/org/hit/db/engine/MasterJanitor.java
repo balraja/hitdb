@@ -36,7 +36,7 @@ import java.util.logging.Logger;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.partitioner.TablePartitionInfo;
 import org.hit.event.DBStatEvent;
 import org.hit.event.Event;
@@ -110,7 +110,7 @@ public class MasterJanitor extends AbstractJanitor
                 LOG.info(String.format(TABLE_CREATION_LOG,
                                        ctm.getSenderId(),
                                        ctm.getTableSchema()));
-                Schema schema = ctm.getTableSchema();
+                HitTableSchema schema = ctm.getTableSchema();
                 myAllocator.addSchema(schema);
                 boolean isSuccess = 
                     getTransactionManager().createTable(schema);

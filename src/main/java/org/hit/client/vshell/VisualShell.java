@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,33 +18,35 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.event;
+package org.hit.client.vshell;
 
-import org.hit.db.model.HitTableSchema;
+import javafx.application.Application;
+import javafx.stage.Stage;
 
 /**
- * Defines an <code>Event</code> to notify the addition of <code>Schema</code>
+ * An javafx application to provide a visual client for interacting with
+ * hit database servers.
  * 
  * @author Balraja Subbiah
  */
-public class SchemaNotificationEvent implements Event
+public class VisualShell extends Application 
 {
-    private final HitTableSchema mySchema;
-
     /**
-     * CTOR
+     * {@inheritDoc}
      */
-    public SchemaNotificationEvent(HitTableSchema schema)
-    {
-        super();
-        mySchema = schema;
-    }
+	@Override
+	public void start(Stage primaryStage) 
+	{
+	    QueryEditorScene queryEditor = new QueryEditorScene();
+	    queryEditor.addTo(primaryStage);
+	    primaryStage.show();
+	}
 
-    /**
-     * Returns the value of schema
-     */
-    public HitTableSchema getSchema()
-    {
-        return mySchema;
-    }
+	/**
+	 * The main class that launches the application.
+	 */
+	public static void main(String[] args) 
+	{
+		launch(args);
+	}
 }

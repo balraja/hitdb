@@ -28,7 +28,7 @@ import java.util.TreeMap;
 import org.hit.concurrent.LocklessSkipList;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.transactions.Transactable;
 import org.hit.db.transactions.ValidationResult;
 import org.hit.util.Pair;
@@ -49,7 +49,7 @@ public class TransactablePartitionedTable<K extends Comparable<K>, P extends Per
     /**
      * CTOR
      */
-    public TransactablePartitionedTable(Schema schema)
+    public TransactablePartitionedTable(HitTableSchema schema)
     {
         super(schema);
         myIndex = new LocklessSkipList<K, Transactable<K,P>>(10);

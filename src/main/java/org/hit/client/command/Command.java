@@ -18,33 +18,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.event;
+package org.hit.client.command;
 
-import org.hit.db.model.HitTableSchema;
+import org.hit.facade.HitDBFacade;
 
 /**
- * Defines an <code>Event</code> to notify the addition of <code>Schema</code>
+ * Defines the contract for a command that can be executed in a shell.
  * 
  * @author Balraja Subbiah
  */
-public class SchemaNotificationEvent implements Event
+public interface Command
 {
-    private final HitTableSchema mySchema;
-
     /**
-     * CTOR
+     * Subclasses should override this method to execute the commands.
      */
-    public SchemaNotificationEvent(HitTableSchema schema)
-    {
-        super();
-        mySchema = schema;
-    }
-
-    /**
-     * Returns the value of schema
-     */
-    public HitTableSchema getSchema()
-    {
-        return mySchema;
-    }
+    public void execute(HitDBFacade facade);
 }

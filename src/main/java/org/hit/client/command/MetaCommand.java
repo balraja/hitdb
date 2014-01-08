@@ -1,6 +1,6 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease. 
+    of updates with comfort and ease.
 
     Copyright (C) 2013  Balraja Subbiah
 
@@ -18,33 +18,24 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.event;
+package org.hit.client.command;
 
-import org.hit.db.model.HitTableSchema;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Defines an <code>Event</code> to notify the addition of <code>Schema</code>
- * 
+ * Defines an annotation that can be used for defining additional
+ * attributes for a command.
+ *
  * @author Balraja Subbiah
  */
-public class SchemaNotificationEvent implements Event
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface MetaCommand
 {
-    private final HitTableSchema mySchema;
+    public String help();
 
-    /**
-     * CTOR
-     */
-    public SchemaNotificationEvent(HitTableSchema schema)
-    {
-        super();
-        mySchema = schema;
-    }
-
-    /**
-     * Returns the value of schema
-     */
-    public HitTableSchema getSchema()
-    {
-        return mySchema;
-    }
+    public String name();
 }

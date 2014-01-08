@@ -26,16 +26,11 @@ import java.util.List;
 import java.util.TreeMap;
 
 import org.hit.db.keyspace.LinearKeyspace;
-import org.hit.db.keyspace.domain.LongDomain;
-import org.hit.db.model.Column;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.model.Table;
-import org.hit.example.Airport;
-import org.hit.example.AirportDataLoader;
 import org.hit.example.DataLoader;
-import org.hit.example.HitDbTest;
 
 /**
  * A test table that can be used for verifying query execution.
@@ -47,7 +42,7 @@ public class TestTable<K extends Comparable<K>, P extends Persistable<K>>
 {
     private final TreeMap<K, P> myData;
     
-    private final Schema mySchema;
+    private final HitTableSchema mySchema;
     
     /**
      * CTOR
@@ -59,8 +54,7 @@ public class TestTable<K extends Comparable<K>, P extends Persistable<K>>
                      DataLoader<P>      dataLoader)
     {
         myData = new TreeMap<>();
-        mySchema = new Schema(tableName,
-                              new ArrayList<Column>(),
+        mySchema = new HitTableSchema(tableName,
                               tableClass,
                               keyClass,
                               keySpace);
@@ -114,7 +108,7 @@ public class TestTable<K extends Comparable<K>, P extends Persistable<K>>
      * {@inheritDoc}
      */
     @Override
-    public Schema getSchema()
+    public HitTableSchema getSchema()
     {
         return mySchema;
     }

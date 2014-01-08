@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.hit.communicator.NodeID;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.partitioner.Partitioner;
 import org.hit.event.DBStatEvent;
 import org.hit.event.GossipUpdateEvent;
@@ -42,7 +42,7 @@ public interface Allocator
     /**
      * The schema to be monitored.
      */
-    public void addSchema(Schema tableSchema);
+    public void addSchema(HitTableSchema tableSchema);
     
     /**
      * Initializes the allocator with the list of other hit database 

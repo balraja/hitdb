@@ -18,33 +18,37 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.event;
+package org.hit.client.command;
 
-import org.hit.db.model.HitTableSchema;
+import java.util.Set;
+
+import org.hit.facade.HitDBFacade;
 
 /**
- * Defines an <code>Event</code> to notify the addition of <code>Schema</code>
+ * The command to display the list of tables known to this database server.
  * 
  * @author Balraja Subbiah
  */
-public class SchemaNotificationEvent implements Event
+@MetaCommand(name = "list_tables", 
+             help = "Displays the list of tables in the database")
+public class ListTablesCommand implements Command
 {
-    private final HitTableSchema mySchema;
-
     /**
-     * CTOR
+     * {@inheritDoc}
      */
-    public SchemaNotificationEvent(HitTableSchema schema)
+    @Override
+    public void execute(HitDBFacade facade)
     {
-        super();
-        mySchema = schema;
-    }
-
-    /**
-     * Returns the value of schema
-     */
-    public HitTableSchema getSchema()
-    {
-        return mySchema;
+        Set<String> tables = facade.listTables();
+        if (tables == null || tables.isEmpty()) {
+            System.out.println("There are no tables to display");
+        }
+        else {
+            int i = 1;
+            for (String table : tables) {
+                System.out.println(i + " " + table);
+                i++;
+            }
+        }
     }
 }

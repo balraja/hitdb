@@ -25,6 +25,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.hit.client.Constants;
+import org.hit.client.command.Command;
+import org.hit.client.command.CommandParser;
 import org.hit.facade.HitDBFacade;
 import org.hit.util.Application;
 import org.hit.util.ApplicationLauncher;
@@ -96,7 +98,6 @@ public class ConsoleShell implements Application
     private final CommandParser myCommandParser;
 
     private final  HitDBFacade myServerFacade;
-
 
     /**
      * CTOR

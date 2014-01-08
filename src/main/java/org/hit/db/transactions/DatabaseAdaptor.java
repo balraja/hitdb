@@ -25,7 +25,7 @@ import java.util.Map;
 
 import org.hit.db.model.Database;
 import org.hit.db.model.Persistable;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.model.Table;
 
 /**
@@ -79,7 +79,7 @@ public class DatabaseAdaptor implements Database
      * {@inheritDoc}
      */
     @Override
-    public void createTable(Schema schema)
+    public void createTable(HitTableSchema schema)
     {
         myDatabase.createTable(schema);
     }

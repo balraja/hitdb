@@ -28,7 +28,7 @@ package org.hit.db.model;
 public interface Database
 {
     /** Creates a table with the specified schema in the database */
-    public void createTable(Schema schema);
+    public void createTable(HitTableSchema schema);
     
     /** Returns the <code>Table</code> corresponding to the given table name. */
     public <K extends Comparable<K>, P extends Persistable<K>> Table<K, P>

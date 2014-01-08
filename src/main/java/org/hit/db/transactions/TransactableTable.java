@@ -24,7 +24,7 @@ import java.util.Collection;
 
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 
 /**
  * Defines the contract for a database table that aids in supporting
@@ -74,7 +74,7 @@ public interface TransactableTable<K extends Comparable<K>, P extends Persistabl
                                                      long transactionID);
 
     /** Returns schema of the table */
-    public Schema getSchema();
+    public HitTableSchema getSchema();
     
     /** Returns the number of rows in this table */
     public long rowCount();

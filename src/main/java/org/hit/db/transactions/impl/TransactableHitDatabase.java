@@ -27,7 +27,7 @@ import java.util.logging.Logger;
 
 import org.hit.db.keyspace.HashKeyspace;
 import org.hit.db.model.Persistable;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.transactions.TransactableDatabase;
 import org.hit.db.transactions.TransactableTable;
 import org.hit.event.DBStatEvent;
@@ -47,7 +47,7 @@ public class TransactableHitDatabase implements TransactableDatabase
     
     private final Map<String, TransactableTable<?, ?>> myDatabaseTables;
 
-    private final Map<String, Schema> myTable2Schema;
+    private final Map<String, HitTableSchema> myTable2Schema;
     
     private final AtomicLong myLock;
 
@@ -65,7 +65,7 @@ public class TransactableHitDatabase implements TransactableDatabase
      * {@inheritDoc}
      */
     @Override
-    public void createTable(Schema schema)
+    public void createTable(HitTableSchema schema)
     {
         // Creates table lazily. It just stores schema against the table
         // name and creates the table only when it's required by the
@@ -92,7 +92,7 @@ public class TransactableHitDatabase implements TransactableDatabase
     }
 
     private <K extends Comparable<K>, P extends Persistable<K>>
-        TransactableTable<K, P> makeTable(Schema schema)
+        TransactableTable<K, P> makeTable(HitTableSchema schema)
     {
         if (schema.getKeyspace() instanceof HashKeyspace)
         {

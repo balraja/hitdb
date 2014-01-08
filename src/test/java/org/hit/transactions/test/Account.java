@@ -27,7 +27,7 @@ import org.hit.db.keyspace.domain.LongDomain;
 import org.hit.db.model.Column;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Row;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 
 /**
  * Defines type that defines the contract for an account.
@@ -38,8 +38,8 @@ public class Account implements Persistable<Long>, Row
 {
     public static final String TABLE_NAME = "account";
     
-    public static final Schema SCHEMA = 
-        new Schema(TABLE_NAME,
+    public static final HitTableSchema SCHEMA = 
+        new HitTableSchema(TABLE_NAME,
                    new ArrayList<Column>(),
                    Account.class, 
                    Long.class,

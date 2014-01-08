@@ -25,7 +25,7 @@ import java.util.Collections;
 
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.model.Table;
 
 import com.google.common.base.Function;
@@ -178,7 +178,7 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
      * {@inheritDoc}
      */
     @Override
-    public Schema getSchema()
+    public HitTableSchema getSchema()
     {
         return myTable.getSchema();
     }

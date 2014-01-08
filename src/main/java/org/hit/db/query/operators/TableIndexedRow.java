@@ -1,8 +1,8 @@
 /*
     Hit is a high speed transactional database for handling millions
-    of updates with comfort and ease.
+    of updates with comfort and ease. 
 
-    Copyright (C) 2012  Balraja Subbiah
+    Copyright (C) 2013  Balraja Subbiah
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,54 +18,45 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.db.model;
+package org.hit.db.query.operators;
+
+import java.util.Map;
+
+import org.hit.db.model.Row;
 
 /**
- * Defines the contract for a column in the table.
+ * Defines the contract for <code>Row</code> which stores the 
+ * objects from different tables indexed by their table name.
  * 
  * @author Balraja Subbiah
  */
-public class Column
+public class TableIndexedRow implements Row
 {
-    private final String  myColumnName;
-    
-    private final int     myColIndex;
-    
-    private final boolean myIsPrimaryColumn;
+    private final Map<String, Row> myTable2ObjectIndex;
     
     /**
      * CTOR
      */
-    public Column(String columnName,
-                  int colIndex,
-                  boolean isPrimaryColumn)
+    public TableIndexedRow(Map<String, Row> table2ObjectIndex)
     {
-        myColumnName = columnName;
-        myColIndex = colIndex;
-        myIsPrimaryColumn = isPrimaryColumn;
+        myTable2ObjectIndex = table2ObjectIndex;
     }
 
     /**
-     * Returns the value of colIndex
+     * {@inheritDoc}
      */
-    public int getColIndex()
+    @Override
+    public Object getFieldValue(String tableName)
     {
-        return myColIndex;
+        return myTable2ObjectIndex.get(tableName);
     }
-
+    
     /**
-     * Returns the value of columnName
+     * {@inheritDoc}
      */
-    public String getColumnName()
+    @Override
+    public String toString()
     {
-        return myColumnName;
-    }
-
-    /**
-     * Returns the value of isPrimaryColumn
-     */
-    public boolean isPrimaryColumn()
-    {
-        return myIsPrimaryColumn;
+        return myTable2ObjectIndex.toString();
     }
 }

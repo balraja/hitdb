@@ -23,7 +23,7 @@ package org.hit.db.transactions.impl;
 import java.util.List;
 
 import org.hit.db.model.Persistable;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.transactions.Registry;
 import org.hit.db.transactions.Transactable;
 import org.hit.db.transactions.TransactableTable;
@@ -78,12 +78,12 @@ public abstract class AbstractTransactableTable<K extends Comparable<K>,
         }
     }
     
-    private final Schema mySchema;
+    private final HitTableSchema mySchema;
     
     /**
      * CTOR
      */
-    public AbstractTransactableTable(Schema schema)
+    public AbstractTransactableTable(HitTableSchema schema)
     {
         mySchema = schema;
     }
@@ -92,7 +92,7 @@ public abstract class AbstractTransactableTable<K extends Comparable<K>,
      * {@inheritDoc}
      */
     @Override
-    public Schema getSchema()
+    public HitTableSchema getSchema()
     {
         return mySchema;
     }

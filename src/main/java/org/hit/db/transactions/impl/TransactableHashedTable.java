@@ -30,7 +30,7 @@ import org.hit.concurrent.HashTable;
 import org.hit.concurrent.RefinableHashTable;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.transactions.Transactable;
 import org.hit.db.transactions.ValidationResult;
 import org.hit.util.Pair;
@@ -107,7 +107,7 @@ public class TransactableHashedTable <K extends Comparable<K>,
     /**
      * CTOR
      */
-    public TransactableHashedTable(Schema schema)
+    public TransactableHashedTable(HitTableSchema schema)
     {
         super(schema);
         myIndex = new RefinableHashTable<>();

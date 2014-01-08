@@ -21,7 +21,7 @@
 package org.hit.db.model;
 
 /**
- * Defines the contract for query on a table.
+ * Defines the contract for a query that can be executed on the database.
  * 
  * @author Balraja Subbiah
  */

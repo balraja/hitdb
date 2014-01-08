@@ -18,33 +18,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package org.hit.event;
-
-import org.hit.db.model.HitTableSchema;
+package org.hit.client.command;
 
 /**
- * Defines an <code>Event</code> to notify the addition of <code>Schema</code>
+ * Extends {@link Command} so that we can add parsing support to it.
  * 
  * @author Balraja Subbiah
  */
-public class SchemaNotificationEvent implements Event
+public interface ParsableCommand extends Command
 {
-    private final HitTableSchema mySchema;
-
-    /**
-     * CTOR
-     */
-    public SchemaNotificationEvent(HitTableSchema schema)
-    {
-        super();
-        mySchema = schema;
-    }
-
-    /**
-     * Returns the value of schema
-     */
-    public HitTableSchema getSchema()
-    {
-        return mySchema;
-    }
+    public void init(String arguments);
 }

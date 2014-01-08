@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.hit.communicator.NodeID;
-import org.hit.db.model.Schema;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.partitioner.Partitioner;
 
 /**
@@ -39,7 +39,7 @@ import org.hit.db.partitioner.Partitioner;
  */
 public class Allocation implements Externalizable
 {
-    private Map<String, Schema> myTable2SchemaMap;
+    private Map<String, HitTableSchema> myTable2SchemaMap;
     
     private Map<String, Partitioner<?,?>> myTable2PartitionMap;
     
@@ -58,7 +58,7 @@ public class Allocation implements Externalizable
     /**
      * CTOR
      */
-    public Allocation(Map<String, Schema> table2SchemaMap,
+    public Allocation(Map<String, HitTableSchema> table2SchemaMap,
                       Map<String, Partitioner<?,?>> table2PartitionMap,
                       Map<String, NodeID> tableToDataNodeMap)
     {
@@ -71,7 +71,7 @@ public class Allocation implements Externalizable
     /**
      * Returns the value of table2SchemaMap
      */
-    public Map<String, Schema> getTable2SchemaMap()
+    public Map<String, HitTableSchema> getTable2SchemaMap()
     {
         return myTable2SchemaMap;
     }
@@ -122,7 +122,7 @@ public class Allocation implements Externalizable
     {
         myTable2PartitionMap = 
            (Map<String, Partitioner<?,?>>) in.readObject();
-        myTable2SchemaMap = (Map<String, Schema>) in.readObject();
+        myTable2SchemaMap = (Map<String, HitTableSchema>) in.readObject();
         myTableToDataNodeMap = (Map<String, NodeID>) in.readObject();
     }
 }
