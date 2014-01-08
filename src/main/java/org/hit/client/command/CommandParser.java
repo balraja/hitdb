@@ -42,10 +42,15 @@ public class CommandParser
 
     static {
         ourCommands.add(ListTablesCommand.class);
+        ourCommands.add(HelpCommand.class);
+        ourCommands.add(QueryCommand.class);
     }
 
     private final Map<String, Command> myKeywordToCommandMap;
 
+    /**
+     * CTOR
+     */
     public CommandParser()
     {
         myKeywordToCommandMap = new HashMap<>();
@@ -55,7 +60,7 @@ public class CommandParser
             for (Class<? extends Command> commandClass : ourCommands) {
                 MetaCommand metaCommand =
                     commandClass.getAnnotation(MetaCommand.class);
-                System.out.println("Meta cmd " + metaCommand);
+               
                 Command command = commandClass.newInstance();
                 myKeywordToCommandMap.put(metaCommand.name(),
                                           command);

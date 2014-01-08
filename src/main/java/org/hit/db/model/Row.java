@@ -20,6 +20,8 @@
 
 package org.hit.db.model;
 
+import java.util.Collection;
+
 /**
  * Defines an abstract type that characterizes the features necessary
  * for extracting the values of individual fields from the given record.
@@ -30,4 +32,7 @@ public interface Row
 {
     /** Returns value corresponding to the given field name */
     public Object getFieldValue(String fieldName);
+    
+    /** Returns the name of columns whose values are present in this row */
+    public Collection<String> getFieldNames();
 }

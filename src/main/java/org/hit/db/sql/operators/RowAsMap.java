@@ -32,14 +32,14 @@ import org.hit.db.model.Row;
  * 
  * @author Balraja Subbiah
  */
-public class RowMap implements Row
+public class RowAsMap implements Row
 {
     private final Map<String, Object> myAttributeMap;
     
     /**
      * CTOR
      */
-    public RowMap()
+    public RowAsMap()
     {
         myAttributeMap = new HashMap<>();
     }
@@ -63,5 +63,14 @@ public class RowMap implements Row
     public void setFieldValue(String fieldName, Object value)
     {
         myAttributeMap.put(fieldName, value);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<String> getFieldNames()
+    {
+        return myAttributeMap.keySet();
     }
 }

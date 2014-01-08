@@ -50,8 +50,8 @@ public class TableSchema implements Externalizable
      * CTOR
      */
     public TableSchema(String       tableName, 
-                       List<String> tableColumns,
-                       List<String> primaryKey)
+                  List<String> tableColumns,
+                  List<String> primaryKey)
     {
         super();
         myTableName = tableName;

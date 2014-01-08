@@ -24,9 +24,12 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Collection;
 
 import org.hit.db.model.Persistable;
 import org.hit.db.model.mutations.MutationFactory;
+
+import com.google.common.collect.Lists;
 
 /**
  * Defines a class that encapsulates the information about airports.
@@ -227,5 +230,23 @@ public class Airport implements Persistable<Long>, Externalizable
     public static MutationFactory<Long, Airport> getMutationFactory()
     {
         return new MutationFactory<>(TABLE_NAME);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<String> getFieldNames()
+    {
+        return Lists.newArrayList(
+            "id", 
+            "name", 
+            "city", 
+            "country", 
+            "iata_code", 
+            "latitude", 
+            "longitude", 
+            "altitude", 
+            "dst");
     }
 }

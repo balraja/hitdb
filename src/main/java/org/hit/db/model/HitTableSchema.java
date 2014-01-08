@@ -73,13 +73,14 @@ public class HitTableSchema extends TableSchema
     /**
      * CTOR
      */
-    public HitTableSchema(String tableName,
-                  List<String> tableColumns,
-                  List<String> primaryColumns,
-                  Class<? extends Persistable<?>> persistableclass,
-                  Class<? extends Comparable<?>> keyclass,
-                  Keyspace<?,?> keyspace,
-                  boolean replicated)
+    public HitTableSchema(
+          String tableName,
+          List<String> tableColumns,
+          List<String> primaryColumns,
+          Class<? extends Persistable<?>> persistableclass,
+          Class<? extends Comparable<?>> keyclass,
+          Keyspace<?,?> keyspace,
+          boolean replicated)
     {
         super(tableName, tableColumns, primaryColumns);
         myPersistableClass = persistableclass;

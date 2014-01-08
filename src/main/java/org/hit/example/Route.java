@@ -24,9 +24,12 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Collection;
 
 import org.hit.db.model.Persistable;
 import org.hit.db.model.mutations.MutationFactory;
+
+import com.google.common.collect.Lists;
 
 /**
  * A type for defining the route serviced by an airline
@@ -39,9 +42,9 @@ public class Route implements Persistable<Long>, Externalizable
     
     private static final String ROUTE_ID = "route_id";
     
-    private static final String SRC_ARPORT = "src_airport_id";
+    private static final String SRC_AIRPORT = "src_airport_id";
     
-    private static final String DESTN_SIRPORT = "destn_airport_id";
+    private static final String DESTN_AIRPORT = "destn_airport_id";
     
     private static final String AIRLINE_ID = "airline_id";
     
@@ -185,9 +188,9 @@ public class Route implements Persistable<Long>, Externalizable
         switch(fieldName) {
         case ROUTE_ID:
             return Long.valueOf(getRouteId());
-        case SRC_ARPORT:
+        case SRC_AIRPORT:
             return Long.valueOf(getSrcAirportId());
-        case DESTN_SIRPORT:
+        case DESTN_AIRPORT:
             return Long.valueOf(getDestnAirportId());
         case AIRLINE_ID:
             return Long.valueOf(getAirlineId());
@@ -229,5 +232,19 @@ public class Route implements Persistable<Long>, Externalizable
     public static MutationFactory<Long, Route> getMutationFactory()
     {
         return new MutationFactory<>(TABLE_NAME);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<String> getFieldNames()
+    {
+        return Lists.newArrayList(
+            ROUTE_ID, 
+            SRC_AIRPORT, 
+            DESTN_AIRPORT, 
+            AIRLINE_ID, 
+            SHARED, NUM_STOPS);
     }
 }

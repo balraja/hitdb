@@ -45,11 +45,11 @@ public class HelpCommand implements Command
      * {@inheritDoc}
      */
     @Override
-    public void execute(HitDBFacade facade)
+    public void execute(HitDBFacade facade, Display display)
     {
         for (Map.Entry<String,String> entry : myCommand2HelpMap.entrySet())
         {
-            System.out.println(entry.getKey() + " " + entry.getValue());
+            display.publishLine(entry.getKey() + " " + entry.getValue());
         }
     }
 }

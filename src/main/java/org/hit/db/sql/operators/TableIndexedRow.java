@@ -20,6 +20,9 @@
 
 package org.hit.db.sql.operators;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import org.hit.db.model.Row;
@@ -46,9 +49,11 @@ public class TableIndexedRow implements Row
      * {@inheritDoc}
      */
     @Override
-    public Object getFieldValue(String tableName)
+    public Object getFieldValue(String columnName)
     {
-        return myTable2ObjectIndex.get(tableName);
+        return ColumnNameUtil.getValue(this, 
+                                       ColumnNameUtil.nestedColumnNames(
+                                           columnName));
     }
     
     /**
@@ -58,5 +63,22 @@ public class TableIndexedRow implements Row
     public String toString()
     {
         return myTable2ObjectIndex.toString();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<String> getFieldNames()
+    {
+        List<String> fieldNames = new ArrayList<>();
+        for (Map.Entry<String, Row> entry : myTable2ObjectIndex.entrySet())
+        {
+            for (String fieldName : entry.getValue().getFieldNames()) {
+                fieldNames.add(entry.getKey() + "." + fieldName);
+            }
+            
+        }
+        return fieldNames;
     }
 }

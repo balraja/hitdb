@@ -57,7 +57,7 @@ public class ConsoleShell implements Application
         @Override
         public void run()
         {
-            myCommand.execute(myServerFacade);
+            myCommand.execute(myServerFacade, myDisplay);
             myCommandExecutor.submit(new ReaderTask());
         }
     }
@@ -98,6 +98,8 @@ public class ConsoleShell implements Application
     private final CommandParser myCommandParser;
 
     private final  HitDBFacade myServerFacade;
+    
+    private final ConsoleDisplay myDisplay;
 
     /**
      * CTOR
@@ -108,6 +110,7 @@ public class ConsoleShell implements Application
         myCommandExecutor = Executors.newSingleThreadExecutor();
         myCommandParser = new CommandParser();
         myServerFacade = new HitDBFacade();
+        myDisplay = new ConsoleDisplay();
     }
 
     /**

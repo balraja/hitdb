@@ -24,9 +24,12 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Collection;
 
 import org.hit.db.model.Persistable;
 import org.hit.db.model.mutations.MutationFactory;
+
+import com.google.common.collect.Lists;
 
 /**
  * Defines the contract for the table that holds information about an airline
@@ -182,5 +185,14 @@ public class Airline implements Persistable<Long>, Externalizable
     public static MutationFactory<Long,Airline> getMutationFactory()
     {
         return new MutationFactory<>(TABLE_NAME);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<String> getFieldNames()
+    {
+        return Lists.newArrayList(AIRLINE_ID, AIRLINE_NAME);
     }
 }

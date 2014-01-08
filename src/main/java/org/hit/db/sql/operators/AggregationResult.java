@@ -19,10 +19,14 @@
 */
 package org.hit.db.sql.operators;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.hit.db.model.Row;
+
+import com.google.common.collect.Lists;
 
 /**
  * Defines the contract for a {@link Row} sent in response to an 
@@ -109,4 +113,21 @@ public class AggregationResult implements Row
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<String> getFieldNames()
+    {
+        if (myGroupKey instanceof GroupingColumnsKey) {
+            List<String> result =  
+                Lists.newArrayList(
+                    ((GroupingColumnsKey) myGroupKey).getGroupingColumns());
+            result.addAll(myColumnToAggregateMap.keySet());
+            return result;
+        }
+        else {
+            return Lists.newArrayList(myColumnToAggregateMap.keySet());
+        }
+    }
 }

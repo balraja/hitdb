@@ -37,16 +37,16 @@ public class ListTablesCommand implements Command
      * {@inheritDoc}
      */
     @Override
-    public void execute(HitDBFacade facade)
+    public void execute(HitDBFacade facade, Display display)
     {
         Set<String> tables = facade.listTables();
         if (tables == null || tables.isEmpty()) {
-            System.out.println("There are no tables to display");
+            display.publishLine("There are no tables to display");
         }
         else {
             int i = 1;
             for (String table : tables) {
-                System.out.println(i + " " + table);
+                display.publishLine(i + " " + table);
                 i++;
             }
         }

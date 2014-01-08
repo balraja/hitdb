@@ -32,5 +32,5 @@ public interface Command
     /**
      * Subclasses should override this method to execute the commands.
      */
-    public void execute(HitDBFacade facade);
+    public void execute(HitDBFacade facade, Display display);
 }
