@@ -164,7 +164,7 @@
                   </jvmSettings>
                 </program>
                 <program>
-                  <mainClass>org.hit.client.shell.HitDBShell</mainClass>
+                  <mainClass>org.hit.client.shell.ConsoleShell</mainClass>
                   <name>run_shell</name>
                   <jvmSettings>
                     <initialMemorySize>128M</initialMemorySize>
@@ -175,6 +175,7 @@
                       <systemProperty>org.hit.util.logFile=E:\hitdbtest\shell.log</systemProperty>
                       <systemProperty>app.properties.file=hitfacade.properties</systemProperty>
                       <systemProperty>org.hit.app.home=${project.build.directory}/hitdatabase</systemProperty>
+                      <systemProperty>org.hit.communicator.port=17000</systemProperty>
                     </systemProperties>
                   </jvmSettings>
                 </program>

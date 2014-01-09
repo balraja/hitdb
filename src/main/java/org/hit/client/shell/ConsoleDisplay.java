@@ -98,6 +98,6 @@ public class ConsoleDisplay implements Display
     @Override
     public void publishError(Throwable throwable)
     {
-        throwable.printStackTrace();
+        throw new RuntimeException(throwable);
     }
 }

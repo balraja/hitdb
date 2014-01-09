@@ -23,6 +23,7 @@ package org.hit.db.sql.operators;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -87,14 +88,14 @@ public class Where implements QueryOperator
                                 return true;
                             }
                         };
-            return Collections2.transform(
+            return new ArrayList<Row>(Collections2.transform(
                  table.findMatching(predicate),
                  new Function<Persistable<?>, Row>() 
                  {
                      public Row apply(Persistable<?> persistable) {
                          return (Row) persistable;
                      }
-                 });
+                 }));
         }
         else {
             return Collections.emptyList();

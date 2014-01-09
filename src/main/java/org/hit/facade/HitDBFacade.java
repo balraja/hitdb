@@ -32,11 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
-import org.antlr.runtime.ANTLRStringStream;
 import org.antlr.runtime.RecognitionException;
-import org.antlr.runtime.TokenRewriteStream;
-import org.antlr.runtime.tree.CommonTree;
-import org.antlr.runtime.tree.CommonTreeNodeStream;
 import org.hit.communicator.Communicator;
 import org.hit.communicator.CommunicatorException;
 import org.hit.communicator.Message;
@@ -55,11 +51,8 @@ import org.hit.db.partitioner.Partitioner;
 import org.hit.db.partitioner.TablePartitionInfo;
 import org.hit.db.sql.merger.QueryResultMerger;
 import org.hit.db.sql.merger.SimpleQueryResultMerger;
-import org.hit.db.sql.operators.QueryBuilder;
 import org.hit.db.sql.operators.QueryBuildingException;
-import org.hit.db.sql.parser.HitSQLLexer;
-import org.hit.db.sql.parser.HitSQLParser;
-import org.hit.db.sql.parser.HitSQLTree;
+import org.hit.db.sql.parser.QueryParser;
 import org.hit.di.HitFacadeModule;
 import org.hit.messages.CreateTableMessage;
 import org.hit.messages.CreateTableResponseMessage;
@@ -175,6 +168,11 @@ public class HitDBFacade
 
                 final Long id =
                     Long.valueOf(dbOperationFailure.getSequenceNumber());
+                
+                LOG.info("Received failure message "
+                         + dbOperationFailure.getMessage()
+                         + " from " + dbOperationFailure.getSenderId()
+                         + " for the operation " + id );
 
                 final SettableFuture<DBOperationResponse> future  =
                     myMutationIDToFutureMap.get(id);
@@ -244,6 +242,9 @@ public class HitDBFacade
         @Override
         public void onSuccess(Pair<NodeID, Collection<Row>> result)
         {
+            LOG.info("Received response from " + result.getFirst() + 
+                     " for " + myOperationId);
+            
             myServerNodes.remove(result.getFirst());
             myQueryMerger.addPartialResult(result.getSecond());
             if (myServerNodes.isEmpty()) {
@@ -433,8 +434,10 @@ public class HitDBFacade
                 myQueryToMergableFuturesMap.put(mySequenceNumber,
                                                 resultFutures);
             }
+            
             SettableFuture<Pair<NodeID,Collection<Row>>> resultFuture =
                 SettableFuture.create();
+            resultFutures.add(resultFuture);
             Futures.addCallback(resultFuture, myResultCallback);
 
             try {
@@ -723,6 +726,7 @@ public class HitDBFacade
         final long id = myOperationsCount.getAndIncrement();
         Partitioner<K, ?>  partitioner = 
             myTablePartitionInfo.lookup(tableName);
+        
         if (partitioner instanceof DistributedHashTable) {
             throw new RuntimeException("We cannot execute range queries"
                 + " over hashed tables");
@@ -731,14 +735,17 @@ public class HitDBFacade
             @SuppressWarnings("unchecked")
             Partitioner<K, K> linearPartitioner = 
                 (Partitioner<K, K>) partitioner;
+            
             final Map<NodeID, Range<K>> split =
                 linearPartitioner.lookupNodes(range);
+            
             FutureCallback<Pair<NodeID, Collection<Row>>> callback = 
                 new RangeQueryResponserHandler(
                     id,
                     new HashSet<>(split.keySet()),
                     query.getQueryMerger(),
                     queryResponse);
+            
             for (Map.Entry<NodeID, Range<K>> entry : split.entrySet()) {
                 RewritableQuery nodeQuery = query.cloneQuery();
                 nodeQuery.updateRange(entry.getValue());
@@ -768,8 +775,10 @@ public class HitDBFacade
                 new SimpleQueryResultMerger(),
                 queryResponse);
         
+        LOG.info("Sending query " + id + " to " 
+                 + myRegistryService.getServerNodes());
+        
         for (NodeID server : myRegistryService.getServerNodes()) {
-            
             myExecutorService.submit(
                 new SubmitQueryTask(query,
                                     id, 
@@ -781,26 +790,14 @@ public class HitDBFacade
 
     /**
      * A helper method to query the database. The query is executed 
-     * across nodes 
+     * across all the nodes 
      */
     public ListenableFuture<QueryResponse> queryDB(String query)
         throws QueryBuildingException, RecognitionException
     {
-        ANTLRStringStream fs = new ANTLRStringStream(query);
-        HitSQLLexer lex = new HitSQLLexer(fs);
-        TokenRewriteStream tokens = new TokenRewriteStream(lex);
-        HitSQLParser parser = new HitSQLParser(tokens);
-
-        HitSQLParser.select_statement_return result =
-            parser.select_statement();
-
-        CommonTree t = (CommonTree) result.getTree();
-        CommonTreeNodeStream nodeStream = new CommonTreeNodeStream(t);
-        HitSQLTree tree = new HitSQLTree(nodeStream);
-        tree.select_statement();
-
-        QueryBuilder builder = new QueryBuilder(tree.getQueryAttributes());
-        return queryDB(builder.buildQuery(false).getFirst());
+        LOG.info("Parsing query " + query);
+        Query queryInstance = QueryParser.parseQuery(query);
+        return queryDB(queryInstance);
     }
 
     /**
@@ -855,6 +852,7 @@ public class HitDBFacade
     public void stop()
     {
         myExecutorService.shutdown();
+        myCommunicator.stop();
         LOG.info("Facade successfully stopped");
     }
 }

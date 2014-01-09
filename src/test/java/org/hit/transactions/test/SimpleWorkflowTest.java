@@ -90,6 +90,7 @@ public class SimpleWorkflowTest
         myTransactionManager =
             new TransactionManager(
                 new TransactableHitDatabase(), 
+                new TransactableHitDatabase(),
                 new SimpleSystemClock(),
                 recordingEventBus,
                 TestID.SERVER_NODE_ID, 

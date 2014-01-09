@@ -20,9 +20,10 @@
 
 package org.hit.client.shell;
 
-import java.util.Scanner;
+import java.io.Console;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Logger;
 
 import org.hit.client.Constants;
 import org.hit.client.command.Command;
@@ -30,6 +31,7 @@ import org.hit.client.command.CommandParser;
 import org.hit.facade.HitDBFacade;
 import org.hit.util.Application;
 import org.hit.util.ApplicationLauncher;
+import org.hit.util.LogFactory;
 
 /**
  * The shell for interacting with the hit database.
@@ -38,6 +40,9 @@ import org.hit.util.ApplicationLauncher;
  */
 public class ConsoleShell implements Application
 {
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(ConsoleShell.class);
+            
     private class CommandTask implements Runnable
     {
         private final Command myCommand;
@@ -57,6 +62,8 @@ public class ConsoleShell implements Application
         @Override
         public void run()
         {
+            LOG.info("Executing command " + myCommand.getClass().getSimpleName());
+            
             myCommand.execute(myServerFacade, myDisplay);
             myCommandExecutor.submit(new ReaderTask());
         }
@@ -70,19 +77,20 @@ public class ConsoleShell implements Application
         @Override
         public void run()
         {
-
-            try (Scanner scanner = new Scanner(System.in)) {
-                System.out.print(PROMPT);
-                while (!scanner.hasNextLine()){
-                    // Do nothing
-                }
-                String line = scanner.nextLine();
+            Console c = System.console();
+            while(true) {
+                String line = c.readLine(PROMPT);
                 Command command = myCommandParser.parse(line);
-                myCommandExecutor.submit(new CommandTask(command));
+                if (command != null) {
+                    myCommandExecutor.submit(new CommandTask(command));
+                    break;
+                }
+                else {
+                    System.out.println("UNABLE TO PARSE " + line);
+                }
             }
         }
     }
-
 
     public static final String PROMPT = ">";
 

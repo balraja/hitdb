@@ -26,6 +26,7 @@ import java.io.ObjectOutput;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.db.model.DatabaseException;
 
 /**
  * Message for denoting that <code>DBOperationFailed</code> on the database.
@@ -56,7 +57,7 @@ public class DBOperationFailureMessage extends Message
         long        sequenceNumber,
         String      message)
     {
-        this(nodeID, sequenceNumber, message, null);
+        this(nodeID, sequenceNumber, message, new DatabaseException(message));
     }
 
     /**

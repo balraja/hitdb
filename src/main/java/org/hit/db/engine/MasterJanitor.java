@@ -251,8 +251,11 @@ public class MasterJanitor extends AbstractJanitor
         super.start();
         
         myAllocator.initialize(otherNodes);
+        getIsInitialized().set(true);
+        
         LOG.info("Scheduling task to publish updates to gossiper every "
                 + getServerConfig().getGossipUpdateSecs() + " seconds");
+        
         myScheduler.scheduleAtFixedRate(
             new Runnable()
             {
@@ -269,6 +272,7 @@ public class MasterJanitor extends AbstractJanitor
             getServerConfig().getGossipUpdateSecs(),
             TimeUnit.SECONDS);
         
+       
         LOG.info("Started master warden");
     }
 

@@ -200,8 +200,7 @@ public class TransactionManager
                 myEventBus.publish(
                    ActorID.DB_ENGINE,
                    new SendMessageEvent(
-                       Collections.singleton(
-                           myClientInfo.getClientID()),
+                       Collections.singleton(myClientInfo.getClientID()),
                        new DBOperationFailureMessage(
                            myServerID,
                            myClientInfo.getClientSequenceNumber(),
@@ -672,6 +671,8 @@ public class TransactionManager
     private final Clock myClock;
 
     private final TransactableDatabase myDatabase;
+    
+    private final TransactableDatabase myReplicatedDatabase;
 
     private final EventBus myEventBus;
 
@@ -694,12 +695,14 @@ public class TransactionManager
      */
     @Inject
     public TransactionManager(TransactableDatabase database,
+                              TransactableDatabase replicatedDatabase,
                               Clock                clock,
                               EventBus             eventBus,
                               NodeID               serverID,
                               UnitID               replicationID)
     {
         myDatabase = database;
+        myReplicatedDatabase = replicatedDatabase;
         myClock = clock;
         myIdAssigner = new IDAssigner();
         myServerID = serverID;
@@ -907,7 +910,7 @@ public class TransactionManager
             ReplicatedWriteTransaction transaction =
                 new ReplicatedWriteTransaction(
                     id, 
-                    myDatabase,
+                    myReplicatedDatabase,
                     myClock,
                     replicationProposal.getMutation(),
                     replicationProposal.getStart(),

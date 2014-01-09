@@ -99,16 +99,13 @@ public class NIOCommunicator implements Communicator
         @Override
         public void run()
         {
-            try {
-                LOG.info("The NIO selector has been started");
-                
-                while (!myShouldStop.get()) {
-                    
+            LOG.info("The NIO selector has been started");
+            while (!myShouldStop.get()) {
+                try {
                     int n = mySelector.select(SELECTION_WAIT_TIME_MILLIS);
                     if (n == 0) {
                         continue;
                     }
-
                     Set<SelectionKey> selectedKeys = mySelector.selectedKeys();
                     Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
 
@@ -153,9 +150,9 @@ public class NIOCommunicator implements Communicator
                             }
                         }
                         else if (sKey.isReadable()) {
-                            if (LOG.isLoggable(Level.FINE)) {
-                                LOG.fine("The channel "
-                                         + sKey.channel() + " is readable");
+                            if (LOG.isLoggable(Level.FINEST)) {
+                                LOG.finest("The channel "
+                                           + sKey.channel() + " is readable");
                             }
                             Session session = (Session) sKey.attachment();
                             if (session != null) {
@@ -180,10 +177,10 @@ public class NIOCommunicator implements Communicator
                         keyIterator.remove();
                     }
                 }
-            }
-            catch (Throwable e)
-            {
-                LOG.log(Level.SEVERE, e.getMessage(), e);
+                catch (Throwable e)
+                {
+                    LOG.log(Level.SEVERE, e.getMessage(), e);
+                }
             }
         }
     }
@@ -229,7 +226,7 @@ public class NIOCommunicator implements Communicator
     public void sendTo(NodeID node, Message m) throws CommunicatorException
     {
         if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine("Sending message " + m + " to node"  + node);
+            LOG.fine("Sending message " + m + " to node "  + node);
         }
         
         try (CloseableLock lock = mySessionMapLock.open()) {

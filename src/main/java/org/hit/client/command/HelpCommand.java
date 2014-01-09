@@ -49,7 +49,7 @@ public class HelpCommand implements Command
     {
         for (Map.Entry<String,String> entry : myCommand2HelpMap.entrySet())
         {
-            display.publishLine(entry.getKey() + " " + entry.getValue());
+            display.publishLine(entry.getKey() + " :: " + entry.getValue());
         }
     }
 }

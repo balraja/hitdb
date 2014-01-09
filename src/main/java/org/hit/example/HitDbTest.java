@@ -27,12 +27,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.antlr.runtime.RecognitionException;
 import org.hit.client.DBClient;
 import org.hit.db.keyspace.LinearKeyspace;
 import org.hit.db.keyspace.domain.LongDomain;
 import org.hit.db.model.HitTableSchema;
 import org.hit.db.model.mutations.BatchAddMutation;
+import org.hit.db.sql.operators.QueryBuildingException;
 import org.hit.facade.DBOperationResponse;
+import org.hit.facade.QueryResponse;
 import org.hit.facade.TableCreationResponse;
 import org.hit.util.LogFactory;
 
@@ -80,11 +83,15 @@ public class HitDbTest extends DBClient
             LOG.info("Creation of table " + result.getTableName()
                      + " is successful ");
             myTestData.addAll(new AirportDataLoader().loadTestData());
-            while (!myTestData.isEmpty()) {
+           for (int i = 0; i < 5; i++) {
                 updateTable();
             }
             LOG.info("Successfully added all records corresponding to " 
                      + TABLE_NAME);
+            
+            ListenableFuture<QueryResponse> future = 
+                 getFacade().queryDB(" select * from " + TABLE_NAME);
+            QueryResponse response = future.get();
         }
         catch (InterruptedException e) {
             // ignore
@@ -92,7 +99,14 @@ public class HitDbTest extends DBClient
         catch (ExecutionException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
         }
+        catch (QueryBuildingException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+        }
+        catch (RecognitionException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+        }
         shutdown();
+        System.exit(0);
     }
     
     /**

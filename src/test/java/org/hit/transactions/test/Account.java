@@ -21,13 +21,15 @@
 package org.hit.transactions.test;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
 import org.hit.db.keyspace.LinearKeyspace;
 import org.hit.db.keyspace.domain.LongDomain;
-import org.hit.db.model.Column;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Row;
 import org.hit.db.model.HitTableSchema;
+
+import com.google.common.collect.Lists;
 
 /**
  * Defines type that defines the contract for an account.
@@ -39,11 +41,13 @@ public class Account implements Persistable<Long>, Row
     public static final String TABLE_NAME = "account";
     
     public static final HitTableSchema SCHEMA = 
-        new HitTableSchema(TABLE_NAME,
-                   new ArrayList<Column>(),
-                   Account.class, 
-                   Long.class,
-                   new LinearKeyspace<>(new LongDomain(1, 7000))); 
+        new HitTableSchema(
+            TABLE_NAME,
+            new ArrayList<String>(),
+            new ArrayList<String>(),
+            Account.class, 
+            Long.class,
+            new LinearKeyspace<>(new LongDomain(1, 7000))); 
     
     private static final String ACCOUNT_ID = "account_id";
     
@@ -149,5 +153,14 @@ public class Account implements Persistable<Long>, Row
                + ", myBalance="
                + myBalance
                + "]";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<String> getFieldNames()
+    {
+        return Lists.newArrayList(ACCOUNT_ID, BALANCE);
     }
 }

@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringTokenizer;
 
 /**
  * The type that can be used for parsing the {@link Command}s entered through
@@ -42,7 +43,6 @@ public class CommandParser
 
     static {
         ourCommands.add(ListTablesCommand.class);
-        ourCommands.add(HelpCommand.class);
         ourCommands.add(QueryCommand.class);
     }
 
@@ -62,8 +62,7 @@ public class CommandParser
                     commandClass.getAnnotation(MetaCommand.class);
                
                 Command command = commandClass.newInstance();
-                myKeywordToCommandMap.put(metaCommand.name(),
-                                          command);
+                myKeywordToCommandMap.put(metaCommand.name(), command);
                 command2HelpMap.put(metaCommand.name(),
                                     metaCommand.help());
             }
@@ -77,13 +76,12 @@ public class CommandParser
     /** Parses the line and returns the {@link Command} */
     public Command parse(String line)
     {
-        int index = line.indexOf(" ");
-        String keyword =
-            index > 0 ? line.substring(0, index) : line;
+        StringTokenizer tokenizer = new StringTokenizer(line);
+        String keyword = tokenizer.nextToken();
         Command command = myKeywordToCommandMap.get(keyword);
         if (command != null && command instanceof ParsableCommand) {
             ParsableCommand parsable = (ParsableCommand) command;
-            parsable.init(line.substring(index + 1));
+            parsable.init(line.substring(keyword.length()));
         }
         return command;
     }

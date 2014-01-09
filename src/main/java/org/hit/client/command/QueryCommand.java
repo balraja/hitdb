@@ -20,11 +20,14 @@
 package org.hit.client.command;
 
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.antlr.runtime.RecognitionException;
 import org.hit.db.sql.operators.QueryBuildingException;
 import org.hit.facade.HitDBFacade;
 import org.hit.facade.QueryResponse;
+import org.hit.util.LogFactory;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -39,9 +42,12 @@ import com.google.common.util.concurrent.ListenableFuture;
  * @author Balraja Subbiah
  */
 @MetaCommand(name = "query", 
-             help = "Displays the list of tables in the database")
+             help = "Executes the sql query against the database")
 public class QueryCommand implements ParsableCommand
 {
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(QueryCommand.class);
+            
     private String myQuery;
     
     /**
@@ -61,6 +67,7 @@ public class QueryCommand implements ParsableCommand
                 | InterruptedException 
                 | ExecutionException e) 
         {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
             display.publishError(e);
         }
     }
@@ -71,7 +78,8 @@ public class QueryCommand implements ParsableCommand
     @Override
     public void init(String arguments)
     {
-        myQuery = arguments.substring(arguments.indexOf("'"), 
+        myQuery = arguments.substring(arguments.indexOf("'") + 1, 
                                       arguments.length() - 1);
+        LOG.info("Initialized with query [ " + myQuery + " ]");
     }
 }

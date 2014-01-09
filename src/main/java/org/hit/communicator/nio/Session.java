@@ -115,8 +115,8 @@ public class Session
     {
         try {
             ByteBuffer readBuffer = myConnection.read();
-            if (LOG.isLoggable(Level.FINE)) {
-                LOG.fine("Received bytes for reading " + readBuffer.remaining());
+            if (LOG.isLoggable(Level.FINEST)) {
+                LOG.finest("Received bytes for reading " + readBuffer.remaining());
             }
             return mySerializer.parse(readBuffer);
         }

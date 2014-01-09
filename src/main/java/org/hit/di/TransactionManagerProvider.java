@@ -23,7 +23,6 @@ package org.hit.di;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.UnitID;
-import org.hit.consensus.raft.log.WAL;
 import org.hit.db.engine.TransactionManager;
 import org.hit.db.transactions.TransactableDatabase;
 import org.hit.time.Clock;
@@ -47,6 +46,7 @@ public class TransactionManagerProvider implements Provider<TransactionManager>
      */
     @Inject
     public TransactionManagerProvider(TransactableDatabase database,
+                                      TransactableDatabase replicatedDatabase,
                                       Clock                clock,
                                       EventBus             eventBus,
                                       NodeID               serverID,
@@ -55,6 +55,7 @@ public class TransactionManagerProvider implements Provider<TransactionManager>
     {
         myTransactionManager = 
             new TransactionManager(database, 
+                                   replicatedDatabase,
                                    clock, 
                                    eventBus, 
                                    serverID,

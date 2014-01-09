@@ -61,7 +61,7 @@ public class ZKRegistry implements RegistryService
     @Override
     public List<NodeID> getServerNodes()
     {
-        return myZKClient.getNodes(myGroupID.toString());
+        return myZKClient.getNodes(myGroupZKPath);
     }
 
     /**

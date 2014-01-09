@@ -131,6 +131,7 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
             
             if (LOG.isLoggable(Level.FINE)) {
                 LOG.fine("The transaction " + myTransaction.getTransactionID()
+                        + " of type " + myTransaction.getClass().getSimpleName()
                          + " is in state " + myTransaction.getMyState()); 
             }
             

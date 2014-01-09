@@ -51,9 +51,14 @@ public class TableIndexedRow implements Row
     @Override
     public Object getFieldValue(String columnName)
     {
-        return ColumnNameUtil.getValue(this, 
-                                       ColumnNameUtil.nestedColumnNames(
-                                           columnName));
+        if (ColumnNameUtil.isNested(columnName)) {
+           return ColumnNameUtil.getValue(this, 
+                                          ColumnNameUtil.nestedColumnNames(
+                                               columnName));
+        }
+        else {
+            return myTable2ObjectIndex.get(columnName);
+        }
     }
     
     /**

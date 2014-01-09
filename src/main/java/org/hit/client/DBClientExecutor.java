@@ -95,5 +95,7 @@ public class DBClientExecutor implements Application
     public void stop()
     {
         myClient.shutdown();
+        LOG.info("The client " + myClient.getClass().getName()
+                 + " has been stopped successfully");
     }
 }

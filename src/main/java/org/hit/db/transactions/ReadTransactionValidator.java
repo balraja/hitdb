@@ -110,7 +110,10 @@ public class ReadTransactionValidator implements TransactionValidator
                            myValidationTime,
                            myTransactionId);
             
-            if (!newResult.equals(entry.getValue())) {
+            if (newResult.size() != entry.getValue().size()) {
+                // This validation catches the phantom rows that got 
+                // inserted after query is executed but before the 
+                // query is validated.
                 return false;
             }
         }

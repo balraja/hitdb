@@ -38,6 +38,11 @@ public final class ColumnNameUtil
         return columnName.split("\\.");
     }
     
+    public static boolean isNested(String columnName) 
+    {
+        return columnName.indexOf(".") > 0;    
+    }
+    
     public static Object getValue(Row record, String[] columnNames)
     {
         Object result = record;
