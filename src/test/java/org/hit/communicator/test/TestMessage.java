@@ -90,4 +90,44 @@ public class TestMessage extends Message
         super.writeExternal(out);
         out.writeInt(myValue);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString()
+    {
+        return "TestMessage [myValue=" + myValue 
+                         + " NodeID = " + getSenderId() + "]";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int hashCode()
+    {
+        final int prime = 31;
+        int result = super.hashCode();
+        result = prime * result + myValue;
+        return result;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (this == obj)
+            return true;
+        if (!super.equals(obj))
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        TestMessage other = (TestMessage) obj;
+        if (myValue != other.myValue)
+            return false;
+        return true;
+    }    
 }

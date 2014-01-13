@@ -75,6 +75,6 @@ public class ManagedBufferOutputStream extends OutputStream
             myLastBuffer.flip();
             myWrittenBuffers.add(myLastBuffer);
         }
-        return new SerializedData(myWrittenBuffers);
+        return new SerializedData(myBufferManager, myWrittenBuffers);
     }
 }

@@ -28,7 +28,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * 
+ * This class preallocates memory outside jvm's heap and manages that memory.
  * 
  * @author Balraja Subbiah
  */
@@ -41,14 +41,20 @@ public class BufferManager
     private final Lock myBufferPoolLock;
     
     private final Condition myAwaitingFreeSpaceCondition;
-
+    
     /**
      * CTOR
      */
     public BufferManager(String namespace, BufferConfig config)
     {
-        super();
-        int numBuffers = config.getBufferSize(namespace);
+        this(config.getBufferSize(namespace));
+    }
+
+    /**
+     * CTOR
+     */
+    public BufferManager(int numBuffers)
+    {
         myBuffers = new LinkedList<>();
         for (int i = 0; i < numBuffers; i++) {
             myBuffers.add(ByteBuffer.allocateDirect(SIZE));
@@ -82,7 +88,8 @@ public class BufferManager
     }
     
     /**
-     * Returns a chunk of preallocated {@link ByteBuffer} of size 1KB.
+     * Returns a chunks of preallocated {@link ByteBuffer} of size 1KB to 
+     * match the expected size.
      */
     public synchronized List<ByteBuffer> getBuffer(int bufferSize)
     {
@@ -115,14 +122,14 @@ public class BufferManager
     }
     
     /**
-     * Returns the {@link ByteBuffer} to the pool.
+     * Returns the {@link ByteBuffer} back to the pool.
      */
     public void free(ByteBuffer buffer)
     {
         try {
             myBufferPoolLock.lock();
             myBuffers.add(buffer);
-            myAwaitingFreeSpaceCondition.notify();
+            myAwaitingFreeSpaceCondition.signal();
         }
         finally {
             myBufferPoolLock.unlock();
@@ -130,14 +137,14 @@ public class BufferManager
     }
     
     /**
-     * Returns the {@link ByteBuffer}s to the pool.
+     * Returns the collection of {@link ByteBuffer}s back to the pool.
      */
     public void free(Collection<ByteBuffer> buffers)
     {
         try {
             myBufferPoolLock.lock();
             myBuffers.addAll(buffers);
-            myAwaitingFreeSpaceCondition.notify();
+            myAwaitingFreeSpaceCondition.signal();
         }
         finally {
             myBufferPoolLock.unlock();

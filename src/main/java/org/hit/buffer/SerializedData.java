@@ -21,8 +21,8 @@ package org.hit.buffer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -47,23 +47,10 @@ public class SerializedData
     }
     
     /**
-     * CTOR
-     * @throws IOException 
+     * Writes the serialized data to the channels and fress the 
+     * {@link ByteBuffer}s back to the pool.
      */
-    public SerializedData() throws IOException
-    {
-        super();
-        myManager = null;
-        myBinaryData = manager.getBuffer(size);
-        for (ByteBuffer buffer : myBinaryData) {
-            inChannel.read(buffer);
-        }
-    }
-    
-    /**
-     * Writes the serialized data to the channels.
-     */
-    public void writeTo(WritableByteChannel outputChannel) throws IOException
+    public void drainTo(WritableByteChannel outputChannel) throws IOException
     {
         for (ByteBuffer buffer : myBinaryData) {
             outputChannel.write(buffer);
@@ -71,5 +58,23 @@ public class SerializedData
         if (myManager != null) {
             myManager.free(myBinaryData);
         }
+    }
+
+    /**
+     * Returns the value of binaryData after clearing the existing list.
+     */
+    public List<ByteBuffer> getAndClearBinaryData()
+    {
+        List<ByteBuffer> result = new ArrayList<>(myBinaryData);
+        myBinaryData.clear();
+        return result;
+    }
+
+    /**
+     * Returns the value of manager
+     */
+    public BufferManager getManager()
+    {
+        return myManager;
     }
 }

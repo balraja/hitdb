@@ -90,4 +90,15 @@ public class ManagedBufferInputStream extends InputStream
         }
         return new ManagedBufferInputStream(manager, toBeReadData);
     }
+    
+    /**
+     * A factory method to wrap the binary data present in the 
+     * {@link SerializedData} with {@link ManagedBufferInputStream}.
+     */
+    public static ManagedBufferInputStream wrapSerializedData(
+        SerializedData data)
+    {
+        return new ManagedBufferInputStream(data.getManager(), 
+                                            data.getAndClearBinaryData());
+    }
 }
