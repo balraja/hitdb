@@ -58,6 +58,8 @@ public class ManagedBufferOutputStream extends OutputStream
     {
         if (myLastBuffer == null || !myLastBuffer.hasRemaining()) {
             if (myLastBuffer != null) {
+                // Flip the buffers so that they can be read easily.
+                myLastBuffer.flip();
                 myWrittenBuffers.add(myLastBuffer);
             }
             myLastBuffer = myBufferManager.getBuffer();
@@ -66,11 +68,13 @@ public class ManagedBufferOutputStream extends OutputStream
     }
     
     /** Returns data that has been written to this stream */
-    public CompositeByteBuffer getWrittenData()
+    public SerializedData getWrittenData()
     {
         if (myLastBuffer != null) {
+            // Flip the buffers so that they can be read easily.
+            myLastBuffer.flip();
             myWrittenBuffers.add(myLastBuffer);
         }
-        return new CompositeByteBuffer(myWrittenBuffers);
+        return new SerializedData(myWrittenBuffers);
     }
 }

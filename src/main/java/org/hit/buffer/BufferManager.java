@@ -82,6 +82,39 @@ public class BufferManager
     }
     
     /**
+     * Returns a chunk of preallocated {@link ByteBuffer} of size 1KB.
+     */
+    public synchronized List<ByteBuffer> getBuffer(int bufferSize)
+    {
+        try {
+            int maxBuffers = bufferSize / SIZE;
+            if (bufferSize % SIZE > 0) {
+                maxBuffers++;
+            }
+            myBufferPoolLock.lock();
+            if (myBuffers.isEmpty()) {
+                myAwaitingFreeSpaceCondition.wait();
+            }
+            else if (myBuffers.size() < maxBuffers) {
+                myAwaitingFreeSpaceCondition.await();
+            }
+            else {
+                List<ByteBuffer> removedValues = 
+                    myBuffers.subList(0, maxBuffers);
+                myBuffers.removeAll(removedValues);
+                return removedValues;
+            }
+        }
+        catch (InterruptedException e) {
+            // Do nothing.
+        }
+        finally {
+            myBufferPoolLock.unlock();
+        }
+        return null;
+    }
+    
+    /**
      * Returns the {@link ByteBuffer} to the pool.
      */
     public void free(ByteBuffer buffer)

@@ -20,43 +20,56 @@
 package org.hit.buffer;
 
 import java.io.IOException;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.util.List;
 
 /**
+ * A collection of {@link ByteBuffer}s that represents some serialized data.
+ * 
  * @author Balraja Subbiah
  */
-public class CompositeByteBuffer
+public class SerializedData
 {
-    private List<ByteBuffer> myBinaryData;
+    private final BufferManager myManager;
+    
+    private final List<ByteBuffer> myBinaryData;
 
     /**
      * CTOR
      */
-    public CompositeByteBuffer(List<ByteBuffer> binaryData)
+    public SerializedData(BufferManager manager, List<ByteBuffer> binaryData)
     {
         super();
+        myManager = manager;
         myBinaryData = binaryData;
     }
     
     /**
-     * Writes the serialized data to the channels.
+     * CTOR
+     * @throws IOException 
      */
-    public void writeTo(SocketChannel outputChannel) throws IOException
+    public SerializedData() throws IOException
     {
+        super();
+        myManager = null;
+        myBinaryData = manager.getBuffer(size);
         for (ByteBuffer buffer : myBinaryData) {
-            buffer.flip();
-            outputChannel.write(buffer);
+            inChannel.read(buffer);
         }
     }
     
     /**
      * Writes the serialized data to the channels.
      */
-    public void readFrom(SocketChannel outputChannel) throws IOException
+    public void writeTo(WritableByteChannel outputChannel) throws IOException
     {
+        for (ByteBuffer buffer : myBinaryData) {
+            outputChannel.write(buffer);
+        }
+        if (myManager != null) {
+            myManager.free(myBinaryData);
+        }
     }
 }
