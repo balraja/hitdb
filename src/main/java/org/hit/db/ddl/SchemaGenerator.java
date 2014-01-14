@@ -24,11 +24,15 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
@@ -47,10 +51,7 @@ import org.xml.sax.helpers.DefaultHandler;
  * @author Balraja Subbiah
  */
 public class SchemaGenerator
-{
-   /* private static final Logger LOG =
-        LogFactory.getInstance().getLogger(SchemaGenerator.class);*/
-                                                       
+{                                                     
     private static final String TABLE_ELEMENT = "table";
     
     private static final String COLUMN_ELEMENT = "column";
@@ -63,13 +64,23 @@ public class SchemaGenerator
     
     private static final String IS_PRIMARY = "isPrimary";
     
-    private static final String SCHEMA_FILE = "schema";
-    
-    private static final String PACKAGE_NAME = "package";
-    
     private static final String DOT_SEPARATOR = "\\.";
     
     private static final String JAVA_EXTN = ".java";
+    
+    private static final String SCHEMA_FILE_NAME = "schema.xml";
+    
+    private static final String TEMPLATE_FILE_NAME = "db_model_templates.stg";
+    
+    private static final String TEMPLATE_NAME = "dbmodel";
+    
+    private static final String PACKAGE_NAME_ARG = "packageName";
+    
+    private static final String TABLE_NAME_ARG = "tableName";
+    
+    private static final String KEY_CLASS_NAME_ARG = "keyClassName";
+    
+    private static final String META_COLUMNS_ARG = "metaColumns";
        
     /**
      * Defines the contract for a context to be used when parsing the 
@@ -190,6 +201,52 @@ public class SchemaGenerator
         }
     }
     
+    /**
+     * Extends {@link SimpleFileVisitor} to support visiting all files 
+     * under a given directory.
+     */
+    private class SchemaFileVisitor extends SimpleFileVisitor<Path>
+    {
+        private final Path mySourceDirectory;
+        
+        private Path myCurrentDirectory;
+        
+        /**
+         * CTOR
+         */
+        public SchemaFileVisitor(Path sourceDirectory)
+        {
+            super();
+            mySourceDirectory = sourceDirectory;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public FileVisitResult preVisitDirectory(Path dir,
+                BasicFileAttributes attrs) throws IOException
+        {
+            myCurrentDirectory = dir;
+            return super.preVisitDirectory(dir, attrs);
+        }
+        
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+                throws IOException
+        {
+            if (file.getFileName().endsWith(SCHEMA_FILE_NAME)) {
+                parseAndGenerateTable(
+                    file.toFile(), myCurrentDirectory, mySourceDirectory);
+            }
+            return super.visitFile(file, attrs);
+        }
+        
+    }
+    
     private final Context myContext;
     
     /**
@@ -208,17 +265,10 @@ public class SchemaGenerator
         return myContext;
     }
     
-    private File makePkgDirectories(File sourceDirectory, String packageName)
+    private String inferPackageName(Path srcDirectory, Path packageDirectory)
     {
-        File path = new File(sourceDirectory,
-                             packageName.replaceAll(DOT_SEPARATOR,
-                                                    Matcher.quoteReplacement(
-                                                        File.separator)));
-        if (!path.exists()) {
-            path.mkdirs();
-        }
-        
-        return path;
+        Path packagePath = srcDirectory.relativize(packageDirectory);
+        return packagePath.toString().replace(File.separatorChar, '.');
     }
     
     private String makeJavaFileName(String tableName)
@@ -235,16 +285,15 @@ public class SchemaGenerator
      * A helper method to parse schema information out of an xml file 
      * and generate classes out of it.
      */
-    public void parseAndGenerateTable(File file, 
-                                      File sourceDirectory,
-                                      String packageName)
+    private void parseAndGenerateTable(File file, 
+                                       Path packageDirectory,
+                                       Path srcDirectory)
     {
         try {
             SAXParserFactory factory = SAXParserFactory.newInstance();
             factory.newSAXParser().parse(file, new ElementHandler());
             
-            File tableType = new File(makePkgDirectories(
-                                          sourceDirectory, packageName),
+            File tableType = new File(packageDirectory.toFile(),
                                       makeJavaFileName(
                                           myContext.getTable().getTableName()));
             if (tableType.exists()) {
@@ -252,14 +301,15 @@ public class SchemaGenerator
             }
             Writer writer = new FileWriter(tableType);
 
-            STGroup group = new STGroupFile("db_model_templates.stg");
-            ST st = group.getInstanceOf("dbmodel");
-            st.add("packageName", packageName);
+            STGroup group = new STGroupFile(TEMPLATE_FILE_NAME);
+            ST st = group.getInstanceOf(TEMPLATE_NAME);
+            st.add(PACKAGE_NAME_ARG, 
+                    inferPackageName(srcDirectory, packageDirectory));
             
-            st.add("tableName", getContext().getTable().getTableName());
-            st.add("keyClassName", getContext().getTable().getKeyTypeName());
+            st.add(TABLE_NAME_ARG, getContext().getTable().getTableName());
+            st.add(KEY_CLASS_NAME_ARG, getContext().getTable().getKeyTypeName());
 
-            st.add("metaColumns", getContext().getColumnInfo());
+            st.add(META_COLUMNS_ARG, getContext().getColumnInfo());
 
             writer.write(st.render());
             writer.flush();
@@ -270,13 +320,18 @@ public class SchemaGenerator
         }
     }
     
-    public static void main(String[] args)
+    /**
+     * Starts from the specified directory and recursively visits all 
+     * subdirectories. 
+     */
+    public void generateTableSourceFiles(Path startDirectory)
     {
-        SchemaGenerator generator = new SchemaGenerator();
-        generator.parseAndGenerateTable(
-            new File("E:\\projects\\java-projects\\hitdb\\target\\classes\\test-schema.xml"),
-            new File("E:\\hitdbtest"),
-            "org.hittest");
-            
+        try {
+            Files.walkFileTree(startDirectory, 
+                               new SchemaFileVisitor(startDirectory));
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
