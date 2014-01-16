@@ -36,6 +36,7 @@ public enum ActorID implements AccessorID
     SERVER_COMPONENT_MANAGER,
     CONSENSUS_MANAGER,
     GOSSIPER,
+    TIME_KEEPER,
     
     TEST_PRODUCER,
     TEST_CONSUMER1,

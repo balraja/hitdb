@@ -93,5 +93,4 @@ public class ConsumerAccess extends AbstractAccess
     {
         throw new RuntimeException("Illegal access");
     }
-
 }

@@ -68,7 +68,6 @@ public class BufferManager
      */
     public synchronized ByteBuffer getBuffer()
     {
-        
         try {
             myBufferPoolLock.lock();
             if (myBuffers.isEmpty()) {

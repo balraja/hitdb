@@ -63,7 +63,8 @@ public abstract class Actor
         myEventBus = eventBus;
         myShouldStop = new AtomicBoolean(false);
         myActorExecutor =
-            Executors.newSingleThreadExecutor(
+            Executors.newFixedThreadPool(
+                1,
                 new NamedThreadFactory(id.name()));
     }
 

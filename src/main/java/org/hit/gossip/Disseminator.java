@@ -45,8 +45,8 @@ import org.hit.util.NamedThreadFactory;
 import com.google.inject.Inject;
 
 /**
- * Defines the contract for a manager that's responsible for disseminating
- * <code>Information</code> known to it to all other nodes.
+ * Defines the contract for a type that's responsible for disseminating
+ * <code>Information</code> known to it to all other nodes via gossiping.
  * 
  * @author Balraja Subbiah
  */

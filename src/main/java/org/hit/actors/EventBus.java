@@ -84,7 +84,7 @@ public class EventBus
     /**
      * Publishes the given <code>Event</code> to the actor.
      */
-    private void publish(ActorID from, ActorID to, Event event)
+    public void publish(ActorID from, ActorID to, Event event)
     {
         EventPassingQueue epq = myActorToEPQ.get(to);
         if (epq == null) {
