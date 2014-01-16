@@ -28,27 +28,22 @@ import java.util.List;
 
 /**
  * Extends {@link InputStream} to support reading from 
- * {@link SerializedData}.
+ * {@link ManagedBuffer}.
  * 
  * @author Balraja Subbiah
  */
 public class ManagedBufferInputStream extends InputStream
 {
-    private final BufferManager myBufferManager;
-    
-    private final List<ByteBuffer> myBinaryData;
-    
+    private final ManagedBuffer myBuffer;
+     
     private int myBufferIndex;
     
     /**
      * CTOR
      */
-    private ManagedBufferInputStream(BufferManager manager, 
-                                     List<ByteBuffer> binaryData)
+    private ManagedBufferInputStream(ManagedBuffer buffer)
     {
-        super();
-        myBufferManager = manager;
-        myBinaryData = binaryData;
+        myBuffer = buffer;
         myBufferIndex = 0;
     }
 
@@ -58,10 +53,10 @@ public class ManagedBufferInputStream extends InputStream
     @Override
     public int read() throws IOException
     {
-        if (!myBinaryData.get(myBufferIndex).hasRemaining()) {
+        if (!myBuffer.getBinaryData().get(myBufferIndex).hasRemaining()) {
             myBufferIndex++;
         }
-        return myBinaryData.get(myBufferIndex).get();
+        return myBuffer.getBinaryData().get(myBufferIndex).get();
     }
     
     /**
@@ -70,35 +65,16 @@ public class ManagedBufferInputStream extends InputStream
     @Override
     public void close()
     {
-        myBufferManager.free(myBinaryData);
+        myBuffer.free();
     }
-    
-    /**
-     * A factory method that reads data from {@link SocketChannel} and 
-     * wraps it using {@link ManagedBufferInputStream} for further 
-     * consumption.
-     */
-    public static ManagedBufferInputStream readAndWrapData(
-        ReadableByteChannel inChannel, 
-        int size, 
-        BufferManager manager) throws IOException
-    {
-        List<ByteBuffer> toBeReadData = manager.getBuffer(size);
-        for (ByteBuffer buffer : toBeReadData) {
-            inChannel.read(buffer);
-            buffer.flip();
-        }
-        return new ManagedBufferInputStream(manager, toBeReadData);
-    }
-    
+
     /**
      * A factory method to wrap the binary data present in the 
-     * {@link SerializedData} with {@link ManagedBufferInputStream}.
+     * {@link ManagedBuffer} with {@link ManagedBufferInputStream}.
      */
     public static ManagedBufferInputStream wrapSerializedData(
-        SerializedData data)
+        ManagedBuffer data)
     {
-        return new ManagedBufferInputStream(data.getManager(), 
-                                            data.getAndClearBinaryData());
+        return new ManagedBufferInputStream(data);
     }
 }

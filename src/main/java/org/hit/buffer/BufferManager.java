@@ -143,6 +143,7 @@ public class BufferManager
         try {
             myBufferPoolLock.lock();
             myBuffers.addAll(buffers);
+            buffers.clear();
             myAwaitingFreeSpaceCondition.signal();
         }
         finally {

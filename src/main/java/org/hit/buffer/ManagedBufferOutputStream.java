@@ -68,13 +68,13 @@ public class ManagedBufferOutputStream extends OutputStream
     }
     
     /** Returns data that has been written to this stream */
-    public SerializedData getWrittenData()
+    public ManagedBuffer getWrittenData()
     {
         if (myLastBuffer != null) {
             // Flip the buffers so that they can be read easily.
             myLastBuffer.flip();
             myWrittenBuffers.add(myLastBuffer);
         }
-        return new SerializedData(myBufferManager, myWrittenBuffers);
+        return new ManagedBuffer(myBufferManager, myWrittenBuffers);
     }
 }

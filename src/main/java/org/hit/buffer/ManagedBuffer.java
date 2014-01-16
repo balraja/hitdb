@@ -21,6 +21,7 @@ package org.hit.buffer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,40 +31,37 @@ import java.util.List;
  * 
  * @author Balraja Subbiah
  */
-public class SerializedData
+public class ManagedBuffer implements ChannelInterface
 {
     private final BufferManager myManager;
     
     private final List<ByteBuffer> myBinaryData;
+    
+    /**
+     * CTOR
+     */
+    public ManagedBuffer(BufferManager manager)
+    {
+        super();
+        myManager = manager;
+        myBinaryData = new ArrayList<>();
+    }
 
     /**
      * CTOR
      */
-    public SerializedData(BufferManager manager, List<ByteBuffer> binaryData)
+    public ManagedBuffer(BufferManager manager, List<ByteBuffer> binaryData)
     {
         super();
         myManager = manager;
         myBinaryData = binaryData;
     }
     
-    /**
-     * Writes the serialized data to the channels and fress the 
-     * {@link ByteBuffer}s back to the pool.
-     */
-    public void drainTo(WritableByteChannel outputChannel) throws IOException
-    {
-        for (ByteBuffer buffer : myBinaryData) {
-            outputChannel.write(buffer);
-        }
-        if (myManager != null) {
-            myManager.free(myBinaryData);
-        }
-    }
 
     /**
      * Returns the value of binaryData after clearing the existing list.
      */
-    public List<ByteBuffer> getAndClearBinaryData()
+    public List<ByteBuffer> getBinaryData()
     {
         List<ByteBuffer> result = new ArrayList<>(myBinaryData);
         myBinaryData.clear();
@@ -71,10 +69,40 @@ public class SerializedData
     }
 
     /**
-     * Returns the value of manager
+     * {@inheritDoc}
      */
-    public BufferManager getManager()
+    @Override
+    public void writeTo(WritableByteChannel channel) throws IOException
     {
-        return myManager;
+        if (!myBinaryData.isEmpty()) {
+            for (ByteBuffer buffer : myBinaryData) {
+                channel.write(buffer);
+            }
+            myManager.free(myBinaryData);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     * @throws IOException 
+     */
+    @Override
+    public void readFrom(ReadableByteChannel readableChannel, int numBytes) 
+        throws IOException
+    {
+        List<ByteBuffer> toBeReadData = myManager.getBuffer(numBytes);
+        for (ByteBuffer buffer : toBeReadData) {
+            readableChannel.read(buffer);
+            buffer.flip();
+            myBinaryData.add(buffer);
+        }
+    }
+    
+    /** Frees the buffers */
+    public void free()
+    {
+        if (!myBinaryData.isEmpty()) {
+            myManager.free(myBinaryData);
+        }
     }
 }

@@ -35,14 +35,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.consensus.Proposal;
-import org.hit.db.model.Mutation;
-import org.hit.db.transactions.WriteTransaction;
 import org.hit.di.HitServerModule;
 import org.hit.fs.FileSystemFacacde;
 import org.hit.util.LogFactory;
 
 import com.google.inject.Guice;
-import com.google.inject.Inject;
 import com.google.inject.Injector;
 
 /**
