@@ -49,12 +49,9 @@ public class PublisherAccess extends AbstractAccess
     /**
      * CTOR
      */
-    public PublisherAccess(
-        WaitStrategy waitStrategy, 
-        EventPassingQueue ePQ,
-        AccessorID accessorID)
+    public PublisherAccess(AccessorID accessorID, EventPassingQueue ePQ)
     {
-        super(waitStrategy);
+        super(accessorID.getWaitStrategy());
         myAccessorID = accessorID;
         myEPQ = ePQ;
         myConsumers =
@@ -131,6 +128,14 @@ public class PublisherAccess extends AbstractAccess
                              + " published the message " 
                              + event.getClass().getSimpleName()
                              + " to the slot " + publishIndex); 
+                }
+                
+                for (ConsumerAccess consumer : myConsumers) {
+                    if (consumer.getWaitStrategy() 
+                            == WaitStrategy.CONDITIONAL_WAIT)
+                    {
+                        consumer.notify();
+                    }
                 }
                 return;
             }

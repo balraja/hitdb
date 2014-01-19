@@ -21,6 +21,7 @@
 package org.hit.actors;
 
 import org.hit.concurrent.epq.AccessorID;
+import org.hit.concurrent.epq.WaitStrategy;
 
 /**
  * The identifier for an actor. We abstract this as a type because it will
@@ -30,15 +31,33 @@ import org.hit.concurrent.epq.AccessorID;
  */
 public enum ActorID implements AccessorID
 {
-    COMMUNICATOR,
-    DB_ENGINE,
-    GROUP_MANAGER,
-    SERVER_COMPONENT_MANAGER,
-    CONSENSUS_MANAGER,
-    GOSSIPER,
-    TIME_KEEPER,
+    COMMUNICATOR(WaitStrategy.SLEEP),
+    DB_ENGINE(WaitStrategy.SLEEP),
+    GROUP_MANAGER(WaitStrategy.CONDITIONAL_WAIT),
+    SERVER_COMPONENT_MANAGER(WaitStrategy.CONDITIONAL_WAIT),
+    CONSENSUS_MANAGER(WaitStrategy.SLEEP),
+    GOSSIPER(WaitStrategy.CONDITIONAL_WAIT),
+    TIME_KEEPER(WaitStrategy.CONDITIONAL_WAIT),
     
-    TEST_PRODUCER,
-    TEST_CONSUMER1,
-    TEST_CONSUMER2
+    TEST_PRODUCER(WaitStrategy.SLEEP),
+    TEST_CONSUMER1(WaitStrategy.SLEEP),
+    TEST_CONSUMER2(WaitStrategy.SLEEP);
+    
+    private final WaitStrategy myWaitStrategy;
+    
+    /**
+     * CTOR
+     */
+    ActorID(WaitStrategy waitStrategy)
+    {
+        myWaitStrategy = waitStrategy;
+    }
+
+    /**
+     * Returns the value of waitStrategy
+     */
+    public WaitStrategy getWaitStrategy()
+    {
+        return myWaitStrategy;
+    }
 }

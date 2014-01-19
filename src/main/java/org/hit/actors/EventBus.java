@@ -142,9 +142,7 @@ public class EventBus
     public void register(ActorID actorID, int size)
     {
         if (!myActorToEPQ.containsKey(actorID)) {
-            myActorToEPQ.put(actorID,
-                             new EventPassingQueue(size,
-                                                   WaitStrategy.SLEEP));
+            myActorToEPQ.put(actorID, new EventPassingQueue(size));
         }
     }
 

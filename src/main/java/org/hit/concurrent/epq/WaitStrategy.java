@@ -34,6 +34,11 @@ public enum WaitStrategy
     BUSY_WAIT,
     
     /**
+     * Waits for a particular condition to happen.
+     */
+    CONDITIONAL_WAIT,
+    
+    /**
      * Puts the thread to sleep for particular nano seconds before
      * checking again.
      */

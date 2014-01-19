@@ -34,8 +34,7 @@ import org.hit.util.LogFactory;
 /**
  * This class is responsible for buffering data passed between two
  * components of a system. This is inspired by the ideas published by
- * the disruptor system. This is suitable for one publisher and one
- * consumer scenario.
+ * the disruptor system. 
  *
  * At it's heart is a circular buffer on which producer claims a slot,
  * waits for the consumer to consume the data in that slot and then
@@ -77,12 +76,10 @@ public class EventPassingQueue
 
     private final int mySize;
 
-    private final WaitStrategy myWaitStrategy;
-
     /**
      * CTOR
      */
-    public EventPassingQueue(int size, WaitStrategy waitStrategy)
+    public EventPassingQueue(int size)
     {
         assert(size % 2 == 0);
         mySize = size;
@@ -90,7 +87,6 @@ public class EventPassingQueue
         myCursor = new AtomicInteger(-1);
         myPublishers = new HashMap<>();
         myConsumers = new HashMap<>();
-        myWaitStrategy = waitStrategy;
         myLock = new CloseableLock(new ReentrantLock());
     }
 
@@ -100,7 +96,8 @@ public class EventPassingQueue
         ConsumerAccess access = myConsumers.get(consumerID);
         if (access == null) {
             try (CloseableLock lock = myLock.open()) {
-                access = new ConsumerAccess(consumerID, myWaitStrategy, this);
+                access = 
+                    new ConsumerAccess(consumerID, this);
                 for (PublisherAccess publisher : myPublishers.values()) {
                     publisher.addConsumer(access);
                 }
@@ -147,7 +144,9 @@ public class EventPassingQueue
         PublisherAccess access = myPublishers.get(accessorID);
         if (access == null) {
             try (CloseableLock lock = myLock.open()) {
-                access = new PublisherAccess(myWaitStrategy, this, accessorID);
+                access = 
+                    new PublisherAccess(accessorID, this);
+                
                 for (ConsumerAccess consumer : myConsumers.values()) {
                     access.addConsumer(consumer);
                 }

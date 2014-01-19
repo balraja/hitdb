@@ -47,10 +47,9 @@ public class ConsumerAccess extends AbstractAccess
      * CTOR
      */
     public ConsumerAccess(AccessorID        accessorID,
-                          WaitStrategy      waitStrategy,
                           EventPassingQueue ePQ)
     {
-        super(waitStrategy);
+        super(accessorID.getWaitStrategy());
         myAccessorID = accessorID;
         myEPQ = ePQ;
         myConsumedIndex = -1;

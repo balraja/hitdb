@@ -28,4 +28,5 @@ package org.hit.concurrent.epq;
  */
 public interface AccessorID
 {
+    public WaitStrategy getWaitStrategy();
 }

@@ -37,6 +37,14 @@ public abstract class AbstractAccess implements Access
     {
         myWaitStrategy = waitStrategy;
     }
+    
+    /**
+     * Returns the value of waitStrategy
+     */
+    public WaitStrategy getWaitStrategy()
+    {
+        return myWaitStrategy;
+    }
 
     /**
      * {@inheritDoc}
@@ -47,6 +55,18 @@ public abstract class AbstractAccess implements Access
         if (myWaitStrategy == WaitStrategy.SLEEP) {
             try {
                 Thread.sleep(100);
+            }
+            catch (InterruptedException e) {
+            }
+        }
+        else if (myWaitStrategy == WaitStrategy.BUSY_WAIT) {
+            for (int i = 0; i < Integer.MAX_VALUE; i++) {
+                // Just count to avoid sleeping.
+            }
+        }
+        else if (myWaitStrategy == WaitStrategy.CONDITIONAL_WAIT) {
+            try {
+                wait();
             }
             catch (InterruptedException e) {
             }
