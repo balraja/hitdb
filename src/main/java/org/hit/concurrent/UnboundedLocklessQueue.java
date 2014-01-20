@@ -71,40 +71,6 @@ public class UnboundedLocklessQueue<T>
         }
     }
     
-    /** Defines the node of a queue that holds the data */
-    private static class Node<T>
-    {
-        private final T myData;
-        
-        private final AtomicReference<Node<T>> myNext;
-
-        /**
-         * CTOR
-         */
-        public Node(T data, AtomicReference<Node<T>> next)
-        {
-            super();
-            myData = data;
-            myNext = next;
-        }
-
-        /**
-         * Returns the value of data
-         */
-        public T getData()
-        {
-            return myData;
-        }
-
-        /**
-         * Returns the value of next
-         */
-        public AtomicReference<Node<T>> getNext()
-        {
-            return myNext;
-        }
-    }
-    
     private final AtomicReference<Node<T>> myHead;
     
     private final AtomicReference<Node<T>> myTail;
