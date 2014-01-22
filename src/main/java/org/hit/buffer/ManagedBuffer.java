@@ -63,9 +63,7 @@ public class ManagedBuffer implements ChannelInterface
      */
     public List<ByteBuffer> getBinaryData()
     {
-        List<ByteBuffer> result = new ArrayList<>(myBinaryData);
-        myBinaryData.clear();
-        return result;
+        return myBinaryData;
     }
 
     /**

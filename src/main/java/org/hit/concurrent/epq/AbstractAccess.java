@@ -20,6 +20,10 @@
 
 package org.hit.concurrent.epq;
 
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 /**
  * An abstract implementation of <code>Access</code> that implements the
  * waiting behaviour for various wait strategies.
@@ -35,7 +39,7 @@ public abstract class AbstractAccess implements Access
      */
     public AbstractAccess(WaitStrategy waitStrategy)
     {
-        myWaitStrategy = waitStrategy;
+        myWaitStrategy  = waitStrategy;
     }
     
     /**
@@ -65,11 +69,7 @@ public abstract class AbstractAccess implements Access
             }
         }
         else if (myWaitStrategy == WaitStrategy.CONDITIONAL_WAIT) {
-            try {
-                wait();
-            }
-            catch (InterruptedException e) {
-            }
+           // Do nothing.
         }
     }
 }

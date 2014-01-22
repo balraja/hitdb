@@ -20,6 +20,9 @@
 
 package org.hit.concurrent.epq;
 
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,6 +45,10 @@ public class ConsumerAccess extends AbstractAccess
     private final EventPassingQueue myEPQ;
     
     private final AccessorID myAccessorID;
+    
+    private final Lock myLock;
+    
+    private final Condition myWaitCondition;
 
     /**
      * CTOR
@@ -50,9 +57,12 @@ public class ConsumerAccess extends AbstractAccess
                           EventPassingQueue ePQ)
     {
         super(accessorID.getWaitStrategy());
-        myAccessorID = accessorID;
-        myEPQ = ePQ;
+        myAccessorID    = accessorID;
+        myEPQ           = ePQ;
         myConsumedIndex = -1;
+        myLock          = new ReentrantLock();
+        myWaitCondition = myLock.newCondition();
+
     }
     
     public AccessorID getAccessorID()
@@ -91,5 +101,41 @@ public class ConsumerAccess extends AbstractAccess
     public void publish(Event event)
     {
         throw new RuntimeException("Illegal access");
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void waitFor()
+    {
+        if (getWaitStrategy() == WaitStrategy.CONDITIONAL_WAIT) {
+            try {
+                myLock.lock();
+                myWaitCondition.await();
+             }
+             catch (InterruptedException e) {
+                 // Ignore.
+             }
+             finally {
+                 myLock.unlock();
+             }
+        }
+        else {
+            super.waitFor();
+        }
+    }
+    
+    /**
+     * Notifies the consumer that an {@link Event} has been published to the
+     * {@link EventPassingQueue} from which it's consuming the events.
+     */
+    public void newEventArrived()
+    {
+        if (getWaitStrategy() == WaitStrategy.CONDITIONAL_WAIT) {
+            myLock.lock();
+            myWaitCondition.signalAll();
+            myLock.unlock();
+        }
     }
 }

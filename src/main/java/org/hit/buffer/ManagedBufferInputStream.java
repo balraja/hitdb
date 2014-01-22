@@ -21,10 +21,6 @@ package org.hit.buffer;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.channels.SocketChannel;
-import java.util.List;
 
 /**
  * Extends {@link InputStream} to support reading from 

@@ -23,6 +23,8 @@ package org.hit.concurrent.epq;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -134,7 +136,7 @@ public class PublisherAccess extends AbstractAccess
                     if (consumer.getWaitStrategy() 
                             == WaitStrategy.CONDITIONAL_WAIT)
                     {
-                        consumer.notify();
+                        consumer.newEventArrived();
                     }
                 }
                 return;
