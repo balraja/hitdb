@@ -50,9 +50,10 @@ public class ManagedBufferInputStream extends InputStream
     public int read() throws IOException
     {
         if (!myBuffer.getBinaryData().get(myBufferIndex).hasRemaining()) {
-            myBufferIndex++;
+            myBufferIndex += 1;
         }
-        return myBuffer.getBinaryData().get(myBufferIndex).get();
+        byte val = myBuffer.getBinaryData().get(myBufferIndex).get();
+        return (val & 0xff);
     }
     
     /**

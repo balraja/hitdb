@@ -24,6 +24,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 import org.hit.buffer.BufferManager;
+import org.hit.buffer.ManagedBuffer;
 import org.hit.buffer.ManagedBufferInputStream;
 import org.hit.buffer.ManagedBufferOutputStream;
 import org.hit.communicator.NodeID;
@@ -60,6 +61,35 @@ public class ManagedBufferTest
             objectInput.close();
             
             Assert.assertEquals(message, readMessage);
+        }
+        catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }   
+    
+    @Test
+    public void testBigMessageSerialization()
+    {
+        NodeID nodeID          = new IPNodeID(10000);
+        BigTestMessage message = new BigTestMessage(nodeID);
+        BufferManager manager  = new BufferManager(20);
+        
+        try {
+            ManagedBufferOutputStream mout = 
+                new ManagedBufferOutputStream(manager);
+            ObjectOutputStream objectOutput = new ObjectOutputStream(mout);
+            objectOutput.writeObject(message);
+            objectOutput.close();
+            
+            ManagedBuffer mBuffer = mout.getWrittenData();
+            ManagedBufferInputStream min = 
+                ManagedBufferInputStream.wrapSerializedData(mBuffer);
+            ObjectInputStream objectInput = new ObjectInputStream(min);
+            BigTestMessage readMessage = (BigTestMessage) objectInput.readObject();
+            objectInput.close();
+            
+            Assert.assertArrayEquals(message.getTestData(), 
+                                     readMessage.getTestData());
         }
         catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
