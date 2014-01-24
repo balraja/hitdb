@@ -40,6 +40,8 @@ public abstract class AbstractLauncher
     
     protected static final String DUMP_FILE = "dump_file";
     
+    protected static final String BIN_DIRECTORY = "bin";
+    
     private static final String BAT = ".bat";
     
     private static final String SH = ".sh";
