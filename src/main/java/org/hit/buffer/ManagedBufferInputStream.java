@@ -30,9 +30,15 @@ import java.io.InputStream;
  */
 public class ManagedBufferInputStream extends InputStream
 {
+    private final int EOF = -1;
+    
     private final ManagedBuffer myBuffer;
      
     private int myBufferIndex;
+    
+    private int myMark;
+    
+    private int myReadBytes;
     
     /**
      * CTOR
@@ -41,6 +47,8 @@ public class ManagedBufferInputStream extends InputStream
     {
         myBuffer = buffer;
         myBufferIndex = 0;
+        myMark = -1;
+        
     }
 
     /**
@@ -49,11 +57,33 @@ public class ManagedBufferInputStream extends InputStream
     @Override
     public int read() throws IOException
     {
+        if (myMark > -1) {
+            if (myReadBytes == myMark) {
+                return -1;
+            }
+            else {
+                myReadBytes++;
+            }
+        }
+        
         if (!myBuffer.getBinaryData().get(myBufferIndex).hasRemaining()) {
             myBufferIndex += 1;
         }
         byte val = myBuffer.getBinaryData().get(myBufferIndex).get();
         return (val & 0xff);
+    }
+    
+    /** Sets the end of this stream after n bytes */
+    public void setEOFMark(int nBytes)
+    {
+        myMark = myBufferIndex + nBytes;
+    }
+    
+    /** Removes mark from the input stream */
+    public void unsetEOFMark()
+    {
+        myMark = EOF;
+        myReadBytes = 0;
     }
     
     /**

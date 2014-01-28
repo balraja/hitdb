@@ -21,12 +21,11 @@
 package org.hit.communicator.nio;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
-import org.hit.util.LogFactory;
+import org.hit.buffer.BufferManager;
+import org.hit.buffer.ManagedBuffer;
+import org.hit.channel.ChannelInterface;
 
 /**
  * An abstraction to capture the active connection between two machines.
@@ -35,19 +34,17 @@ import org.hit.util.LogFactory;
  */
 public class Connection
 {
-    private static final int BUFFER_SIZE = 1024 * 1024;
-
-    private static final Logger LOG =
-        LogFactory.getInstance().getLogger(Connection.class);
-
     private final SocketChannel myChannel;
+    
+    private final BufferManager myBufferManager;
 
     /**
      * CTOR
      */
-    public Connection(SocketChannel channel)
+    public Connection(SocketChannel channel, BufferManager bufferManager)
     {
         myChannel = channel;
+        myBufferManager = bufferManager;
     }
 
     /**
@@ -66,42 +63,20 @@ public class Connection
     /**
      * Reads the value from tcp connection.
      */
-    public ByteBuffer read() throws IOException
+    public ManagedBuffer read() throws IOException
     {
-        ByteBuffer messageBuffer =
-            ByteBuffer.allocate(10 * BUFFER_SIZE);
-        int readBytes = -1;
-        ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
-
-        while ((readBytes = myChannel.read(buffer)) > 0) {
-            buffer.flip();
-            if (messageBuffer.remaining() < readBytes) {
-                messageBuffer = resize(messageBuffer);
-            }
-            messageBuffer.put(buffer.array(), 0, readBytes);
-            buffer.clear();
-        }
-        messageBuffer.flip();
-        return messageBuffer;
+        ManagedBuffer buffer = new ManagedBuffer(myBufferManager);
+        buffer.readFrom(myChannel);
+        return buffer;
     }
 
-    private ByteBuffer resize(ByteBuffer buffer)
-    {
-        buffer.flip();
-        ByteBuffer newBuffer = ByteBuffer.allocate(buffer.capacity() * 2);
-        newBuffer.put(buffer);
-        return newBuffer;
-    }
 
     /**
      * Sends the message on the channel.
      */
-    public void send(ByteBuffer message) throws IOException
+    public void send(ManagedBuffer message) throws IOException
     {
-        if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine("Received message with " + message.remaining() + " bytes");
-        }
-        myChannel.write(message);
+        message.writeTo(myChannel);
     }
 
     /**

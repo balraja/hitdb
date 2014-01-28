@@ -29,6 +29,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.hit.buffer.BufferManager;
+import org.hit.channel.ChannelInterface;
 import org.hit.communicator.CommunicatorException;
 import org.hit.communicator.Message;
 import org.hit.communicator.MessageSerializer;
@@ -54,9 +56,10 @@ public class Session
      * CTOR
      */
     public Session(SocketChannel     socketChannel,
-                   MessageSerializer serializer)
+                   MessageSerializer serializer,
+                   BufferManager      bufferManager)
     {
-        myConnection = new Connection(socketChannel);
+        myConnection = new Connection(socketChannel, bufferManager);
         mySerializer = serializer;
         myBufferredMessages = new ConcurrentLinkedQueue<>();
     }
@@ -66,9 +69,10 @@ public class Session
      */
     public Session(SocketChannel     socketChannel,
                    MessageSerializer serializer,
+                   BufferManager     manager,
                    Message           message)
     {
-        this(socketChannel, serializer);
+        this(socketChannel, serializer, manager);
         myBufferredMessages.add(message);
     }
 
@@ -113,7 +117,7 @@ public class Session
     public Collection<Message> readMessage() throws CommunicatorException
     {
         try {
-            ByteBuffer readBuffer = myConnection.read();
+            ChannelInterface ci = myConnection.read()
             if (LOG.isLoggable(Level.FINEST)) {
                 LOG.finest("Received bytes for reading " + readBuffer.remaining());
             }

@@ -26,6 +26,8 @@ import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hit.channel.ChannelInterface;
+
 /**
  * A collection of {@link ByteBuffer}s that represents some serialized data.
  * 
@@ -33,7 +35,7 @@ import java.util.List;
  */
 public class ManagedBuffer implements ChannelInterface
 {
-    private final BufferManager myManager;
+    private final BufferManager myBufferManager;
     
     private final List<ByteBuffer> myBinaryData;
     
@@ -43,7 +45,7 @@ public class ManagedBuffer implements ChannelInterface
     public ManagedBuffer(BufferManager manager)
     {
         super();
-        myManager = manager;
+        myBufferManager = manager;
         myBinaryData = new ArrayList<>();
     }
 
@@ -53,7 +55,7 @@ public class ManagedBuffer implements ChannelInterface
     public ManagedBuffer(BufferManager manager, List<ByteBuffer> binaryData)
     {
         super();
-        myManager = manager;
+        myBufferManager = manager;
         myBinaryData = binaryData;
     }
     
@@ -76,7 +78,7 @@ public class ManagedBuffer implements ChannelInterface
             for (ByteBuffer buffer : myBinaryData) {
                 channel.write(buffer);
             }
-            myManager.free(myBinaryData);
+            myBufferManager.free(myBinaryData);
         }
     }
 
@@ -85,22 +87,26 @@ public class ManagedBuffer implements ChannelInterface
      * @throws IOException 
      */
     @Override
-    public void readFrom(ReadableByteChannel readableChannel, int numBytes) 
+    public void readFrom(ReadableByteChannel readableChannel) 
         throws IOException
     {
-        List<ByteBuffer> toBeReadData = myManager.getBuffer(numBytes);
-        for (ByteBuffer buffer : toBeReadData) {
-            readableChannel.read(buffer);
+        ByteBuffer buffer = myBufferManager.getBuffer();
+        while (readableChannel.read(buffer) > 0) {
             buffer.flip();
-            myBinaryData.add(buffer);
+            if (!buffer.hasRemaining()) {
+                myBinaryData.add(buffer);
+                buffer = myBufferManager.getBuffer();
+            }
+            buffer.clear();
         }
+        myBinaryData.add(buffer);
     }
     
     /** Frees the buffers */
     public void free()
     {
         if (!myBinaryData.isEmpty()) {
-            myManager.free(myBinaryData);
+            myBufferManager.free(myBinaryData);
         }
     }
 }

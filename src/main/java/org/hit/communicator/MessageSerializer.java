@@ -20,8 +20,9 @@
 
 package org.hit.communicator;
 
-import java.nio.ByteBuffer;
 import java.util.Collection;
+
+import org.hit.buffer.ManagedBuffer;
 
 /**
  * Defines the contract for <code>Serializer</code> for messages.
@@ -30,7 +31,7 @@ import java.util.Collection;
  */
 public interface MessageSerializer
 {
-    public ByteBuffer serialize(Message message);
+    public ManagedBuffer serialize(Message message);
     
-    public Collection<Message> parse(ByteBuffer binaryMessage);
+    public Collection<Message> parse(ManagedBuffer binaryMessage);
 }

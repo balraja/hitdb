@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.hit.buffer.BufferManager;
 import org.hit.communicator.Communicator;
 import org.hit.communicator.CommunicatorException;
 import org.hit.communicator.Message;
@@ -146,7 +147,8 @@ public class NIOCommunicatorTest
             myReceiverID = receiverID;
             myMessage = message;
             myCommunicator =
-                new NIOCommunicator(new ObjectStreamSerializerFactory(),
+                new NIOCommunicator(new ObjectStreamSerializerFactory(
+                                        new BufferManager(20)),
                                     mySenderID);
             myStop = new AtomicBoolean(false);
         }

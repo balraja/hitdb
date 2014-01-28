@@ -22,8 +22,8 @@ package org.hit.communicator.test;
 
 import static org.junit.Assert.*;
 
-import java.nio.ByteBuffer;
-
+import org.hit.buffer.BufferManager;
+import org.hit.channel.ChannelInterface;
 import org.hit.communicator.MessageSerializer;
 import org.hit.communicator.NodeID;
 import org.hit.communicator.ObjectStreamSerializer;
@@ -42,8 +42,9 @@ public class ObjectStreamSerializerTest
     {
         NodeID nodeID = new IPNodeID(10000);
         TestMessage message = new TestMessage(nodeID, 1001);
-        MessageSerializer serializer = new ObjectStreamSerializer();
-        ByteBuffer buffer = serializer.serialize(message);
+        MessageSerializer serializer = 
+            new ObjectStreamSerializer(new BufferManager(20));
+        ChannelInterface buffer = serializer.serialize(message);
         TestMessage deserializedMessage =
             (TestMessage) serializer.parse(buffer).iterator().next();
         

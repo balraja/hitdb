@@ -20,6 +20,9 @@
 
 package org.hit.di;
 
+import org.hit.buffer.BufferConfig;
+import org.hit.buffer.BufferManager;
+import org.hit.buffer.BufferPropertyConfig;
 import org.hit.communicator.Communicator;
 import org.hit.communicator.MessageSerializer;
 import org.hit.communicator.ObjectStreamSerializer;
@@ -57,7 +60,9 @@ public abstract class HitModule extends AbstractModule
     {
         bindConstant().annotatedWith(Names.named("PreferredPort"))
                       .to(getBoundPort());
-
+        bindConstant().annotatedWith(Names.named("communicator-bm-namespace"))
+                      .to(Communicator.class.getSimpleName().toLowerCase());
+        
         bind(MessageSerializer.class).to(ObjectStreamSerializer.class);
         bind(SerializerFactory.class).to(ObjectStreamSerializerFactory.class);
         bind(Communicator.class).to(NIOCommunicator.class);
@@ -66,6 +71,7 @@ public abstract class HitModule extends AbstractModule
         bind(ZooKeeperClient.class).toProvider(ZookeeperClientProvider.class);
         bind(String.class).annotatedWith(Names.named("ServerGroupName"))
                           .toInstance("HitServers");
+        bind(BufferConfig.class).to(BufferPropertyConfig.class);
     }
 
     protected Integer getBoundPort()
@@ -81,6 +87,16 @@ public abstract class HitModule extends AbstractModule
     GroupID makeServerGroupID(@Named("ServerGroupName") String serverGroupName)
     {
         return new SimpleGroupID(serverGroupName);
+    }
+    
+    @Named("communicator")
+    @Provides
+    BufferManager makeCommunicatorBufferManager(
+        BufferConfig config,
+        @Named("communicator-bm-namespace")
+        String namespace)
+    {
+        return new BufferManager(namespace, config);
     }
 
     /**

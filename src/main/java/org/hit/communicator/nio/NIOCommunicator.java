@@ -39,6 +39,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.hit.buffer.BufferConfig;
+import org.hit.buffer.BufferManager;
 import org.hit.communicator.Communicator;
 import org.hit.communicator.CommunicatorException;
 import org.hit.communicator.Message;
@@ -50,6 +52,7 @@ import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 
 /**
  * Implements <code>Communicator</code> using NIO's nonblocking channels. By
@@ -86,6 +89,8 @@ public class NIOCommunicator implements Communicator
     private final CloseableLock mySessionMapLock;
 
     private final AtomicBoolean myShouldStop;
+    
+    private final BufferManager myBufferManager;
     
     /**
      * A simple task to take care of selecting keys from the selector and
@@ -136,7 +141,8 @@ public class NIOCommunicator implements Communicator
                             channel.configureBlocking(false);
                             Session session =
                                     new Session(channel,
-                                                mySerializerFactory.makeSerializer());
+                                                mySerializerFactory.makeSerializer(),
+                                                myBufferManager);
                             SelectionKey key =
                                 channel.register(mySelector,
                                                  SelectionKey.OP_READ);
@@ -189,6 +195,8 @@ public class NIOCommunicator implements Communicator
     /** CTOR */
     @Inject
     public NIOCommunicator(SerializerFactory  factory,
+                           @Named("communicator")
+                           BufferManager      bufferManager,
                            NodeID             nodeID)
     {
         try {
@@ -203,6 +211,7 @@ public class NIOCommunicator implements Communicator
             myShouldStop = new AtomicBoolean(false);
             mySessionMapLock = new CloseableLock(new ReentrantLock());
             myIdSelectKeyMap = new ConcurrentHashMap<>();
+            myBufferManager = bufferManager;
         }
         catch (IOException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
@@ -241,6 +250,7 @@ public class NIOCommunicator implements Communicator
                 Session session =
                     new Session(socketChannel,
                                 mySerializerFactory.makeSerializer(),
+                                myBufferManager,
                                 m);
                 selectionKey =
                     socketChannel.register(mySelector,

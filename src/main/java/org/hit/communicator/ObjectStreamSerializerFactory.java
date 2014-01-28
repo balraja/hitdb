@@ -20,6 +20,10 @@
 
 package org.hit.communicator;
 
+import org.hit.buffer.BufferManager;
+
+import com.google.inject.name.Named;
+
 /**
  * A simple factory for generating the <code>ObjectStreamSerializer</code>
  *
@@ -27,13 +31,24 @@ package org.hit.communicator;
  */
 public class ObjectStreamSerializerFactory implements SerializerFactory
 {
+    private final BufferManager myBufferManager;
+    
+    /**
+     * CTOR
+     */
+    public ObjectStreamSerializerFactory(
+        @Named("communicator") BufferManager bufferManager)
+    {
+        myBufferManager = bufferManager;
+    }
+
     /**
      * {@inheritDoc}
      */
     @Override
     public MessageSerializer makeSerializer()
     {
-        return new ObjectStreamSerializer();
+        return new ObjectStreamSerializer(myBufferManager);
     }
 
 }

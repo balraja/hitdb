@@ -19,21 +19,24 @@
 */
 package org.hit.buffer;
 
-import java.io.IOException;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.channels.WritableByteChannel;
-
 /**
- * Defines an interface that can be used for interacting with the new 
- * nio channels.
+ * Defines an implementation of {@link BufferConfig} where the values for the 
+ * given namespace is read from the properties.
  * 
  * @author Balraja Subbiah
  */
-public interface ChannelInterface
+public class BufferPropertyConfig implements BufferConfig
 {
-    public void writeTo(WritableByteChannel channel) throws IOException;
-    
-    public void readFrom(ReadableByteChannel readableChannel, int numBytes)
-        throws IOException;
-    
+    private static final String NS_PREFIX = "org.hit.buffer.size";
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getBufferSize(String namespace)
+    {
+        String full_ns = NS_PREFIX + '.' + namespace;
+        return System.getProperties().containsKey(full_ns) ?
+                Integer.parseInt(System.getProperty(full_ns)) : -1;
+    }
 }
