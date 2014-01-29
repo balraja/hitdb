@@ -48,7 +48,7 @@ public class ManagedBufferInputStream extends InputStream
         myBuffer = buffer;
         myBufferIndex = 0;
         myMark = -1;
-        
+        myReadBytes = 0;
     }
 
     /**
@@ -58,17 +58,20 @@ public class ManagedBufferInputStream extends InputStream
     public int read() throws IOException
     {
         if (myMark > -1) {
-            if (myReadBytes == myMark) {
-                return -1;
-            }
-            else {
-                myReadBytes++;
+            myReadBytes++;
+            if (myReadBytes >= myMark) {
+                return EOF;
             }
         }
         
         if (!myBuffer.getBinaryData().get(myBufferIndex).hasRemaining()) {
             myBufferIndex += 1;
         }
+        
+        if (myBufferIndex >= myBuffer.getBinaryData().size()) {
+            return EOF;
+        }
+        
         byte val = myBuffer.getBinaryData().get(myBufferIndex).get();
         return (val & 0xff);
     }
@@ -76,7 +79,8 @@ public class ManagedBufferInputStream extends InputStream
     /** Sets the end of this stream after n bytes */
     public void setEOFMark(int nBytes)
     {
-        myMark = myBufferIndex + nBytes;
+        myMark = nBytes;
+        myReadBytes = 0;
     }
     
     /** Removes mark from the input stream */

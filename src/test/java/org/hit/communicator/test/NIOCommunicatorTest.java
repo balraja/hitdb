@@ -66,8 +66,11 @@ public class NIOCommunicatorTest
          */
         public Receiver(NodeID receiverID)
         {
+            BufferManager bufferManager = new BufferManager(20);
             myCommunicator =
-                new NIOCommunicator(new ObjectStreamSerializerFactory(),
+                new NIOCommunicator(new ObjectStreamSerializerFactory(
+                                        bufferManager),
+                                    bufferManager,
                                     receiverID);
 
             myResultAvailable = new AtomicBoolean(false);
@@ -146,9 +149,11 @@ public class NIOCommunicatorTest
             mySenderID = senderId;
             myReceiverID = receiverID;
             myMessage = message;
+            BufferManager bufferManager = new BufferManager(20);
             myCommunicator =
                 new NIOCommunicator(new ObjectStreamSerializerFactory(
-                                        new BufferManager(20)),
+                                        bufferManager),
+                                    bufferManager,
                                     mySenderID);
             myStop = new AtomicBoolean(false);
         }

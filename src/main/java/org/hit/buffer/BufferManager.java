@@ -20,6 +20,7 @@
 package org.hit.buffer;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -34,7 +35,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class BufferManager
 { 
-    private static final int SIZE = 1024;
+    public static final int BUFFER_SIZE = 1024;
     
     private final List<ByteBuffer> myBuffers;
     
@@ -57,7 +58,7 @@ public class BufferManager
     {
         myBuffers = new LinkedList<>();
         for (int i = 0; i < numBuffers; i++) {
-            myBuffers.add(ByteBuffer.allocateDirect(SIZE));
+            myBuffers.add(ByteBuffer.allocateDirect(BUFFER_SIZE));
         }
         myBufferPoolLock = new ReentrantLock();
         myAwaitingFreeSpaceCondition = myBufferPoolLock.newCondition();
@@ -66,7 +67,7 @@ public class BufferManager
     /**
      * Returns a chunk of preallocated {@link ByteBuffer} of size 1KB.
      */
-    public synchronized ByteBuffer getBuffer()
+    public ByteBuffer getBuffer()
     {
         try {
             myBufferPoolLock.lock();
@@ -90,11 +91,11 @@ public class BufferManager
      * Returns a chunks of preallocated {@link ByteBuffer} of size 1KB to 
      * match the expected size.
      */
-    public synchronized List<ByteBuffer> getBuffer(int bufferSize)
+    public List<ByteBuffer> getBuffer(int bufferSize)
     {
         try {
-            int maxBuffers = bufferSize / SIZE;
-            if (bufferSize % SIZE > 0) {
+            int maxBuffers = bufferSize / BUFFER_SIZE;
+            if (bufferSize % BUFFER_SIZE > 0) {
                 maxBuffers++;
             }
             myBufferPoolLock.lock();
@@ -105,9 +106,10 @@ public class BufferManager
                 myAwaitingFreeSpaceCondition.await();
             }
             else {
-                List<ByteBuffer> removedValues = 
-                    myBuffers.subList(0, maxBuffers);
-                myBuffers.removeAll(removedValues);
+                List<ByteBuffer> removedValues = new ArrayList<>();
+                for (int i = 0; i < maxBuffers; i++) {
+                    removedValues.add(myBuffers.remove(0));
+                }
                 return removedValues;
             }
         }

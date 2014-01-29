@@ -23,7 +23,7 @@ package org.hit.communicator.test;
 import static org.junit.Assert.*;
 
 import org.hit.buffer.BufferManager;
-import org.hit.channel.ChannelInterface;
+import org.hit.communicator.BinaryMessage;
 import org.hit.communicator.MessageSerializer;
 import org.hit.communicator.NodeID;
 import org.hit.communicator.ObjectStreamSerializer;
@@ -44,9 +44,9 @@ public class ObjectStreamSerializerTest
         TestMessage message = new TestMessage(nodeID, 1001);
         MessageSerializer serializer = 
             new ObjectStreamSerializer(new BufferManager(20));
-        ChannelInterface buffer = serializer.serialize(message);
+        BinaryMessage binaryMessage = serializer.serialize(message);
         TestMessage deserializedMessage =
-            (TestMessage) serializer.parse(buffer).iterator().next();
+            (TestMessage) serializer.parse(binaryMessage).iterator().next();
         
         assertNotNull(deserializedMessage);
         assertEquals(nodeID, deserializedMessage.getSenderId());

@@ -39,15 +39,33 @@ public class ManagedBufferOutputStream extends OutputStream
     
     private ByteBuffer myLastBuffer;
     
+    private int myByteCount;
+    
+    private int myInitialOffset;
+    
+    private int myRewriteBufferIndex;
+    
     /**
      * CTOR
      */
     public ManagedBufferOutputStream(BufferManager bufferManager)
     {
+        this(bufferManager, -1);
+    }
+    
+    /**
+     * CTOR
+     */
+    public ManagedBufferOutputStream(BufferManager bufferManager,
+                                     int           initialOffset)
+    {
         super();
         myBufferManager = bufferManager;
         myWrittenBuffers = new ArrayList<>();
         myLastBuffer = null;
+        myByteCount = 0;
+        myInitialOffset = initialOffset;
+        myRewriteBufferIndex = -1;
     }
 
     /**
@@ -56,25 +74,94 @@ public class ManagedBufferOutputStream extends OutputStream
     @Override
     public void write(int b) throws IOException
     {
-        if (myLastBuffer == null || !myLastBuffer.hasRemaining()) {
-            if (myLastBuffer != null) {
-                // Flip the buffers so that they can be read easily.
-                myLastBuffer.flip();
-                myWrittenBuffers.add(myLastBuffer);
+        if (myInitialOffset > 0) {
+            
+            myWrittenBuffers.addAll(myBufferManager.getBuffer(myInitialOffset));
+            
+            int bufferIndex = myInitialOffset / BufferManager.BUFFER_SIZE;
+            if (myInitialOffset % BufferManager.BUFFER_SIZE > 0) {
+                myLastBuffer = myWrittenBuffers.remove(bufferIndex);
+                myLastBuffer.position(
+                    myInitialOffset % BufferManager.BUFFER_SIZE);
             }
-            myLastBuffer = myBufferManager.getBuffer();
+            else {
+                myLastBuffer = myWrittenBuffers.get(bufferIndex - 1);
+            }
+            
+            myInitialOffset = -1;
+        }
+        
+        if (myLastBuffer == null || !myLastBuffer.hasRemaining()) {
+            if (myLastBuffer != null && myRewriteBufferIndex < 0) {
+               cacheCurrentBuffer();
+            }
+            
+            if (myRewriteBufferIndex < 0) {
+                myLastBuffer = myBufferManager.getBuffer();
+            }
+            else {
+                if (myRewriteBufferIndex >= myWrittenBuffers.size()) {
+                    throw new IOException(
+                        "Overwriting data more than the current size");
+                }
+                
+                myLastBuffer = myWrittenBuffers.get(myRewriteBufferIndex);
+                myRewriteBufferIndex++;
+            }
         }
         myLastBuffer.put((byte) b);
+    }
+    
+    private void cacheCurrentBuffer()
+    {
+        // Flip the buffers so that they can be read easily.
+        myLastBuffer.flip();
+        myByteCount += (myLastBuffer.limit() + 1);
+        myWrittenBuffers.add(myLastBuffer);
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void close()
+    {
+        if (myLastBuffer != null) {
+            // Flip the buffers so that they can be read easily.
+            if (myRewriteBufferIndex < 0) {
+                cacheCurrentBuffer();
+            }
+            else {
+                myLastBuffer.position(0);
+            }
+            myLastBuffer = null;
+        }
+    }
+    
+    /**
+     * A helper method to reset the 
+     */
+    public void seekToFirst() throws IOException
+    {
+        if (myWrittenBuffers.isEmpty()) {
+            throw new IOException("Buffers are empty.");
+        }
+        
+        myRewriteBufferIndex = 0;
+    }
+    
+    /**
+     * Returns the number of bytes that has been written to 
+     */
+    public int getByteCount()
+    {
+        return myByteCount;
     }
     
     /** Returns data that has been written to this stream */
     public ManagedBuffer getWrittenData()
     {
-        if (myLastBuffer != null) {
-            // Flip the buffers so that they can be read easily.
-            myLastBuffer.flip();
-            myWrittenBuffers.add(myLastBuffer);
-        }
+        close();
         return new ManagedBuffer(myBufferManager, myWrittenBuffers);
     }
 }

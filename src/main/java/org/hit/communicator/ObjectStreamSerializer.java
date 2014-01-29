@@ -20,12 +20,8 @@
 
 package org.hit.communicator;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
@@ -35,8 +31,9 @@ import org.hit.buffer.BufferManager;
 import org.hit.buffer.ManagedBuffer;
 import org.hit.buffer.ManagedBufferInputStream;
 import org.hit.buffer.ManagedBufferOutputStream;
-import org.hit.channel.ChannelInterface;
 import org.hit.util.LogFactory;
+
+import com.google.common.primitives.Ints;
 
 /**
  * An implementation of <code>MessageSerializer</code> that uses the
@@ -48,8 +45,6 @@ public class ObjectStreamSerializer implements MessageSerializer
 {
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(ObjectStreamSerializer.class);
-    
-    private static final int LENGTH_FIELD_OFFSET = 4;
     
     private final BufferManager  myBufferManager;
     
@@ -65,25 +60,33 @@ public class ObjectStreamSerializer implements MessageSerializer
      * {@inheritDoc}
      */
     @Override
-    public Collection<Message> parse(ManagedBuffer binaryMessage)
+    public Collection<Message> parse(BinaryMessage binaryMessage)
     {
         try {
             ArrayList<Message> messages = new ArrayList<>();
             ManagedBufferInputStream min = 
-                ManagedBufferInputStream.wrapSerializedData(binaryMessage);
-            DataInputStream din = new DataInputStream(min);
-            int size = -1;
-            while ((size = din.readInt()) > 0) {
+                ManagedBufferInputStream.wrapSerializedData(
+                    (ManagedBuffer) binaryMessage);
+            
+            byte[] sizeArray = new byte[4];
+            min.read(sizeArray);
+            int size = Ints.fromByteArray(sizeArray);
+            
+            while (size > 0) {
                 min.setEOFMark(size);
                 ObjectInputStream oStream = new ObjectInputStream(min);
                 messages.add((Message) oStream.readObject());
                 min.unsetEOFMark();
+                
+                int read = min.read(sizeArray);
+                size = read == 4 ? Ints.fromByteArray(sizeArray) : -1;
             }
             min.close();
             return messages;
         }
         catch (Exception e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
+            e.printStackTrace();
             return null;
         }
     }
@@ -92,14 +95,17 @@ public class ObjectStreamSerializer implements MessageSerializer
      * {@inheritDoc}
      */
     @Override
-    public ManagedBuffer serialize(Message message)
+    public BinaryMessage serialize(Message message)
     {
         try {
             ManagedBufferOutputStream mout = 
-                new ManagedBufferOutputStream(myBufferManager);
+                new ManagedBufferOutputStream(myBufferManager, 4);
             ObjectOutputStream oStream = new ObjectOutputStream(mout);
             oStream.writeObject(message);
             oStream.close();
+            
+            mout.seekToFirst();
+            mout.write(Ints.toByteArray(mout.getByteCount() - 4));
             return mout.getWrittenData();
         }
         catch (Exception e) {

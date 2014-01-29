@@ -26,14 +26,14 @@ import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.hit.channel.ChannelInterface;
+import org.hit.communicator.BinaryMessage;
 
 /**
  * A collection of {@link ByteBuffer}s that represents some serialized data.
  * 
  * @author Balraja Subbiah
  */
-public class ManagedBuffer implements ChannelInterface
+public class ManagedBuffer implements BinaryMessage
 {
     private final BufferManager myBufferManager;
     
@@ -52,7 +52,8 @@ public class ManagedBuffer implements ChannelInterface
     /**
      * CTOR
      */
-    public ManagedBuffer(BufferManager manager, List<ByteBuffer> binaryData)
+    public ManagedBuffer(BufferManager manager, 
+                         List<ByteBuffer> binaryData)
     {
         super();
         myBufferManager = manager;
@@ -84,7 +85,6 @@ public class ManagedBuffer implements ChannelInterface
 
     /**
      * {@inheritDoc}
-     * @throws IOException 
      */
     @Override
     public void readFrom(ReadableByteChannel readableChannel) 

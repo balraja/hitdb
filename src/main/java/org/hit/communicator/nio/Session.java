@@ -21,7 +21,6 @@
 package org.hit.communicator.nio;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.Collection;
 import java.util.Queue;
@@ -30,7 +29,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.buffer.BufferManager;
-import org.hit.channel.ChannelInterface;
+import org.hit.buffer.ManagedBuffer;
+import org.hit.communicator.BinaryMessage;
 import org.hit.communicator.CommunicatorException;
 import org.hit.communicator.Message;
 import org.hit.communicator.MessageSerializer;
@@ -117,11 +117,8 @@ public class Session
     public Collection<Message> readMessage() throws CommunicatorException
     {
         try {
-            ChannelInterface ci = myConnection.read()
-            if (LOG.isLoggable(Level.FINEST)) {
-                LOG.finest("Received bytes for reading " + readBuffer.remaining());
-            }
-            return mySerializer.parse(readBuffer);
+            BinaryMessage binaryMessage  = myConnection.read();
+            return mySerializer.parse(binaryMessage);
         }
         catch (IOException e) {
             throw new CommunicatorException(e);

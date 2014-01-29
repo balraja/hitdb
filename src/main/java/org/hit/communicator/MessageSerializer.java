@@ -22,8 +22,6 @@ package org.hit.communicator;
 
 import java.util.Collection;
 
-import org.hit.buffer.ManagedBuffer;
-
 /**
  * Defines the contract for <code>Serializer</code> for messages.
  * 
@@ -31,7 +29,7 @@ import org.hit.buffer.ManagedBuffer;
  */
 public interface MessageSerializer
 {
-    public ManagedBuffer serialize(Message message);
+    public BinaryMessage serialize(Message message);
     
-    public Collection<Message> parse(ManagedBuffer binaryMessage);
+    public Collection<Message> parse(BinaryMessage binaryMessage);
 }

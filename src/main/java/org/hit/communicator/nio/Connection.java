@@ -26,6 +26,7 @@ import java.nio.channels.SocketChannel;
 import org.hit.buffer.BufferManager;
 import org.hit.buffer.ManagedBuffer;
 import org.hit.channel.ChannelInterface;
+import org.hit.communicator.BinaryMessage;
 
 /**
  * An abstraction to capture the active connection between two machines.
@@ -63,7 +64,7 @@ public class Connection
     /**
      * Reads the value from tcp connection.
      */
-    public ManagedBuffer read() throws IOException
+    public BinaryMessage read() throws IOException
     {
         ManagedBuffer buffer = new ManagedBuffer(myBufferManager);
         buffer.readFrom(myChannel);
@@ -74,7 +75,7 @@ public class Connection
     /**
      * Sends the message on the channel.
      */
-    public void send(ManagedBuffer message) throws IOException
+    public void send(BinaryMessage message) throws IOException
     {
         message.writeTo(myChannel);
     }
