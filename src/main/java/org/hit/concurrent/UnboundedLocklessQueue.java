@@ -20,7 +20,7 @@
 
 package org.hit.concurrent;
 
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicStampedReference;
 
 /**
  * This defines a queue without any bounds. Also this queue doesn't use 
@@ -30,6 +30,44 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class UnboundedLocklessQueue<T>
 {
+    private static final int REF_ARRAY_SIZE = 1;
+    
+    /** 
+    * Defines the node that holds the data in a queue.
+    */
+   private static class Node<T>
+   {
+       private final T myData;
+       
+       private final AtomicStampedReference<Node<T>> myNext;
+
+       /**
+        * CTOR
+        */
+       public Node(T data, AtomicStampedReference<Node<T>> next)
+       {
+           super();
+           myData = data;
+           myNext = next;
+       }
+
+       /**
+        * Returns the value of data
+        */
+       public T getData()
+       {
+           return myData;
+       }
+
+       /**
+        * Returns the value of next
+        */
+       public AtomicStampedReference<Node<T>> getNext()
+       {
+           return myNext;
+       }
+   }
+    
     /** Defines the exception thrown by the queue on error conditions */
     public static class DataException extends Exception
     {
@@ -71,9 +109,9 @@ public class UnboundedLocklessQueue<T>
         }
     }
     
-    private final AtomicReference<Node<T>> myHead;
+    private final AtomicStampedReference<Node<T>> myHead;
     
-    private final AtomicReference<Node<T>> myTail;
+    private final AtomicStampedReference<Node<T>> myTail;
 
     /**
      * CTOR
@@ -81,8 +119,8 @@ public class UnboundedLocklessQueue<T>
     public UnboundedLocklessQueue()
     {
         super();
-        myHead = new AtomicReference<Node<T>>(null);
-        myTail = new AtomicReference<Node<T>>(null);
+        myHead = new AtomicStampedReference<Node<T>>(null, 0);
+        myTail = new AtomicStampedReference<Node<T>>(null, 0);
     }
     
     /**
@@ -94,20 +132,26 @@ public class UnboundedLocklessQueue<T>
      */
     public void enqueue(T data) throws DataException
     {
-        Node<T> first = myHead.get();
-        Node<T> last = myTail.get();
+        int[] firstStamp = new int[REF_ARRAY_SIZE];
+        int[] lastStamp = new int[REF_ARRAY_SIZE];
+        
+        Node<T> first = myHead.get(firstStamp);
+        Node<T> last = myTail.get(lastStamp);
         Node<T> dataNode = new Node<T>(data, null);
         if (last != null) {
-            if (!last.getNext().compareAndSet(null, dataNode)) {
+            if (!last.getNext().compareAndSet(
+                    null, dataNode, lastStamp[0], lastStamp[0] + 1)) 
+            {
                 throw new DataException("Unable to add data");
             }
         }
-        if (!myTail.compareAndSet(last, dataNode)) {
+        if (!myTail.compareAndSet(last, dataNode, lastStamp[0], lastStamp[0] + 1)) 
+        {
             throw new DataException("Unable to add data");
         }
         
         if (first == last && first == null) {
-            myHead.compareAndSet(null, dataNode);
+            myHead.compareAndSet(null, dataNode, firstStamp[0], firstStamp[0] + 1);
         }
     }
     
@@ -120,18 +164,23 @@ public class UnboundedLocklessQueue<T>
      */
     public T dequeue() throws DataException
     {
-        Node<T> first = myHead.get();
-        Node<T> last = myTail.get();
-        Node<T> next = first != null ? first.getNext().get() : null;
+        int[] firstStamp = new int[REF_ARRAY_SIZE];
+        int[] lastStamp = new int[REF_ARRAY_SIZE];
+        int[] nextStamp = new int[REF_ARRAY_SIZE];
+        
+        Node<T> first = myHead.get(firstStamp);
+        Node<T> last = myTail.get(lastStamp);
+        Node<T> next = first != null ? first.getNext().get(nextStamp) : null;
         if (first == null) {
             throw new DataException("Queue is empty");
         }
         T data = first.getData();
-        if (!myHead.compareAndSet(first, next)) {
+        if (!myHead.compareAndSet(first, next, firstStamp[0], firstStamp[0] + 1)) 
+        {
             throw new DataException("Unable to dequeue data");
         }
         if (first == last && next != null) {
-            myTail.compareAndSet(last, next);
+            myTail.compareAndSet(last, next, lastStamp[0], lastStamp[0] + 1);
         }
         return data;
     }

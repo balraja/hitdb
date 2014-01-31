@@ -31,10 +31,46 @@ public class UnBoundedLocklessStack<T>
 {
     private final AtomicReference<Node<T>> myStackHead;
     
+    /** 
+    * Defines the node of a queue/stack that holds the data 
+    */
+   private static class Node<T>
+   {
+       private final T myData;
+       
+       private final AtomicReference<Node<T>> myNext;
+
+       /**
+        * CTOR
+        */
+       public Node(T data, AtomicReference<Node<T>> next)
+       {
+           super();
+           myData = data;
+           myNext = next;
+       }
+
+       /**
+        * Returns the value of data
+        */
+       public T getData()
+       {
+           return myData;
+       }
+
+       /**
+        * Returns the value of next
+        */
+       public AtomicReference<Node<T>> getNext()
+       {
+           return myNext;
+       }
+   }
+    
     /**
      * CTOR
      */
-    public UnBoundedLocklessStack(int stackSize)
+    public UnBoundedLocklessStack()
     {
         myStackHead = new AtomicReference<Node<T>>(null);
     }
