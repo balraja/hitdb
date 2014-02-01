@@ -20,6 +20,7 @@
 package org.hit.server.topology;
 
 import java.io.File;
+import java.net.URL;
 import java.util.Collections;
 import java.util.List;
 
@@ -35,13 +36,19 @@ import org.apache.commons.configuration.XMLConfiguration;
  */
 public class ServerTopology
 {
+    public static final int UNKNOWN_PORT = -1;
+    
     private static final String SERVERS_NAME_KEY = "servers.server.name";
+    
+    private static final int  DEFAULT_REPLICATION_FACTOR = 2; 
     
     private static final String NAME_ATTRIBUTE = "name";
     
     private static final String IS_MASTER_ATTRIBUTE = "is_master";
     
     private static final String REPLICATING_SERVER_ATTRIBUTE = "replicating_server";
+    
+    private static final String PORT_ATTRIBUTE = "port";
     
     private static final String SERVERS_GROUP_KEY = "servers.server";
     
@@ -54,16 +61,40 @@ public class ServerTopology
      */
     public ServerTopology(File fileHandle) throws ConfigurationException 
     {
-        myTopologyConfiguration = new XMLConfiguration(fileHandle);
+       this(new XMLConfiguration(fileHandle));
     }
     
-    /** Returns the list of servers in the topology */
+    /**
+     * CTOR
+     * 
+     * @throws ConfigurationException 
+     */
+    public ServerTopology(URL url) throws ConfigurationException 
+    {
+       this(new XMLConfiguration(url));
+    }
+    
+    /** Private CTOR */
+    private ServerTopology(XMLConfiguration topologyConfiguration)
+    {
+        myTopologyConfiguration = topologyConfiguration;
+    }
+    
+    /** Returns the names of servers listed in the topology */
     @SuppressWarnings("unchecked")
     public List<String> getServers()
     {
         return (List<String>)
                 myTopologyConfiguration.getList(SERVERS_NAME_KEY, 
                                                 Collections.EMPTY_LIST);
+    }
+    
+    /**
+     * Returns the replication factor for given list of servers.
+     */
+    public int getReplicationFactor()
+    {
+        return DEFAULT_REPLICATION_FACTOR;
     }
     
     private HierarchicalConfiguration getServerConfiguration(String name)
@@ -96,6 +127,16 @@ public class ServerTopology
             : false;
     }
     
+    /** Returns the port to which a server will be bound */
+    public int getPort(String serverName)
+    {
+        HierarchicalConfiguration serverConfig = 
+            getServerConfiguration(serverName);
+        
+        return serverConfig != null ? 
+            serverConfig.getInt(PORT_ATTRIBUTE) : UNKNOWN_PORT;
+    }
+    
     /** 
      * Returns the name of server that will be replicating this server's data 
      */
@@ -119,6 +160,7 @@ public class ServerTopology
         List<HierarchicalConfiguration> serverConfigs = 
            (List<HierarchicalConfiguration>)
                 myTopologyConfiguration.configurationsAt(SERVERS_GROUP_KEY);
+        
         for (HierarchicalConfiguration serverConfig : serverConfigs)
         {
             String replicatingServerName = 

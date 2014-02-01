@@ -80,7 +80,8 @@
                     </systemProperties>
                      <excludes>
                          <exclude>**/NIOCommunicatorTest.java</exclude>
-                         <exclude>**/LocklessSortedListTest.java</exclude>                         
+                         <exclude>**/LocklessSortedListTest.java</exclude>  
+                          <exclude>**/TransactionsTest.java</exclude>                            
                      </excludes>
 		        </configuration>
          </plugin>
@@ -116,6 +117,17 @@
                   <commandLineArguments>
                   </commandLineArguments>
                   <name>start_server</name>
+                  <jvmSettings>
+                    <systemProperties>
+                      <systemProperty>org.hit.app.home=${project.build.directory}/hitdatabase</systemProperty>
+                    </systemProperties>
+                  </jvmSettings>
+                </program>
+                 <program>
+                  <mainClass>org.hit.server.topology.TopologyLauncher</mainClass>
+                  <commandLineArguments>
+                  </commandLineArguments>
+                  <name>start_topology_on_localhost</name>
                   <jvmSettings>
                     <systemProperties>
                       <systemProperty>org.hit.app.home=${project.build.directory}/hitdatabase</systemProperty>

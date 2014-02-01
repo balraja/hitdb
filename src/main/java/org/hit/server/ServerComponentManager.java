@@ -255,5 +255,4 @@ public class ServerComponentManager extends Actor
         myDisseminator.stop();
         myGroupManager.stop();
     }
-
 }

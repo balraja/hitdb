@@ -21,6 +21,7 @@ package org.hit.server.topology;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 
@@ -37,16 +38,17 @@ import org.hit.util.AbstractLauncher;
  * 
  * @author Balraja Subbiah
  */
-public final class TopologyLocalLauncher extends AbstractLauncher
+public final class TopologyLauncher extends AbstractLauncher
 {
-    
     private static final String APP_HOME_PROPERTY = "org.hit.app.home";
     
     private static final String TOPOLOGY_FILE = "topology_file";
     
+    private static final String DEFAULT_TOPOLOGY_FILE = "topology.xml";
+    
     private static final String LOG_DIR = "log_directory";
     
-    private static final String SERVER_LAUNCHER_COMMAND = "start_server ";
+    private static final String SERVER_LAUNCHER_COMMAND = "start_server";
     
     private static final String SERVER_NAME = " --server_name ";
     
@@ -69,7 +71,7 @@ public final class TopologyLocalLauncher extends AbstractLauncher
     /**
      * CTOR
      */
-    public TopologyLocalLauncher()
+    public TopologyLauncher()
     {
         super();
         myServerCommandLineOptions = new Options();
@@ -82,7 +84,6 @@ public final class TopologyLocalLauncher extends AbstractLauncher
             LOG_DIR, 
             true, 
             "Specifies the directory under which server's logs are stored");
-       
     }
     
     /**
@@ -96,36 +97,44 @@ public final class TopologyLocalLauncher extends AbstractLauncher
             CommandLine cmdLine =
                 parser.parse(myServerCommandLineOptions, args);
             
-            String topologyFile = 
-                cmdLine.getOptionValue(TOPOLOGY_FILE);
+            ServerTopology topology = null;
             
-            if (topologyFile == null) {
-                System.out.println(TOPOLOGY_FILE + " is mandatory.");
-                System.exit(0);
+            File topologyFile = 
+                cmdLine.hasOption(TOPOLOGY_FILE) ?
+                    new File(cmdLine.getOptionValue(TOPOLOGY_FILE)) : null;
+            
+            if (topologyFile != null) {
+                System.out.println("The topology file being used is " + 
+                                   topologyFile.getAbsolutePath());
+                topology = new ServerTopology(topologyFile);
+            }
+            else {
+                URL url = getClass().getClassLoader()
+                                    .getResource(DEFAULT_TOPOLOGY_FILE);
+                System.out.println("The topology file being used is " + url);
+                topology = new ServerTopology(url);
             }
             
             String logDirectory = cmdLine.getOptionValue(LOG_DIR);
             if (logDirectory == null) {
-                System.out.println(LOG_DIR + " is a mandatory option");
-                System.exit(0);
+                logDirectory = System.getProperty("java.io.tmpdir");
             }
+            System.out.println("The log directory being used is " 
+                               + logDirectory);
             
             String applicationHome = System.getProperty(APP_HOME_PROPERTY);
-
             if (applicationHome == null) {
                 System.out.println("Application home is not defined");
                 System.exit(1);
             }
-                
             
-            ServerTopology topology = new ServerTopology(new File(topologyFile));
             List<String> servers = topology.getServers();
-            int port = 9001;
+            System.out.println("The list of servers is " + servers);
             for (String server : servers) {
                 String command = 
                     buildServerCommand(applicationHome,
                                        server, 
-                                       port++, 
+                                       topology.getPort(server), 
                                        servers.size(), 
                                        topology.isMasterServer(server), 
                                        topology.getIamReplicaFor(server),
@@ -134,7 +143,7 @@ public final class TopologyLocalLauncher extends AbstractLauncher
                     
             }
         }
-        catch(ParseException | ConfigurationException e)
+        catch(ParseException | ConfigurationException  e)
         {
             e.printStackTrace();
         }
@@ -179,6 +188,7 @@ public final class TopologyLocalLauncher extends AbstractLauncher
     
     protected void runCommand(String command)
     {
+        System.out.println("EXECUTING " + command);
         ProcessBuilder bldr = null;
         if (System.getProperty("os.name").toLowerCase().contains("win")) {
             bldr = new ProcessBuilder(Arrays.<String>asList(
@@ -196,4 +206,9 @@ public final class TopologyLocalLauncher extends AbstractLauncher
         }
     }
     
+    public static void main(String[] args)
+    {
+        TopologyLauncher launcher = new TopologyLauncher();
+        launcher.launch(args);
+    }
 }

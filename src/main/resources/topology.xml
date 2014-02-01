@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<topology>
+	<servers>
+	    <server>
+	        <name>hit1</name>
+	        <is_master>true</is_master>
+	        <replicating_server>hit2</replicating_server>
+	        <port>9001</port>
+	    </server>
+	    <server>
+	        <name>hit2</name>
+	        <is_master>false</is_master>
+	        <replicating_server>hit1</replicating_server>
+	        <port>9002</port>
+	    </server>
+	</servers>
+</topology>
