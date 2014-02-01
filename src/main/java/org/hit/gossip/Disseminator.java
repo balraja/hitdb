@@ -23,8 +23,6 @@ package org.hit.gossip;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -35,12 +33,13 @@ import org.hit.communicator.NodeID;
 import org.hit.event.Event;
 import org.hit.event.GossipNotificationEvent;
 import org.hit.event.GossipUpdateEvent;
+import org.hit.event.PeriodicTaskNotification;
+import org.hit.event.PeriodicTaskScheduleRequest;
 import org.hit.event.SendMessageEvent;
 import org.hit.messages.NodeAdvertisement;
 import org.hit.messages.ReconcillationRequest;
 import org.hit.messages.ReconcilliationResponse;
 import org.hit.util.LogFactory;
-import org.hit.util.NamedThreadFactory;
 
 import com.google.inject.Inject;
 
@@ -55,100 +54,6 @@ public class Disseminator extends Actor
     private static final Logger LOG = 
         LogFactory.getInstance().getLogger(Disseminator.class);
 
-    private class SendDigestTask implements Runnable
-    {
-        private final NodeID myParticipatingNode;
-        
-        private final NodeID myOwner;
-        
-        private final Digest myDigest;
-        
-        /**
-         * CTOR
-         */
-        public SendDigestTask(NodeID participatingNode, 
-                              NodeID owner,
-                              Digest digest)
-        {
-            myParticipatingNode = participatingNode;
-            myOwner = owner;
-            myDigest = digest;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void run()
-        {
-            getEventBus().publish(
-                ActorID.GOSSIPER,
-                new SendMessageEvent(
-                    Collections.singletonList(myParticipatingNode),
-                    new ReconcillationRequest(myOwner, myDigest)));
-        }
-    }
-    
-    private class ApplyDigestTask implements Runnable
-    {
-        private final NodeID myDigestOwner;
-        
-        private final Digest myDigest;
-        
-        /**
-         * CTOR
-         */
-        public ApplyDigestTask(NodeID owner, Digest digest)
-        {
-            myDigestOwner = owner;
-            myDigest = digest;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void run()
-        {
-            if (!myParticipants.contains(myDigestOwner)) {
-                LOG.info("Adding " + myDigestOwner + " to "
-                         + myOwner + "'s gossip neighbours list");
-                myParticipants.add(myDigestOwner);
-            }
-            publish(
-                new SendMessageEvent(
-                    Collections.singletonList(myDigestOwner),
-                    new ReconcilliationResponse(
-                        myOwner,
-                        myRepository.processDigest(myDigest))));
-        }
-    }
-
-    
-    private class ReconcillationResponseTask implements Runnable
-    {
-        private final List<Gossip> myResponse;
-        
-        /**
-         * CTOR
-         */
-        public ReconcillationResponseTask(List<Gossip> response)
-        {
-            myResponse = response;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void run()
-        {
-            myRepository.update(myResponse);
-            publish(new GossipNotificationEvent(
-                myRepository.getLatestInformation()));
-        }
-    }
-    
     private class SendDigestPeriodicTask implements Runnable
     {
         /**
@@ -159,55 +64,75 @@ public class Disseminator extends Actor
         {
             Digest digest = myRepository.makeDigest();
             for (NodeID nodeID : myParticipants) {
-                myScheduler.submit(
-                    new SendDigestTask(nodeID, myOwner, digest));
+                getEventBus().publish(
+                        ActorID.GOSSIPER,
+                        new SendMessageEvent(
+                            Collections.singletonList(nodeID),
+                            new ReconcillationRequest(myOwner, digest)));
+               
             }
         }
     }
     
-    private class AddParticipantTask implements Runnable
-    {
-        private final NodeID myNodeID;
-
-        /**
-         * CTOR
-         */
-        public AddParticipantTask(NodeID nodeID)
-        {
-            super();
-            myNodeID = nodeID;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void run()
-        {
-            myParticipants.add(myNodeID);
-        }
-    }
+    private final List<NodeID> myParticipants;
     
-    private class GossipUpdateTask implements Runnable
+    private final NodeID myOwner;
+    
+    private final Repository myRepository;
+    
+    /**
+     * CTOR
+     */
+    @Inject
+    public Disseminator(EventBus eventBus, NodeID node)
     {
-        private final GossipUpdateEvent myUpdateEvent;
+        super(eventBus, ActorID.GOSSIPER);
+        myParticipants = new ArrayList<>();
+        myOwner = node;
+        myRepository = new Repository();
+    }
 
-        /**
-         * CTOR
-         */
-        public GossipUpdateTask(GossipUpdateEvent updateEvent)
-        {
-            super();
-            myUpdateEvent = updateEvent;
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void processEvent(Event event)
+    {
+        if (event instanceof PeriodicTaskNotification) {
+            PeriodicTaskNotification periodicTaskNotification =
+                (PeriodicTaskNotification) event;
+            periodicTaskNotification.getPeriodicTask().run();
         }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void run()
-        {
-            for (Gossip gossip : myUpdateEvent.getGossip())
+        if (event instanceof ReconcilliationResponse) {
+            ReconcilliationResponse response = 
+                (ReconcilliationResponse) event;
+            myRepository.update(response.getInformationList());
+            publish(new GossipNotificationEvent(
+                myRepository.getLatestInformation()));
+         
+        }
+        else if (event instanceof ReconcillationRequest) {
+            ReconcillationRequest rr = (ReconcillationRequest) event;
+            if (!myParticipants.contains(rr.getSenderId())) {
+                LOG.info("Adding " + rr.getSenderId() + " to "
+                         + myOwner + "'s gossip neighbours list");
+                myParticipants.add(rr.getSenderId());
+            }
+            publish(
+                new SendMessageEvent(
+                    Collections.singletonList(rr.getSenderId()),
+                    new ReconcilliationResponse(
+                        myOwner,
+                        myRepository.processDigest(rr.getDigest()))));
+        }
+        else if (event instanceof NodeAdvertisement) {
+            NodeAdvertisement advertisement = (NodeAdvertisement) event;
+            myParticipants.add(advertisement.getSenderId());
+        }
+        else if (event instanceof GossipUpdateEvent) {
+            GossipUpdateEvent update = (GossipUpdateEvent) event;
+            
+            for (Gossip gossip : update.getGossip())
             {
                 Gossip old = myRepository.lookup(gossip.getKey());
                 if (old != null
@@ -222,60 +147,6 @@ public class Disseminator extends Actor
         }
     }
     
-    private final List<NodeID> myParticipants;
-    
-    private final NodeID myOwner;
-    
-    private final Repository myRepository;
-    
-    private final ScheduledExecutorService myScheduler;
-    
-    /**
-     * CTOR
-     */
-    @Inject
-    public Disseminator(EventBus eventBus, NodeID node)
-    {
-        super(eventBus, ActorID.GOSSIPER);
-        myParticipants = new ArrayList<>();
-        myOwner = node;
-        myRepository = new Repository();
-        myScheduler = 
-            Executors.newScheduledThreadPool(
-                1, new NamedThreadFactory("Disseminator Worker "));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void processEvent(Event event)
-    {
-        if (event instanceof ReconcilliationResponse) {
-            ReconcilliationResponse response = 
-                (ReconcilliationResponse) event;
-            myScheduler.submit(
-                new ReconcillationResponseTask(
-                    response.getInformationList()));
-        }
-        else if (event instanceof ReconcillationRequest) {
-            ReconcillationRequest rr = (ReconcillationRequest) event;
-            myScheduler.submit(new ApplyDigestTask(
-                rr.getSenderId(), rr.getDigest()));
-        }
-        else if (event instanceof NodeAdvertisement) {
-            NodeAdvertisement advertisement = 
-                (NodeAdvertisement) event;
-            myScheduler.submit(
-                new AddParticipantTask(advertisement.getSenderId()));
-        }
-        else if (event instanceof GossipUpdateEvent) {
-            GossipUpdateEvent update = 
-                (GossipUpdateEvent) event;
-            myScheduler.submit(new GossipUpdateTask(update));
-        }
-    }
-    
     /**
      * {@inheritDoc}
      */
@@ -283,8 +154,8 @@ public class Disseminator extends Actor
     public void start()
     {
         super.start();
-        myScheduler.scheduleAtFixedRate(
-            new SendDigestPeriodicTask(), 1, 5, TimeUnit.MINUTES);
+        publish(new PeriodicTaskScheduleRequest(
+             getActorID(), new SendDigestPeriodicTask(), 5, TimeUnit.MINUTES));
     }
     
 

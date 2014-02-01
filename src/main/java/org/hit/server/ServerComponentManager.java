@@ -44,6 +44,7 @@ import org.hit.event.LeaderChangeEvent;
 import org.hit.gms.GroupManager;
 import org.hit.gms.GroupID;
 import org.hit.gossip.Disseminator;
+import org.hit.time.keeper.PeriodicTaskManager;
 import org.hit.util.LogFactory;
 import org.hit.util.Pair;
 import org.hit.zookeeper.ZooKeeperClient;
@@ -59,35 +60,37 @@ public class ServerComponentManager extends Actor
         LogFactory.getInstance()
                   .getLogger(ServerComponentManager.class);
     
-    private final CommunicatingActor myCommunicatingActor;
+    private final PeriodicTaskManager myTimeKeeper;
+    
+    private final CommunicatingActor  myCommunicatingActor;
 
-    private final ConsensusManager   myConsensusManager;
+    private final ConsensusManager    myConsensusManager;
 
-    private final DBEngine           myDBEngine;
+    private final DBEngine            myDBEngine;
 
-    private final Disseminator       myDisseminator;
+    private final Disseminator        myDisseminator;
     
-    private final GroupManager       myGroupManager;
+    private final GroupManager        myGroupManager;
     
-    private final ZooKeeperClient    myZKClient;
+    private final ZooKeeperClient     myZKClient;
     
-    private final GroupID            myServerGroupID;
+    private final GroupID             myServerGroupID;
     
-    private final GroupID            myReplicationGroupID;
+    private final GroupID             myReplicationGroupID;
     
-    private final GroupID            myReplicationSlaveID;
+    private final GroupID             myReplicationSlaveID;
     
-    private final ServerConfig       myServerConfig;
+    private final ServerConfig        myServerConfig;
     
-    private final UnitID             myReplicationUnitID;
+    private final UnitID              myReplicationUnitID;
     
-    private final UnitID             myReplicationSlaveUnitID;
+    private final UnitID              myReplicationSlaveUnitID;
     
-    private GroupReadyEvent          myServersGroupReadyEvent;
+    private GroupReadyEvent           myServersGroupReadyEvent;
     
-    private GroupReadyEvent          myReplicatedGroupReadyEvent;
+    private GroupReadyEvent           myReplicatedGroupReadyEvent;
     
-    private GroupReadyEvent          myReplicatedSlaveGroupReadyEvent;
+    private GroupReadyEvent           myReplicatedSlaveGroupReadyEvent;
     
     /**
      * CTOR
@@ -109,6 +112,7 @@ public class ServerComponentManager extends Actor
     {
         super(eventBus, ActorID.SERVER_COMPONENT_MANAGER);
         Injector injector = Guice.createInjector(new HitServerModule(eventBus));
+        myTimeKeeper = injector.getInstance(PeriodicTaskManager.class);
         myCommunicatingActor = injector.getInstance(CommunicatingActor.class);
         myConsensusManager = injector.getInstance(ConsensusManager.class);
         myDisseminator = injector.getInstance(Disseminator.class);
@@ -229,7 +233,7 @@ public class ServerComponentManager extends Actor
         LOG.info("Zookeeper is UP");
         LOG.info("Starting Group Manager");
         myGroupManager.start();
-        
+        myTimeKeeper.start();
         LOG.info("Sending request to join group " + myServerGroupID);
         publish(
             new JoinGroupEvent(myServerGroupID, 

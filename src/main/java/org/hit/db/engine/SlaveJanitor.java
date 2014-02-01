@@ -26,9 +26,6 @@ import gnu.trove.map.hash.TObjectLongHashMap;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -39,6 +36,7 @@ import org.hit.db.partitioner.Partitioner;
 import org.hit.event.DBStatEvent;
 import org.hit.event.Event;
 import org.hit.event.GossipNotificationEvent;
+import org.hit.event.PeriodicTaskScheduleRequest;
 import org.hit.event.SendMessageEvent;
 import org.hit.gossip.Gossip;
 import org.hit.messages.Allocation;
@@ -51,13 +49,10 @@ import org.hit.messages.NodeAdvertisement;
 import org.hit.messages.NodeAdvertisementResponse;
 import org.hit.server.ServerConfig;
 import org.hit.util.LogFactory;
-import org.hit.util.NamedThreadFactory;
 import org.hit.util.Range;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.inject.Inject;
 
@@ -69,27 +64,6 @@ import com.google.inject.Inject;
  */
 public class SlaveJanitor extends AbstractJanitor
 {
-    private class ApplyDBStatsTask implements Runnable
-    {
-        private final DBStatEvent myDBStat;
-
-        /**
-         * CTOR
-         */
-        public ApplyDBStatsTask(DBStatEvent stat)
-        {
-            myDBStat = stat;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void run()
-        {
-            myTableRowCountMap.putAll(myDBStat.getTableToRowCountMap());
-        }
-    }
 
     private class PublishHeartbeatTask implements Runnable
     {
@@ -166,32 +140,27 @@ public class SlaveJanitor extends AbstractJanitor
 
     private final Map<String, Partitioner<?, ?>> myPartitions;
 
-    private final ListeningScheduledExecutorService myScheduler;
-
     private final TObjectLongMap<String> myTableRowCountMap;
     
     private final Map<NodeID, SettableFuture<DataLoadResponse>> 
         myNodeToResponseFutureMap;
+    
+    private Allocation myAllocation;
     
     /**
      * CTOR
      */
     @Inject
     public SlaveJanitor(TransactionManager transactionManager,
-                       ServerConfig       serverConfig,
-                       EventBus           eventBus,
-                       NodeID             slaveID)
+                        ServerConfig       serverConfig,
+                        EventBus           eventBus,
+                        NodeID             slaveID)
     {
         super(transactionManager, serverConfig, eventBus, slaveID);
         myPartitions = new HashMap<>();
         myTableRowCountMap = new TObjectLongHashMap<>();
         myNodeToResponseFutureMap = new HashMap<>();
-        ScheduledExecutorService scheduler = 
-            Executors.newScheduledThreadPool(
-                    1,
-                    new NamedThreadFactory("NodeCoordinatorScheduler"));
-        ((ThreadPoolExecutor) scheduler).prestartCoreThread();
-        myScheduler = MoreExecutors.listeningDecorator(scheduler);
+        myAllocation = null;
     }
 
     /**
@@ -235,15 +204,31 @@ public class SlaveJanitor extends AbstractJanitor
             NodeAdvertisementResponse nar = 
                 (NodeAdvertisementResponse) event;
             if (nar.getAllocation() != null) {
-                sendDataFetchRequest(nar.getAllocation());
+                myAllocation = nar.getAllocation();
+                sendDataFetchRequest(myAllocation);
             }
         }
         else if (event instanceof DataLoadResponse) {
-            DataLoadResponse dlr = (DataLoadResponse) event;
-            SettableFuture<DataLoadResponse> nodeFuture = 
-                myNodeToResponseFutureMap.get(dlr.getSenderId());
-            if (nodeFuture != null) {
-                nodeFuture.set(dlr);
+            DataLoadResponse response = (DataLoadResponse) event;
+            if (myAllocation != null) {
+                getTransactionManager().createTable(
+                        myAllocation.getTable2SchemaMap().get(
+                            response.getTableName()));
+                
+                getTransactionManager().processOperation(
+                    response.getDataLoadResponseMutation());
+                
+                myAllocation.getTableToDataNodeMap().remove(
+                    response.getTableName());
+                
+                if (myAllocation.getTableToDataNodeMap().isEmpty()) {
+                    getIsInitialized().compareAndSet(false, true);
+                    LOG.info(
+                        "Successfully loaded data allocated data for all tables");
+                }
+                else {
+                    sendDataFetchRequest(myAllocation);
+                }
             }
         }
     }
@@ -279,6 +264,7 @@ public class SlaveJanitor extends AbstractJanitor
         myMaster = master;
         
         LOG.info("Notifying " + myMaster + " about this node ");
+        
         getEventBus().publish(
             ActorID.DB_ENGINE,
             new SendMessageEvent(Collections.singletonList(myMaster),
@@ -286,24 +272,19 @@ public class SlaveJanitor extends AbstractJanitor
         
         LOG.info("Scheduling task to publish hearbeats every  "
                  + getServerConfig().getHeartBeatIntervalSecs() + " seconds");
-        myScheduler.scheduleWithFixedDelay(
-            new PublishHeartbeatTask(),
-            getServerConfig().getHeartBeatIntervalSecs(),
-            getServerConfig().getHeartBeatIntervalSecs(),
-            TimeUnit.SECONDS);
+        
+        getEventBus().publish(
+            ActorID.DB_ENGINE,
+            ActorID.TIME_KEEPER,
+            new PeriodicTaskScheduleRequest(
+                ActorID.DB_ENGINE,
+                new PublishHeartbeatTask(),
+                getServerConfig().getHeartBeatIntervalSecs(),
+                TimeUnit.SECONDS));
         
         LOG.info("Successfully started slave warden");
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void stop()
-    {
-        myScheduler.shutdownNow();
-    }
-    
     private void sendDataFetchRequest(Allocation allocation)
     {
         if (!allocation.shouldFetchDataFromOtherNodes()) {
@@ -348,6 +329,14 @@ public class SlaveJanitor extends AbstractJanitor
     @Override
     public void handleDbStats(DBStatEvent dbStats)
     {
-        myScheduler.submit(new ApplyDBStatsTask(dbStats));
+        myTableRowCountMap.putAll(dbStats.getTableToRowCountMap());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void stop()
+    {
     }
 }
