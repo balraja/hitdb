@@ -22,12 +22,19 @@ package org.hit.communicator.test;
 
 import static org.junit.Assert.*;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.channels.FileChannel;
+
 import org.hit.buffer.BufferManager;
+import org.hit.buffer.ManagedBuffer;
 import org.hit.communicator.BinaryMessage;
 import org.hit.communicator.MessageSerializer;
 import org.hit.communicator.NodeID;
 import org.hit.communicator.ObjectStreamSerializer;
 import org.hit.communicator.nio.IPNodeID;
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -51,5 +58,53 @@ public class ObjectStreamSerializerTest
         assertNotNull(deserializedMessage);
         assertEquals(nodeID, deserializedMessage.getSenderId());
         assertEquals(1001, deserializedMessage.getValue());
+    }
+    
+    @Test
+    public void testBigMessage()
+    {
+        NodeID nodeID = new IPNodeID(10000);
+        BigTestMessage message = new BigTestMessage(nodeID);
+        MessageSerializer serializer = 
+            new ObjectStreamSerializer(new BufferManager(20));
+        BinaryMessage binaryMessage = serializer.serialize(message);
+        BigTestMessage deserializedMessage =
+            (BigTestMessage) serializer.parse(binaryMessage).iterator().next();
+        
+        assertNotNull(deserializedMessage);
+        assertEquals(nodeID, deserializedMessage.getSenderId());
+        Assert.assertArrayEquals(message.getTestData(), 
+                                 deserializedMessage.getTestData());
+    }
+    
+    @Test
+    public void testChannelWrite() throws IOException
+    {
+        File tempFile = File.createTempFile("message", "");
+        RandomAccessFile raf = new RandomAccessFile(tempFile, "rw");
+        FileChannel channel = raf.getChannel();
+        NodeID nodeID = new IPNodeID(10000);
+        BigTestMessage message = new BigTestMessage(nodeID);
+        BufferManager manager = new BufferManager(5);
+        
+        MessageSerializer serializer = 
+            new ObjectStreamSerializer(manager);
+        BinaryMessage binaryMessage = serializer.serialize(message);
+        binaryMessage.writeTo(channel);
+        
+        channel.force(true);
+        
+        channel.position(0);
+        BinaryMessage readBinaryMessage = new ManagedBuffer(manager);
+        readBinaryMessage.readFrom(channel);
+        BigTestMessage deserializedMessage =
+            (BigTestMessage) serializer.parse(readBinaryMessage).iterator().next();
+        assertNotNull(deserializedMessage);
+        assertEquals(nodeID, deserializedMessage.getSenderId());
+        Assert.assertArrayEquals(message.getTestData(), 
+                                 deserializedMessage.getTestData());
+        
+        raf.close();
+        tempFile.delete();
     }
 }

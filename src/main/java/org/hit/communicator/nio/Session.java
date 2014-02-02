@@ -29,7 +29,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.hit.buffer.BufferManager;
-import org.hit.buffer.ManagedBuffer;
 import org.hit.communicator.BinaryMessage;
 import org.hit.communicator.CommunicatorException;
 import org.hit.communicator.Message;
@@ -118,7 +117,8 @@ public class Session
     {
         try {
             BinaryMessage binaryMessage  = myConnection.read();
-            return mySerializer.parse(binaryMessage);
+            return binaryMessage != null ? mySerializer.parse(binaryMessage)
+                                         : null;
         }
         catch (IOException e) {
             throw new CommunicatorException(e);

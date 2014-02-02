@@ -25,8 +25,11 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.hit.communicator.BinaryMessage;
+import org.hit.util.LogFactory;
 
 /**
  * A collection of {@link ByteBuffer}s that represents some serialized data.
@@ -35,6 +38,9 @@ import org.hit.communicator.BinaryMessage;
  */
 public class ManagedBuffer implements BinaryMessage
 {
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(ManagedBuffer.class);
+                    
     private final BufferManager myBufferManager;
     
     private final List<ByteBuffer> myBinaryData;
@@ -59,7 +65,6 @@ public class ManagedBuffer implements BinaryMessage
         myBufferManager = manager;
         myBinaryData = binaryData;
     }
-    
 
     /**
      * Returns the value of binaryData after clearing the existing list.
@@ -91,15 +96,31 @@ public class ManagedBuffer implements BinaryMessage
         throws IOException
     {
         ByteBuffer buffer = myBufferManager.getBuffer();
-        while (readableChannel.read(buffer) > 0) {
-            buffer.flip();
+        int read = 0;
+        while ((read = readableChannel.read(buffer)) > 0) {
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Read " + read + " bytes from the channel"
+                         + " buffer " + buffer);
+            }
             if (!buffer.hasRemaining()) {
+                buffer.flip();
                 myBinaryData.add(buffer);
                 buffer = myBufferManager.getBuffer();
             }
-            buffer.clear();
         }
-        myBinaryData.add(buffer);
+        
+        if (read <= 0 && buffer.position() > 0) {
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Read " + read + " bytes from the channel"
+                         + " buffer " + buffer);
+            }
+            buffer.flip();
+            myBinaryData.add(buffer);
+        }
+        
+        if (LOG.isLoggable(Level.FINEST)) {
+            LOG.finest("Read " + myBinaryData.size() + " buffers from the channel");
+        }
     }
     
     /** Frees the buffers */

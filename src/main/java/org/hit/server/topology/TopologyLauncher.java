@@ -28,6 +28,7 @@ import java.util.List;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.configuration.ConfigurationException;
@@ -84,6 +85,11 @@ public final class TopologyLauncher extends AbstractLauncher
             LOG_DIR, 
             true, 
             "Specifies the directory under which server's logs are stored");
+        
+        myServerCommandLineOptions.addOption(
+            HELP,
+            false,
+            "Displays the help message");
     }
     
     /**
@@ -96,6 +102,12 @@ public final class TopologyLauncher extends AbstractLauncher
         try {
             CommandLine cmdLine =
                 parser.parse(myServerCommandLineOptions, args);
+            
+            if (cmdLine.hasOption(HELP)) {
+                HelpFormatter formatter = new HelpFormatter();
+                formatter.printHelp("start_server", myServerCommandLineOptions);
+                return;
+            }
             
             ServerTopology topology = null;
             

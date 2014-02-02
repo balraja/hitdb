@@ -25,7 +25,6 @@ import java.nio.channels.SocketChannel;
 
 import org.hit.buffer.BufferManager;
 import org.hit.buffer.ManagedBuffer;
-import org.hit.channel.ChannelInterface;
 import org.hit.communicator.BinaryMessage;
 
 /**
@@ -38,6 +37,8 @@ public class Connection
     private final SocketChannel myChannel;
     
     private final BufferManager myBufferManager;
+    
+    private ManagedBuffer myReadBuffer;
 
     /**
      * CTOR
@@ -46,6 +47,7 @@ public class Connection
     {
         myChannel = channel;
         myBufferManager = bufferManager;
+        myReadBuffer = null;
     }
 
     /**
@@ -66,9 +68,19 @@ public class Connection
      */
     public BinaryMessage read() throws IOException
     {
-        ManagedBuffer buffer = new ManagedBuffer(myBufferManager);
-        buffer.readFrom(myChannel);
-        return buffer;
+        if (myReadBuffer == null) {
+            myReadBuffer = new ManagedBuffer(myBufferManager);
+        }
+        
+        myReadBuffer.readFrom(myChannel);
+        if (myReadBuffer.getBinaryData().isEmpty()) {
+            return null;
+        }
+        else {
+            BinaryMessage readMessage = myReadBuffer;
+            myReadBuffer = null;
+            return readMessage;
+        }
     }
 
 

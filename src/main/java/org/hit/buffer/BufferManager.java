@@ -27,6 +27,10 @@ import java.util.List;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.hit.util.LogFactory;
 
 /**
  * This class preallocates memory outside jvm's heap and manages that memory.
@@ -36,6 +40,9 @@ import java.util.concurrent.locks.ReentrantLock;
 public class BufferManager
 { 
     public static final int BUFFER_SIZE = 1024;
+    
+    private static final Logger LOG =
+         LogFactory.getInstance().getLogger(BufferManager.class);
     
     private final List<ByteBuffer> myBuffers;
     
@@ -49,6 +56,7 @@ public class BufferManager
     public BufferManager(String namespace, BufferConfig config)
     {
         this(config.getBufferSize(namespace));
+        LOG.info("For Namespace " + namespace);
     }
 
     /**
@@ -57,9 +65,10 @@ public class BufferManager
     public BufferManager(int numBuffers)
     {
         myBuffers = new LinkedList<>();
-        for (int i = 0; i < numBuffers; i++) {
+        for (int i = 1; i <= numBuffers; i++) {
             myBuffers.add(ByteBuffer.allocateDirect(BUFFER_SIZE));
         }
+        LOG.info("Initialized buffer with " + myBuffers.size() + " blocks ");
         myBufferPoolLock = new ReentrantLock();
         myAwaitingFreeSpaceCondition = myBufferPoolLock.newCondition();
     }
@@ -72,10 +81,14 @@ public class BufferManager
         try {
             myBufferPoolLock.lock();
             if (myBuffers.isEmpty()) {
-                myAwaitingFreeSpaceCondition.wait();
+                myAwaitingFreeSpaceCondition.await();
             }
             else {
-                return myBuffers.remove(0);
+                ByteBuffer buffer = myBuffers.remove(0);
+                if (LOG.isLoggable(Level.FINEST)) {
+                    LOG.finest("ALLOC : Current size of buffer pool " + myBuffers.size());
+                }
+                return buffer;
             }
         }
         catch (InterruptedException e) {
@@ -100,7 +113,7 @@ public class BufferManager
             }
             myBufferPoolLock.lock();
             if (myBuffers.isEmpty()) {
-                myAwaitingFreeSpaceCondition.wait();
+                myAwaitingFreeSpaceCondition.await();
             }
             else if (myBuffers.size() < maxBuffers) {
                 myAwaitingFreeSpaceCondition.await();
@@ -109,6 +122,9 @@ public class BufferManager
                 List<ByteBuffer> removedValues = new ArrayList<>();
                 for (int i = 0; i < maxBuffers; i++) {
                     removedValues.add(myBuffers.remove(0));
+                }
+                if (LOG.isLoggable(Level.FINEST)) {
+                    LOG.finest("ALLOC : Current size of buffer pool " + myBuffers.size());
                 }
                 return removedValues;
             }
@@ -129,7 +145,11 @@ public class BufferManager
     {
         try {
             myBufferPoolLock.lock();
+            buffer.clear();
             myBuffers.add(buffer);
+            if (LOG.isLoggable(Level.FINEST)) {
+                LOG.finest("Current size of buffer pool " + myBuffers.size());
+            }
             myAwaitingFreeSpaceCondition.signal();
         }
         finally {
@@ -144,8 +164,14 @@ public class BufferManager
     {
         try {
             myBufferPoolLock.lock();
-            myBuffers.addAll(buffers);
+            for (ByteBuffer buffer : buffers) {
+                buffer.clear();
+                myBuffers.add(buffer);
+            }
             buffers.clear();
+            if (LOG.isLoggable(Level.FINEST)) {
+                LOG.finest("FREE Current size of buffer pool" + myBuffers.size());
+            }
             myAwaitingFreeSpaceCondition.signal();
         }
         finally {

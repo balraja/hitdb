@@ -60,10 +60,7 @@ public abstract class HitModule extends AbstractModule
     {
         bindConstant().annotatedWith(Names.named("PreferredPort"))
                       .to(getBoundPort());
-        bindConstant().annotatedWith(Names.named("communicator-bm-namespace"))
-                      .to(Communicator.class.getSimpleName().toLowerCase());
         
-        bind(MessageSerializer.class).to(ObjectStreamSerializer.class);
         bind(SerializerFactory.class).to(ObjectStreamSerializerFactory.class);
         bind(Communicator.class).to(NIOCommunicator.class);
         bind(ZooKeeperClientConfig.class)
@@ -92,11 +89,10 @@ public abstract class HitModule extends AbstractModule
     @Named("communicator")
     @Provides
     BufferManager makeCommunicatorBufferManager(
-        BufferConfig config,
-        @Named("communicator-bm-namespace")
-        String namespace)
+        BufferConfig config)
     {
-        return new BufferManager(namespace, config);
+        return new BufferManager(Communicator.class.getSimpleName().toLowerCase(), 
+                                 config);
     }
 
     /**

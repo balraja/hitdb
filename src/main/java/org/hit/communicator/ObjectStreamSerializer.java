@@ -46,7 +46,7 @@ public class ObjectStreamSerializer implements MessageSerializer
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(ObjectStreamSerializer.class);
     
-    private final BufferManager  myBufferManager;
+    private final BufferManager myBufferManager;
     
     /**
      * CTOR
@@ -71,7 +71,9 @@ public class ObjectStreamSerializer implements MessageSerializer
             byte[] sizeArray = new byte[4];
             min.read(sizeArray);
             int size = Ints.fromByteArray(sizeArray);
-            
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("The message size is " + size);
+            }
             while (size > 0) {
                 min.setEOFMark(size);
                 ObjectInputStream oStream = new ObjectInputStream(min);

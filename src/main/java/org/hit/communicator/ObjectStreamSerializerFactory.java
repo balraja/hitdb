@@ -22,6 +22,7 @@ package org.hit.communicator;
 
 import org.hit.buffer.BufferManager;
 
+import com.google.inject.Inject;
 import com.google.inject.name.Named;
 
 /**
@@ -36,6 +37,7 @@ public class ObjectStreamSerializerFactory implements SerializerFactory
     /**
      * CTOR
      */
+    @Inject
     public ObjectStreamSerializerFactory(
         @Named("communicator") BufferManager bufferManager)
     {

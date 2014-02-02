@@ -19,6 +19,8 @@
 */
 package org.hit.buffer;
 
+import org.hit.util.ApplicationProperties;
+
 /**
  * Defines an implementation of {@link BufferConfig} where the values for the 
  * given namespace is read from the properties.
@@ -36,7 +38,7 @@ public class BufferPropertyConfig implements BufferConfig
     public int getBufferSize(String namespace)
     {
         String full_ns = NS_PREFIX + '.' + namespace;
-        return System.getProperties().containsKey(full_ns) ?
-                Integer.parseInt(System.getProperty(full_ns)) : -1;
+        String buf_size = ApplicationProperties.getProperty(full_ns);
+        return buf_size != null ? Integer.parseInt(buf_size) : -1;
     }
 }

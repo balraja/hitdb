@@ -21,6 +21,10 @@ package org.hit.buffer;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.hit.util.LogFactory;
 
 /**
  * Extends {@link InputStream} to support reading from 
@@ -30,6 +34,9 @@ import java.io.InputStream;
  */
 public class ManagedBufferInputStream extends InputStream
 {
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(ManagedBufferInputStream.class);
+            
     private final int EOF = -1;
     
     private final ManagedBuffer myBuffer;
@@ -57,23 +64,31 @@ public class ManagedBufferInputStream extends InputStream
     @Override
     public int read() throws IOException
     {
-        if (myMark > -1) {
+        if (myMark > EOF) {
             myReadBytes++;
-            if (myReadBytes >= myMark) {
+            if (myReadBytes > myMark) {
+                if (LOG.isLoggable(Level.FINEST)) {
+                    LOG.finest("We have read upto the mark");
+                }
                 return EOF;
             }
         }
         
-        if (!myBuffer.getBinaryData().get(myBufferIndex).hasRemaining()) {
-            myBufferIndex += 1;
+        if (myBufferIndex < myBuffer.getBinaryData().size()) {
+            byte val = myBuffer.getBinaryData().get(myBufferIndex).get();
+            if (!myBuffer.getBinaryData().get(myBufferIndex).hasRemaining()) {
+                if (LOG.isLoggable(Level.FINEST)) {
+                    LOG.finest("The current buffer has " 
+                             + myBuffer.getBinaryData().get(myBufferIndex));
+                    LOG.finest("Increasing the buffer index " + myBufferIndex + 1);
+                }
+                myBufferIndex += 1;
+            }
+            return (val & 0xff);
         }
-        
-        if (myBufferIndex >= myBuffer.getBinaryData().size()) {
+        else {
             return EOF;
         }
-        
-        byte val = myBuffer.getBinaryData().get(myBufferIndex).get();
-        return (val & 0xff);
     }
     
     /** Sets the end of this stream after n bytes */
@@ -81,11 +96,17 @@ public class ManagedBufferInputStream extends InputStream
     {
         myMark = nBytes;
         myReadBytes = 0;
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.finest("Setting mark to " + myMark);
+        }
     }
     
     /** Removes mark from the input stream */
     public void unsetEOFMark()
     {
+        if (LOG.isLoggable(Level.FINEST)) {
+            LOG.finest("UnSetting mark @ " + myMark + " read bytes " + myReadBytes);
+        }
         myMark = EOF;
         myReadBytes = 0;
     }
