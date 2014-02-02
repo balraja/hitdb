@@ -71,8 +71,8 @@ public class ObjectStreamSerializer implements MessageSerializer
             byte[] sizeArray = new byte[4];
             min.read(sizeArray);
             int size = Ints.fromByteArray(sizeArray);
-            if (LOG.isLoggable(Level.FINE)) {
-                LOG.fine("The message size is " + size);
+            if (LOG.isLoggable(Level.FINEST)) {
+                LOG.finest("The message size is " + size);
             }
             while (size > 0) {
                 min.setEOFMark(size);

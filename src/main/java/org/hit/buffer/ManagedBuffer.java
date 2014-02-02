@@ -98,8 +98,8 @@ public class ManagedBuffer implements BinaryMessage
         ByteBuffer buffer = myBufferManager.getBuffer();
         int read = 0;
         while ((read = readableChannel.read(buffer)) > 0) {
-            if (LOG.isLoggable(Level.FINE)) {
-                LOG.fine("Read " + read + " bytes from the channel"
+            if (LOG.isLoggable(Level.FINEST)) {
+                LOG.finest("Read " + read + " bytes from the channel"
                          + " buffer " + buffer);
             }
             if (!buffer.hasRemaining()) {
@@ -110,12 +110,16 @@ public class ManagedBuffer implements BinaryMessage
         }
         
         if (read <= 0 && buffer.position() > 0) {
-            if (LOG.isLoggable(Level.FINE)) {
-                LOG.fine("Read " + read + " bytes from the channel"
+            if (LOG.isLoggable(Level.FINEST)) {
+                LOG.finest("Read " + read + " bytes from the channel"
                          + " buffer " + buffer);
             }
             buffer.flip();
             myBinaryData.add(buffer);
+        }
+        else {
+            // This is an useless buffer. SO we are freeing it.
+            myBufferManager.free(buffer);
         }
         
         if (LOG.isLoggable(Level.FINEST)) {
