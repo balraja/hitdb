@@ -39,7 +39,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.hit.buffer.BufferConfig;
 import org.hit.buffer.BufferManager;
 import org.hit.communicator.Communicator;
 import org.hit.communicator.CommunicatorException;
@@ -63,8 +62,8 @@ import com.google.inject.name.Named;
  */
 public class NIOCommunicator implements Communicator
 {
-    private static final Logger LOG = LogFactory.getInstance().getLogger(
-            NIOCommunicator.class);
+    private static final Logger LOG = 
+        LogFactory.getInstance().getLogger(NIOCommunicator.class);
     
     /** 
      * The time to wait till the channels are made available by a 

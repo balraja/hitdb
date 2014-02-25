@@ -22,24 +22,36 @@ package org.hit.concurrent.pool;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.hit.communicator.nio.NIOCommunicator;
+import org.hit.util.LogFactory;
 
 /**
- * Defines the contract for pool of objects that can be used 
+ * Defines the contract for pool of objects uses a {@link ConcurrentLinkedQueue}
+ * for keeping track of pooled and allocated instances.
  * 
  * @author Balraja Subbiah
  */
-public abstract class CLQPool<T extends Poolable> extends AbstractPool<T>
+public class CLQPool<T extends Poolable> extends AbstractPool<T>
 {
+    private static final Logger LOG = 
+        LogFactory.getInstance().getLogger(CLQPool.class);
+    
     private final List<T> myAllocatedInstances;
     
     private final ConcurrentLinkedQueue<T> myFreeInstances;
+    
+    private final Class<T> myInstanceType;
 
     /**
      * CTOR
      */
-    public CLQPool(int size, int initialSize)
+    public CLQPool(int size, int initialSize, Class<T> instanceType)
     {
         super(size, initialSize);
+        myInstanceType       = instanceType;
         myAllocatedInstances = new CopyOnWriteArrayList<>();
         myFreeInstances      = new ConcurrentLinkedQueue<>();
         for (int i = 0; i < initialSize; i++) {
@@ -64,7 +76,24 @@ public abstract class CLQPool<T extends Poolable> extends AbstractPool<T>
     public T getObject()
     {
         T allocatedObject = myFreeInstances.remove();
-        myFreeInstances.add(allocatedObject);
+        myAllocatedInstances.add(allocatedObject);
         return allocatedObject;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected T newObject()
+    {
+        try {
+            T instance = myInstanceType.newInstance();
+            instance.initialize();
+            return instance;
+        }
+        catch (InstantiationException | IllegalAccessException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+            return null;
+        }
     }
 }

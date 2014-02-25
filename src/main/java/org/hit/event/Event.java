@@ -29,4 +29,8 @@ import org.hit.actors.Actor;
  */
 public interface Event
 {
+    /**
+     * An marker interface to note that an event will no longer be used.
+     */
+    public void free();
 }
