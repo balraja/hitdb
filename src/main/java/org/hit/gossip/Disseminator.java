@@ -30,6 +30,7 @@ import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
+import org.hit.concurrent.pool.PooledObjects;
 import org.hit.event.Event;
 import org.hit.event.GossipNotificationEvent;
 import org.hit.event.GossipUpdateEvent;
@@ -65,10 +66,9 @@ public class Disseminator extends Actor
             Digest digest = myRepository.makeDigest();
             for (NodeID nodeID : myParticipants) {
                 getEventBus().publish(
-                        ActorID.GOSSIPER,
-                        new SendMessageEvent(
-                            Collections.singletonList(nodeID),
-                            new ReconcillationRequest(myOwner, digest)));
+                    ActorID.GOSSIPER,
+                    PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                        nodeID, new ReconcillationRequest(myOwner, digest)));
                
             }
         }
@@ -119,8 +119,8 @@ public class Disseminator extends Actor
                 myParticipants.add(rr.getSenderId());
             }
             publish(
-                new SendMessageEvent(
-                    Collections.singletonList(rr.getSenderId()),
+                PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                    rr.getSenderId(),
                     new ReconcilliationResponse(
                         myOwner,
                         myRepository.processDigest(rr.getDigest()))));

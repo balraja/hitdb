@@ -19,7 +19,6 @@
 */
 package org.hit.consensus.raft;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -35,6 +34,7 @@ import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.concurrent.pool.PooledObjects;
 import org.hit.consensus.ConsensusAcceptor;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
@@ -104,11 +104,12 @@ public class RaftAcceptor extends ConsensusAcceptor
                 
                 getEventBus().publish(
                     ActorID.CONSENSUS_MANAGER,
-                    new SendMessageEvent(
-                        Collections.singleton(replicationMessage.getSenderId()),
-                        new RaftReplicationResponse(
-                            getNodeID(),
-                            replicationMessage.getUnitID())));
+                    PooledObjects
+                        .getInstance(SendMessageEvent.class)
+                        .initialize(replicationMessage.getSenderId(),
+                                    new RaftReplicationResponse(
+                                        getNodeID(),
+                                        replicationMessage.getUnitID())));
             }
             
             TreeMap<Long,Proposal> seqMap =
@@ -140,11 +141,11 @@ public class RaftAcceptor extends ConsensusAcceptor
                     
                     getEventBus().publish(
                         ActorID.CONSENSUS_MANAGER,
-                        new SendMessageEvent(
-                            Collections.singleton(replicationMessage.getSenderId()),
-                            new RaftReplicationResponse(
-                                getNodeID(),
-                                replicationMessage.getUnitID())));
+                        PooledObjects.getInstance(SendMessageEvent.class)
+                            .initialize(replicationMessage.getSenderId(),
+                                        new RaftReplicationResponse(
+                                            getNodeID(),
+                                            replicationMessage.getUnitID())));
                     return;
                 }
             }
@@ -173,14 +174,15 @@ public class RaftAcceptor extends ConsensusAcceptor
             
             getEventBus().publish(
                 ActorID.CONSENSUS_MANAGER,
-                new SendMessageEvent(
-                    Collections.singleton(replicationMessage.getSenderId()),
-                    new RaftReplicationResponse(
-                        getNodeID(),
-                        replicationMessage.getUnitID(),
-                        true,
-                        replicationMessage.getTermID(),
-                        replicationMessage.getSequenceNumber())));
+                PooledObjects
+                    .getInstance(SendMessageEvent.class)
+                    .initialize(replicationMessage.getSenderId(),
+                                new RaftReplicationResponse(
+                                    getNodeID(),
+                                    replicationMessage.getUnitID(),
+                                    true,
+                                    replicationMessage.getTermID(),
+                                    replicationMessage.getSequenceNumber())));
             
             final TreeMap<Long, Proposal> termLog = 
                 myProposalLog.get(

@@ -20,14 +20,12 @@
 
 package org.hit.db.engine;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -36,6 +34,7 @@ import java.util.logging.Logger;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
+import org.hit.concurrent.pool.PooledObjects;
 import org.hit.db.model.HitTableSchema;
 import org.hit.db.partitioner.TablePartitionInfo;
 import org.hit.event.DBStatEvent;
@@ -124,9 +123,11 @@ public class MasterJanitor extends AbstractJanitor
                         
                     getEventBus().publish(
                         ActorID.DB_ENGINE, 
-                        new SendMessageEvent(
-                            myAllocator.getMonitoredNodes(),
-                            new CreateTableMessage(getServerID(), schema)));
+                        PooledObjects
+                            .getInstance(SendMessageEvent.class)
+                            .initialize(
+                                myAllocator.getMonitoredNodes(),
+                                new CreateTableMessage(getServerID(), schema)));
                     
 
                     LOG.info(" Schema for " + schema.getTableName()
@@ -146,9 +147,9 @@ public class MasterJanitor extends AbstractJanitor
                     
                     getEventBus().publish(
                             ActorID.DB_ENGINE,
-                            new SendMessageEvent(
-                                Collections.singleton(ctm.getSenderId()),
-                                 response));
+                            PooledObjects.getInstance(SendMessageEvent.class)
+                                         .initialize(ctm.getSenderId(),
+                                                     response));
                 }
             }
             else if (event instanceof CreateTableResponseMessage) {
@@ -179,9 +180,10 @@ public class MasterJanitor extends AbstractJanitor
                         
                         getEventBus().publish(
                             ActorID.DB_ENGINE,
-                            new SendMessageEvent(
-                                Collections.singleton(createTableState.getFirst()),
-                                clientResponse));
+                            PooledObjects
+                                 .getInstance(SendMessageEvent.class)
+                                 .initialize(createTableState.getFirst(),
+                                             clientResponse));
                     }
                 }
                 else {
@@ -200,10 +202,11 @@ public class MasterJanitor extends AbstractJanitor
                 if (allocation != null) {
                     getEventBus().publish(
                         ActorID.DB_ENGINE,
-                        new SendMessageEvent(
-                            Collections.singletonList(na.getSenderId()),
-                            new NodeAdvertisementResponse(
-                                getServerID(), allocation)));
+                        PooledObjects.getInstance(SendMessageEvent.class)
+                                     .initialize(
+                                         na.getSenderId(),
+                                         new NodeAdvertisementResponse(
+                                            getServerID(), allocation)));
                     getEventBus().publish(
                         ActorID.DB_ENGINE,
                         myAllocator.getGossipUpdates());
@@ -213,8 +216,8 @@ public class MasterJanitor extends AbstractJanitor
                 FacadeInitRequest fir = (FacadeInitRequest) event;
                 getEventBus().publish(
                     ActorID.DB_ENGINE,
-                    new SendMessageEvent(
-                        Collections.singletonList(fir.getSenderId()),
+                    PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                        fir.getSenderId(),
                         new FacadeInitResponse(
                             getServerID(),
                             new TablePartitionInfo(

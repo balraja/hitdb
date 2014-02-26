@@ -27,7 +27,9 @@ package org.hit.concurrent.pool;
  */
 public @interface PoolConfiguration
 {
-    int initialSize();
+    int initialSize() ;
     
     int size();
+    
+    Class<? extends Factory> factoryClass();
 }

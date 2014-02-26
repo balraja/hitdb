@@ -31,6 +31,7 @@ import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.concurrent.pool.PooledObjects;
 import org.hit.consensus.ConsensusLeader;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
@@ -94,7 +95,7 @@ public class RaftLeader extends ConsensusLeader implements RaftProtocol
             myWAL.addProposal(myTermID, mySequenceNO, myProposal);
             getEventBus().publish(
                 ActorID.CONSENSUS_MANAGER,
-                new SendMessageEvent(
+                PooledObjects.getInstance(SendMessageEvent.class).initialize(                   
                     myLogAcceptors,
                     new RaftReplicationMessage(getNodeID(),
                                                getConsensusUnitID(),

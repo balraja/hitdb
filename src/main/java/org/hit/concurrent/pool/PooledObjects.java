@@ -19,9 +19,12 @@
 */
 package org.hit.concurrent.pool;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.hit.util.LogFactory;
 
 /**
  * Defines the contract for a type that's responsible managing the 
@@ -29,29 +32,32 @@ import java.util.concurrent.ConcurrentHashMap;
  * 
  * @author Balraja Subbiah
  */
-public abstract class PooledObjects
+public final class PooledObjects
 {
+    private static final Logger LOG = 
+        LogFactory.getInstance().getLogger(PooledObjects.class);
+
     private static final int DEFAULT_INITIAL_SIZE = 10;
     
     private static final int DEFAULT_SIZE = 20;
     
-    private final Map<Class<?>, Pool<?>> myTypeToPoolMap;
+    private static final Map<Class<?>, Pool<?>> ourTypeToPoolMap = 
+        new ConcurrentHashMap<>();
     
     /**
      * CTOR
      */
-    public PooledObjects()
+    private PooledObjects()
     {
-        myTypeToPoolMap = new ConcurrentHashMap<>();
     }
     
     /**
      * Returns an instance of the given type from the pool.
      */
     @SuppressWarnings("unchecked")
-    public <T extends Poolable> T getInstance(Class<T> instanceType)
+    public static <T extends Poolable> T getInstance(Class<T> instanceType)
     {
-        Pool<T> pool = (Pool<T>) myTypeToPoolMap.get(instanceType);
+        Pool<T> pool = (Pool<T>) ourTypeToPoolMap.get(instanceType);
         if (pool == null) {
             PoolConfiguration configuration = 
                 instanceType.getAnnotation(PoolConfiguration.class);
@@ -59,22 +65,30 @@ public abstract class PooledObjects
             if (configuration == null) {
                 pool = new CLQPool<T>(DEFAULT_INITIAL_SIZE,
                                       DEFAULT_SIZE,
-                                      instanceType);
+                                      instanceType,
+                                      new ReflectiveFactory());
             }
             else {
-                pool = new CLQPool<T>(configuration.initialSize(),
-                                      configuration.size(),
-                                      instanceType);
+                try {
+                    pool = new CLQPool<T>(configuration.initialSize(),
+                                          configuration.size(),
+                                          instanceType,
+                                          configuration.factoryClass()
+                                                       .newInstance());
+                }
+                catch (InstantiationException | IllegalAccessException e) {
+                    LOG.log(Level.SEVERE, e.getMessage(), e);
+                }
             }
-            myTypeToPoolMap.put(instanceType, pool);
+            ourTypeToPoolMap.put(instanceType, pool);
         }
         return pool.getObject();
     }
     
     @SuppressWarnings("unchecked")
-    public <T extends Poolable> void freeInstance(T freedInstance)
+    public static <T extends Poolable> void freeInstance(T freedInstance)
     {
-        Pool<T> pool = (Pool<T>) myTypeToPoolMap.get(freedInstance.getClass());
+        Pool<T> pool = (Pool<T>) ourTypeToPoolMap.get(freedInstance.getClass());
         if (pool == null) {
             return;
         }

@@ -29,6 +29,7 @@ import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.concurrent.pool.PooledObjects;
 import org.hit.consensus.ConsensusAcceptor;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
@@ -114,8 +115,8 @@ public class TwoPCAcceptor extends ConsensusAcceptor
         
         getEventBus().publish(
             ActorID.CONSENSUS_MANAGER,
-            new SendMessageEvent(
-                Collections.singleton(scm.getSenderId()),
+            PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                scm.getSenderId(),
                 new ConsensusAcceptMessage(getNodeID(),
                                            getConsensusUnitID(),
                                            scm.getProposal(),

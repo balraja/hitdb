@@ -21,16 +21,13 @@
 package org.hit.event;
 
 import org.hit.actors.Actor;
+import org.hit.concurrent.pool.Poolable;
 
 /**
  * This is a marker interface for objects passed between the {@link Actor}s.
  * 
  * @author Balraja Subbiah
  */
-public interface Event
+public interface Event extends Poolable
 {
-    /**
-     * An marker interface to note that an event will no longer be used.
-     */
-    public void free();
 }

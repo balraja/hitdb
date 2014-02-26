@@ -34,6 +34,7 @@ import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.concurrent.pool.PooledObjects;
 import org.hit.consensus.UnitID;
 import org.hit.db.model.DBOperation;
 import org.hit.db.model.DatabaseException;
@@ -183,9 +184,8 @@ public class TransactionManager
 
             myEventBus.publish(
                ActorID.DB_ENGINE,
-               new SendMessageEvent(
-                   Collections.singleton(myClientInfo.getClientID()),
-                   message));
+               PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                   myClientInfo.getClientID(), message));
             
             // Remove the workflow as it's no longer needed.
             myWorkFlowMap.remove(myTransaction.getTransactionID());
@@ -199,8 +199,8 @@ public class TransactionManager
             if (myClientInfo != null) {
                 myEventBus.publish(
                    ActorID.DB_ENGINE,
-                   new SendMessageEvent(
-                       Collections.singleton(myClientInfo.getClientID()),
+                   PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                       myClientInfo.getClientID(),
                        new DBOperationFailureMessage(
                            myServerID,
                            myClientInfo.getClientSequenceNumber(),
@@ -341,8 +341,8 @@ public class TransactionManager
         {
             myEventBus.publish(
                 ActorID.DB_ENGINE,
-                new SendMessageEvent(
-                    Collections.singletonList(getClientInfo().getClientID()),
+                PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                    getClientInfo().getClientID(),
                     new DataLoadResponse(myServerID,
                                          myMutation.getTableName(), 
                                          MutationWrapper.wrapRangeMutation(
@@ -521,9 +521,8 @@ public class TransactionManager
     
                     myEventBus.publish(
                        ActorID.DB_ENGINE,
-                       new SendMessageEvent(
-                           Collections.singleton(myClientInfo.getClientID()),
-                           message));
+                       PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                           myClientInfo.getClientID(), message));
                     
                     if (LOG.isLoggable(Level.FINE)) {
                         LOG.fine("Notifying " + myClientInfo.getClientID()

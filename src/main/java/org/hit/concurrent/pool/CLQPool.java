@@ -36,22 +36,19 @@ import org.hit.util.LogFactory;
  */
 public class CLQPool<T extends Poolable> extends AbstractPool<T>
 {
-    private static final Logger LOG = 
-        LogFactory.getInstance().getLogger(CLQPool.class);
-    
     private final List<T> myAllocatedInstances;
     
     private final ConcurrentLinkedQueue<T> myFreeInstances;
     
-    private final Class<T> myInstanceType;
-
     /**
      * CTOR
      */
-    public CLQPool(int size, int initialSize, Class<T> instanceType)
+    public CLQPool(int      size, 
+                   int      initialSize,
+                   Class<T> instanceType,
+                   Factory  factory)
     {
-        super(size, initialSize);
-        myInstanceType       = instanceType;
+        super(size, initialSize, instanceType, factory);
         myAllocatedInstances = new CopyOnWriteArrayList<>();
         myFreeInstances      = new ConcurrentLinkedQueue<>();
         for (int i = 0; i < initialSize; i++) {
@@ -78,22 +75,5 @@ public class CLQPool<T extends Poolable> extends AbstractPool<T>
         T allocatedObject = myFreeInstances.remove();
         myAllocatedInstances.add(allocatedObject);
         return allocatedObject;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected T newObject()
-    {
-        try {
-            T instance = myInstanceType.newInstance();
-            instance.initialize();
-            return instance;
-        }
-        catch (InstantiationException | IllegalAccessException e) {
-            LOG.log(Level.SEVERE, e.getMessage(), e);
-            return null;
-        }
     }
 }

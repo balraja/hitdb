@@ -28,6 +28,7 @@ import java.util.logging.Logger;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
+import org.hit.concurrent.pool.PooledObjects;
 import org.hit.db.model.DBOperation;
 import org.hit.event.ConsensusResponseEvent;
 import org.hit.event.DBStatEvent;
@@ -144,8 +145,8 @@ public abstract class AbstractJanitor implements EngineJanitor
             else {
                 myEventBus.publish(
                     ActorID.DB_ENGINE,
-                    new SendMessageEvent(
-                        Collections.singletonList(message.getSenderId()),
+                    PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                        message.getSenderId(),
                         new DBOperationFailureMessage(
                             myServerID, 
                             message.getSequenceNumber(),
@@ -169,8 +170,8 @@ public abstract class AbstractJanitor implements EngineJanitor
             else {
                 myEventBus.publish(
                     ActorID.DB_ENGINE,
-                    new SendMessageEvent(
-                        Collections.singletonList(ddbMessage.getSenderId()),
+                    PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                        ddbMessage.getSenderId(),
                         new DBOperationFailureMessage(
                             myServerID, 
                             ddbMessage.getSequenceNumber(),

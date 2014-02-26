@@ -23,7 +23,6 @@ package org.hit.db.engine;
 import gnu.trove.map.TObjectLongMap;
 import gnu.trove.map.hash.TObjectLongHashMap;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +31,7 @@ import java.util.logging.Logger;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
+import org.hit.concurrent.pool.PooledObjects;
 import org.hit.db.partitioner.Partitioner;
 import org.hit.event.DBStatEvent;
 import org.hit.event.Event;
@@ -76,8 +76,8 @@ public class SlaveJanitor extends AbstractJanitor
             if (myMaster != null && getIsInitialized().get()) {
                 getEventBus().publish(
                     ActorID.DB_ENGINE,
-                    new SendMessageEvent(
-                        Collections.singletonList(myMaster),
+                    PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                        myMaster,
                         new Heartbeat(getServerID(), myTableRowCountMap)));
             }
         }
@@ -191,8 +191,8 @@ public class SlaveJanitor extends AbstractJanitor
                      + ctm.getTableSchema());
             getEventBus().publish(
                     ActorID.DB_ENGINE,
-                    new SendMessageEvent(
-                        Collections.singleton(ctm.getSenderId()),
+                    PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                        ctm.getSenderId(),
                         new CreateTableResponseMessage(
                             getServerID(),
                             ctm.getTableSchema().getTableName(),
@@ -267,8 +267,8 @@ public class SlaveJanitor extends AbstractJanitor
         
         getEventBus().publish(
             ActorID.DB_ENGINE,
-            new SendMessageEvent(Collections.singletonList(myMaster),
-                                 new NodeAdvertisement(getServerID())));
+            PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                myMaster, new NodeAdvertisement(getServerID())));
         
         LOG.info("Scheduling task to publish hearbeats every  "
                  + getServerConfig().getHeartBeatIntervalSecs() + " seconds");
@@ -312,8 +312,8 @@ public class SlaveJanitor extends AbstractJanitor
         
         getEventBus().publish(
             ActorID.DB_ENGINE,
-            new SendMessageEvent(
-                Collections.singletonList(targetNode),
+            PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                targetNode,
                 new DataLoadRequest(getServerID(), 
                                     tableName,
                                     range)));

@@ -30,6 +30,7 @@ import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.concurrent.pool.PooledObjects;
 import org.hit.consensus.ConsensusLeader;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
@@ -86,12 +87,14 @@ public class TwoPCLeader extends ConsensusLeader
                     
                     getEventBus().publish(
                         ActorID.CONSENSUS_MANAGER,
-                        new SendMessageEvent(
-                            getAcceptors(),
-                            new CommitRequest(getNodeID(),
-                                              getConsensusUnitID(),
-                                              accept.getProposal(), 
-                                              myShouldCommit)));
+                        PooledObjects
+                            .getInstance(SendMessageEvent.class)
+                            .initialize(
+                                getAcceptors(),
+                                new CommitRequest(getNodeID(),
+                                                  getConsensusUnitID(),
+                                                  accept.getProposal(), 
+                                                  myShouldCommit)));
                     
                     getEventBus().publish(
                         ActorID.CONSENSUS_MANAGER,
@@ -147,7 +150,7 @@ public class TwoPCLeader extends ConsensusLeader
         
         getEventBus().publish(
             ActorID.CONSENSUS_MANAGER,
-            new SendMessageEvent(
+            PooledObjects.getInstance(SendMessageEvent.class).initialize(
                 getAcceptors(), new SolicitConsensusMessage(
                     getNodeID(), getConsensusUnitID(), proposal)));
     }

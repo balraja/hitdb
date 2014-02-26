@@ -31,14 +31,23 @@ public abstract class AbstractPool<T extends Poolable> implements Pool<T>
     private final int myPoolSize;
 
     private final int myInitialSize;
+    
+    private final Class<T> myPoolableType;
+    
+    private final Factory myInstanceFactory;
 
     /**
      * CTOR
      */
-    public AbstractPool(int size, int initialSize)
+    public AbstractPool(int        size, 
+                        int        initialSize, 
+                        Class<T>   poolableType,
+                        Factory    factory)
     {
-        myPoolSize = size;
-        myInitialSize = initialSize;
+        myPoolSize        = size;
+        myInitialSize     = initialSize;
+        myPoolableType    = poolableType;
+        myInstanceFactory = factory;
     }
 
     /**
@@ -68,7 +77,12 @@ public abstract class AbstractPool<T extends Poolable> implements Pool<T>
     }
 
     /** Creates a new instance of object of the specified type */
-    protected abstract T newObject();
+    protected T newObject()
+    {
+        T instance = myInstanceFactory.create(myPoolableType);
+        instance.initialize();
+        return instance;
+    }
 
     /** Surrenders the object to the pool */
     protected abstract void surrender(T freedObject);

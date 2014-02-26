@@ -20,10 +20,12 @@
 
 package org.hit.event;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.concurrent.pool.PoolUtils;
 
 /**
  * Defines the contract for an event that initiates the sending to other
@@ -35,16 +37,14 @@ public class SendMessageEvent implements Event
 {
     private final Collection<NodeID> myTargets;
     
-    private final Message myMessage;
-
+    private Message myMessage;
+    
     /**
      * CTOR
      */
-    public SendMessageEvent(Collection<NodeID> targets, Message message)
+    public SendMessageEvent()
     {
-        super();
-        myTargets = targets;
-        myMessage = message;
+        myTargets = new ArrayList<>();
     }
 
     /**
@@ -62,4 +62,47 @@ public class SendMessageEvent implements Event
     {
         return myTargets;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        PoolUtils.free(myTargets);
+        myTargets.clear();
+        myMessage = null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
+        myMessage = null;
+    }
+    
+    /**
+     * Initializes the instance with the required attributes.
+     */
+    public SendMessageEvent initialize(NodeID target, Message message)
+    {
+        myTargets.add(target);
+        myMessage = message;
+        return this;
+    }
+
+    
+    /**
+     * Initializes the instance with the required attributes.
+     */
+    public SendMessageEvent initialize(Collection<NodeID> targets, 
+                                       Message            message)
+    {
+        myTargets.addAll(targets);
+        myMessage = message;
+        return this;
+    }
+
 }
