@@ -20,28 +20,31 @@
 
 package org.hit.event;
 
+import org.hit.concurrent.pool.PoolUtils;
+import org.hit.concurrent.pool.Poolable;
+
 /**
  * Defines an event that's specifies whether the proposal received via
  * consensus protocol is acceptable
  * 
  * @author Balraja Subbiah
  */
-public class ProposalNotificationResponse implements Event
+public class ProposalNotificationResponse implements Event, Poolable
 {
-    private final ProposalNotificationEvent myProposalNotification;
+    private ProposalNotificationEvent myProposalNotification;
 
-    private final boolean myCanAccept;
+    private boolean myCanAccept;
 
     /**
-     * CTOR
+     * Fluent interface method for initializing the pooled object
      */
-    public ProposalNotificationResponse(
+    public ProposalNotificationResponse initialize(
         ProposalNotificationEvent proposalNotification,
         boolean canAccept)
     {
-        super();
         myProposalNotification = proposalNotification;
-        myCanAccept = canAccept;
+        myCanAccept            = canAccept;
+        return this;
     }
 
     /**
@@ -58,5 +61,25 @@ public class ProposalNotificationResponse implements Event
     public ProposalNotificationEvent getProposalNotification()
     {
         return myProposalNotification;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myProposalNotification = null;
+        myCanAccept = false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
+        myProposalNotification = null;
+        myCanAccept = false;
     }
 }

@@ -25,6 +25,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
+import org.hit.concurrent.pool.PooledObjects;
 import org.hit.event.Event;
 import org.hit.event.PeriodicTaskNotification;
 import org.hit.event.PeriodicTaskScheduleRequest;
@@ -72,7 +73,8 @@ public class PeriodicTaskManager extends Actor
             getEventBus().publish(
                 ActorID.TIME_KEEPER,
                 myTargetActorID,
-                new PeriodicTaskNotification(myTask));
+                PooledObjects.getInstance(PeriodicTaskNotification.class)
+                             .initialize(myTask));
         }
     }
     

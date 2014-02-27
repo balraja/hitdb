@@ -17,53 +17,33 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package org.hit.event;
+package org.hit.concurrent.pool;
 
-import org.hit.concurrent.pool.Poolable;
+import java.util.Collection;
 
 /**
- * An event to notify the {@link Runnable} that's supposed to be 
- * executed at a particular time.
+ * An util class to help releasing freed instances.
  * 
  * @author Balraja Subbiah
  */
-public class PeriodicTaskNotification implements Event, Poolable
+public final class PoolUtils
 {
-    private Runnable myPeriodicTask;
-
-    /**
-     * A fluent interface for initializing the event.
-     */
-    public PeriodicTaskNotification initialize(Runnable periodicTask)
+    /** A helper method to free instances of objects in a collection */
+    public static <T> void free(Collection<T> freedInstances)
     {
-        myPeriodicTask = periodicTask;
-        return this;
+        T instance = freedInstances.iterator().next();
+        boolean isPoolable = instance.getClass().isAssignableFrom(Poolable.class);
+        if (isPoolable) {
+            for (T freedInstance : freedInstances) {
+                PooledObjects.freeInstance((Poolable) freedInstance);
+            }
+        }
     }
-
-
+    
     /**
-     * Returns the value of periodicTask
+     * Pvt CTOR to avoid initialization.
      */
-    public Runnable getPeriodicTask()
+    private PoolUtils()
     {
-        return myPeriodicTask;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void free()
-    {
-        myPeriodicTask = null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
-        myPeriodicTask = null;
     }
 }

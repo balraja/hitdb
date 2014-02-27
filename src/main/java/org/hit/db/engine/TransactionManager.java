@@ -290,12 +290,14 @@ public class TransactionManager
                     
                     myEventBus.publish(
                         ActorID.DB_ENGINE,
-                        new ConsensusRequestEvent(
-                            new ReplicationProposal(
-                                myReplicationUnitID,
-                                ((WriteTransaction) myTransaction).getMutation(),
-                                myTransaction.getStartTime(),
-                                myTransaction.getEndTime())));
+                        PooledObjects
+                            .getInstance(ConsensusRequestEvent.class)
+                            .initialize(
+                                new ReplicationProposal(
+                                    myReplicationUnitID,
+                                    ((WriteTransaction) myTransaction).getMutation(),
+                                    myTransaction.getStartTime(),
+                                    myTransaction.getEndTime())));
                 }
                 
                 @SuppressWarnings("unchecked")
@@ -459,16 +461,17 @@ public class TransactionManager
                 if (myPne != null) {
                     myEventBus.publish(
                         ActorID.DB_ENGINE,
-                        new ProposalNotificationResponse(
-                            myPne,
-                            result.getPhase().getResult()));
+                        PooledObjects.getInstance(ProposalNotificationResponse.class)
+                                     .initialize(myPne,
+                                                 result.getPhase().getResult()));
                 }
                 else if (myProposal != null
                          && result.getPhase().getResult()) 
                 {
                     myEventBus.publish(
                         ActorID.DB_ENGINE,
-                        new ConsensusRequestEvent(myProposal));
+                        PooledObjects.getInstance(ConsensusRequestEvent.class)
+                                     .initialize(myProposal));
                 }
                 myMemento = result;
             }
@@ -499,12 +502,15 @@ public class TransactionManager
                 if (myTransaction instanceof WriteTransaction) {
                     myEventBus.publish(
                         ActorID.DB_ENGINE,
-                        new ConsensusRequestEvent(
-                            new ReplicationProposal(
-                                myReplicationUnitID,
-                                ((WriteTransaction) myTransaction).getMutation(),
-                                myTransaction.getStartTime(),
-                                myTransaction.getEndTime())));
+                        PooledObjects
+                            .getInstance(ConsensusRequestEvent.class)
+                            .initialize(
+                                new ReplicationProposal(
+                                    myReplicationUnitID,
+                                    ((WriteTransaction) myTransaction)
+                                        .getMutation(),
+                                    myTransaction.getStartTime(),
+                                    myTransaction.getEndTime())));
                 }
                 if (myClientInfo != null) {
                     
@@ -889,6 +895,7 @@ public class TransactionManager
                 myConsensusToWorkFlowMap.get(response.getProposal().getUnitID());
             workflow.respondTO(response);
         }
+        PooledObjects.freeInstance(response);
         // XXX Should handle replication failures.
     }
 
@@ -961,5 +968,6 @@ public class TransactionManager
                addDependencyToLockedTransaction(id);
            }
        }
+       PooledObjects.freeInstance(pne);
     }
 }

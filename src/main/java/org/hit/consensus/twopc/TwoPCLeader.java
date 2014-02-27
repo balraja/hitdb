@@ -98,8 +98,9 @@ public class TwoPCLeader extends ConsensusLeader
                     
                     getEventBus().publish(
                         ActorID.CONSENSUS_MANAGER,
-                        new ConsensusResponseEvent(
-                            accept.getProposal(), myShouldCommit));
+                        PooledObjects.getInstance(ConsensusResponseEvent.class)
+                                     .initialize(accept.getProposal(), 
+                                                  myShouldCommit));
                 }
             }
         }

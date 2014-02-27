@@ -26,6 +26,7 @@ import java.util.Collection;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
 import org.hit.concurrent.pool.PoolUtils;
+import org.hit.concurrent.pool.Poolable;
 
 /**
  * Defines the contract for an event that initiates the sending to other
@@ -33,7 +34,7 @@ import org.hit.concurrent.pool.PoolUtils;
  * 
  * @author Balraja Subbiah
  */
-public class SendMessageEvent implements Event
+public class SendMessageEvent implements Event, Poolable
 {
     private final Collection<NodeID> myTargets;
     
@@ -70,6 +71,7 @@ public class SendMessageEvent implements Event
     public void free()
     {
         PoolUtils.free(myTargets);
+        // XXX release message also.
         myTargets.clear();
         myMessage = null;
     }

@@ -28,6 +28,6 @@ import org.hit.concurrent.pool.Poolable;
  * 
  * @author Balraja Subbiah
  */
-public interface Event extends Poolable
+public interface Event
 {
 }

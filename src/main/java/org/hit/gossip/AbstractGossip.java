@@ -33,7 +33,7 @@ import java.io.Serializable;
  * @author Balraja Subbiah
  */
 public abstract class AbstractGossip<U>
-    implements Externalizable,Gossip
+    implements Externalizable, Gossip
 {
     /**
      * The key that uniquely identifies the information.

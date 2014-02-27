@@ -28,6 +28,7 @@ import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
+import org.hit.concurrent.pool.PooledObjects;
 import org.hit.event.ChangeAcceptorToLeaderEvent;
 import org.hit.event.ConsensusRequestEvent;
 import org.hit.event.CreateConsensusAcceptorEvent;
@@ -105,6 +106,7 @@ public class ConsensusManager extends Actor
                 (ConsensusLeader) myUnitToConsensusProtocolMap.get(
                     cre.getProposal().getUnitID());
             leader.getConsensus(cre.getProposal());
+            PooledObjects.freeInstance(cre);
         }
         else if (event instanceof ProposalNotificationResponse) {
             ProposalNotificationResponse response = 

@@ -17,53 +17,18 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package org.hit.event;
-
-import org.hit.concurrent.pool.Poolable;
+package org.hit.concurrent.pool;
 
 /**
- * An event to notify the {@link Runnable} that's supposed to be 
- * executed at a particular time.
+ * Defines the contract for an interface that creates instances of 
+ * Objects.
  * 
  * @author Balraja Subbiah
  */
-public class PeriodicTaskNotification implements Event, Poolable
+public interface Factory
 {
-    private Runnable myPeriodicTask;
-
     /**
-     * A fluent interface for initializing the event.
+     * A factory method for creating instances.
      */
-    public PeriodicTaskNotification initialize(Runnable periodicTask)
-    {
-        myPeriodicTask = periodicTask;
-        return this;
-    }
-
-
-    /**
-     * Returns the value of periodicTask
-     */
-    public Runnable getPeriodicTask()
-    {
-        return myPeriodicTask;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void free()
-    {
-        myPeriodicTask = null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
-        myPeriodicTask = null;
-    }
+    public <T> T create(Class<T> instanceType);
 }

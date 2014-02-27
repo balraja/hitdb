@@ -21,7 +21,6 @@
 package org.hit.gossip;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -102,13 +101,15 @@ public class Disseminator extends Actor
             PeriodicTaskNotification periodicTaskNotification =
                 (PeriodicTaskNotification) event;
             periodicTaskNotification.getPeriodicTask().run();
+            PooledObjects.freeInstance(periodicTaskNotification);
         }
         if (event instanceof ReconcilliationResponse) {
             ReconcilliationResponse response = 
                 (ReconcilliationResponse) event;
             myRepository.update(response.getInformationList());
-            publish(new GossipNotificationEvent(
-                myRepository.getLatestInformation()));
+            publish(
+                PooledObjects.getInstance(GossipNotificationEvent.class)
+                             .initialize(myRepository.getLatestInformation()));
          
         }
         else if (event instanceof ReconcillationRequest) {
@@ -144,6 +145,7 @@ public class Disseminator extends Actor
                     myRepository.update(gossip);
                 }
             }
+            PooledObjects.freeInstance(update);
         }
     }
     

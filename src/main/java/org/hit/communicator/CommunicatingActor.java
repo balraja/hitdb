@@ -26,6 +26,7 @@ import java.util.logging.Logger;
 import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
+import org.hit.concurrent.pool.PooledObjects;
 import org.hit.event.Event;
 import org.hit.event.SendMessageEvent;
 import org.hit.util.LogFactory;
@@ -83,6 +84,7 @@ public class CommunicatingActor extends Actor
             for (NodeID nodeID : sme.getTargets()) {
                 try {
                     myCommunicator.sendTo(nodeID, sme.getMessage());
+                    PooledObjects.freeInstance(sme);
                 }
                 catch (CommunicatorException e) {
                     LOG.log(Level.SEVERE,

@@ -180,6 +180,7 @@ public class SlaveJanitor extends AbstractJanitor
                                      (Partitioner<?,?>) gossip);
                 }
             }
+            PooledObjects.freeInstance(gne);
         }
         else if (event instanceof CreateTableMessage) {
             
@@ -330,6 +331,7 @@ public class SlaveJanitor extends AbstractJanitor
     public void handleDbStats(DBStatEvent dbStats)
     {
         myTableRowCountMap.putAll(dbStats.getTableToRowCountMap());
+        PooledObjects.freeInstance(dbStats);
     }
 
     /**

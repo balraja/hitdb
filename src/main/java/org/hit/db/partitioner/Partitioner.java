@@ -35,7 +35,7 @@ import org.hit.util.Pair;
 import org.hit.util.Range;
 
 /**
- * Defines the contract for a tye that defines the partitions of 
+ * Defines the contract for a type that defines the partitions of 
  * keyspace among all the nodes.
  * 
  * @author Balraja Subbiah

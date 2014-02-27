@@ -20,6 +20,8 @@
 
 package org.hit.event;
 
+import org.hit.concurrent.pool.PoolUtils;
+import org.hit.concurrent.pool.Poolable;
 import org.hit.consensus.Proposal;
 
 /**
@@ -28,20 +30,20 @@ import org.hit.consensus.Proposal;
  * 
  * @author Balraja Subbiah
  */
-public class ConsensusResponseEvent implements Event
+public class ConsensusResponseEvent implements Event, Poolable
 {
-    private final Proposal myProposal;
+    private Proposal myProposal;
     
-    private final boolean myAccepted;
+    private boolean myAccepted;
     
     /**
-     * CTOR
+     * Fluent interface method for initializing the pooled object
      */
-    public ConsensusResponseEvent(Proposal proposal, boolean accepted)
+    public ConsensusResponseEvent initialize(Proposal proposal, boolean accepted)
     {
-        super();
         myProposal = proposal;
         myAccepted = accepted;
+        return this;
     }
 
     /**
@@ -58,5 +60,25 @@ public class ConsensusResponseEvent implements Event
     public boolean isAccepted()
     {
         return myAccepted;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myProposal = null;
+        myAccepted = false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
+        myProposal = null;
+        myAccepted = false;
     }
 }

@@ -28,6 +28,7 @@ import gnu.trove.map.hash.TObjectLongHashMap;
 import gnu.trove.procedure.TObjectLongProcedure;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,6 +37,7 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import org.hit.communicator.NodeID;
+import org.hit.concurrent.pool.PooledObjects;
 import org.hit.db.keyspace.domain.DiscreteDomain;
 import org.hit.db.model.HitTableSchema;
 import org.hit.db.partitioner.Partitioner;
@@ -194,8 +196,9 @@ public class StandardAllocator implements Allocator
     @Override
     public GossipUpdateEvent getGossipUpdates()
     {
-        return new GossipUpdateEvent(new ArrayList<Gossip>(
-            myTableToPartitionMap.values()));
+        return PooledObjects.getInstance(GossipUpdateEvent.class)
+                            .initialize(
+                                     myTableToPartitionMap.values());
     }
 
     /**
@@ -217,6 +220,7 @@ public class StandardAllocator implements Allocator
                        myNodeToRowCountMap.get(myServerID),
                        dbStats.getTableToRowCountMap());
         myNodeToRowCountMap.put(myServerID, dbStats.getTableToRowCountMap());
+        PooledObjects.freeInstance(dbStats);
     }
 
     /**

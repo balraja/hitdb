@@ -19,7 +19,6 @@
 */
 package org.hit.consensus.twopc;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -80,7 +79,8 @@ public class TwoPCAcceptor extends ConsensusAcceptor
             myProposalToConsensusMap.put(scm.getProposal(), scm);
             getEventBus().publish(
                 ActorID.CONSENSUS_MANAGER,
-                new ProposalNotificationEvent(scm.getProposal()));
+                PooledObjects.getInstance(ProposalNotificationEvent.class)
+                             .initialize(scm.getProposal()));
         }
         else if (message instanceof CommitRequest) {
             CommitRequest commitRequest = (CommitRequest) message;
@@ -91,8 +91,9 @@ public class TwoPCAcceptor extends ConsensusAcceptor
             }
             getEventBus().publish(
                 ActorID.CONSENSUS_MANAGER, 
-                new ConsensusResponseEvent(commitRequest.getProposal(),
-                                           commitRequest.shouldCommit()));
+                PooledObjects.getInstance(ConsensusResponseEvent.class)
+                             .initialize(commitRequest.getProposal(),
+                                         commitRequest.shouldCommit()));
         }
     }
 
@@ -121,6 +122,7 @@ public class TwoPCAcceptor extends ConsensusAcceptor
                                            getConsensusUnitID(),
                                            scm.getProposal(),
                                            response.canAccept())));
+        PooledObjects.freeInstance(response);
     }
 
 }

@@ -17,53 +17,36 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package org.hit.event;
+package org.hit.concurrent.pool;
 
-import org.hit.concurrent.pool.Poolable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.hit.util.LogFactory;
 
 /**
- * An event to notify the {@link Runnable} that's supposed to be 
- * executed at a particular time.
+ * Implements <code>Factory</code> wherein it creates instances using 
+ * reflection.
  * 
  * @author Balraja Subbiah
  */
-public class PeriodicTaskNotification implements Event, Poolable
+public class ReflectiveFactory implements Factory
 {
-    private Runnable myPeriodicTask;
-
-    /**
-     * A fluent interface for initializing the event.
-     */
-    public PeriodicTaskNotification initialize(Runnable periodicTask)
-    {
-        myPeriodicTask = periodicTask;
-        return this;
-    }
-
-
-    /**
-     * Returns the value of periodicTask
-     */
-    public Runnable getPeriodicTask()
-    {
-        return myPeriodicTask;
-    }
-
+    private static final Logger LOG = 
+       LogFactory.getInstance().getLogger(ReflectiveFactory.class);
+                    
     /**
      * {@inheritDoc}
      */
     @Override
-    public void free()
+    public <T> T create(Class<T> instanceType)
     {
-        myPeriodicTask = null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
-        myPeriodicTask = null;
+        try {
+            return instanceType.newInstance();
+        }
+        catch (InstantiationException | IllegalAccessException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+            return null;
+        }
     }
 }

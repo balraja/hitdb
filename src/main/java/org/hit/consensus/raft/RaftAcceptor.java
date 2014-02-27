@@ -196,7 +196,8 @@ public class RaftAcceptor extends ConsensusAcceptor
                     {
                         getEventBus().publish(
                             ActorID.CONSENSUS_MANAGER,
-                            new ProposalNotificationEvent(entry.getValue()));
+                            PooledObjects.getInstance(ProposalNotificationEvent.class)
+                                         .initialize(entry.getValue()));
                         
                         if (LOG.isLoggable(Level.FINE)) {
                             LOG.fine("The replication proposal : " 
@@ -239,5 +240,6 @@ public class RaftAcceptor extends ConsensusAcceptor
     @Override
     public void handleResponse(ProposalNotificationResponse response)
     {
+        PooledObjects.freeInstance(response);
     }
 }

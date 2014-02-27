@@ -20,8 +20,12 @@
 
 package org.hit.event;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
+import org.hit.concurrent.pool.PoolUtils;
+import org.hit.concurrent.pool.Poolable;
+import org.hit.db.partitioner.Partitioner;
 import org.hit.gossip.Gossip;
 
 /**
@@ -29,16 +33,25 @@ import org.hit.gossip.Gossip;
  * 
  * @author Balraja Subbiah
  */
-public class GossipUpdateEvent implements Event
+public class GossipUpdateEvent implements Event, Poolable
 {
     private final Collection<Gossip> myGossip;
+    
+    /**
+     * CTOR
+     */
+    public GossipUpdateEvent()
+    {
+        myGossip = new ArrayList<>();
+    }
 
     /**
      * CTOR
      */
-    public GossipUpdateEvent(Collection<Gossip> gossip)
+    public GossipUpdateEvent initialize(Collection<Partitioner<?, ?>> collection)
     {
-        myGossip = gossip;
+        myGossip.addAll(collection);
+        return this;
     }
 
     /**
@@ -47,5 +60,23 @@ public class GossipUpdateEvent implements Event
     public Collection<Gossip> getGossip()
     {
         return myGossip;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        PoolUtils.free(myGossip);
+        myGossip.clear();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
     } 
 }

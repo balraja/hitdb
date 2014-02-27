@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
+import org.hit.concurrent.pool.PooledObjects;
 import org.hit.db.keyspace.HashKeyspace;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.HitTableSchema;
@@ -109,7 +110,7 @@ public class TransactableHitDatabase implements TransactableDatabase
     @Override
     public DBStatEvent getStatistics()
     {
-        DBStatEvent stat = new DBStatEvent();
+        DBStatEvent stat = PooledObjects.getInstance(DBStatEvent.class);
         for (String tableName : myTable2Schema.keySet()) {
             TransactableTable<?, ?> table = myDatabaseTables.get(tableName);
             if (table != null) {

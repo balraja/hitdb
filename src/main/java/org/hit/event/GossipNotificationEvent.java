@@ -20,8 +20,11 @@
 
 package org.hit.event;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
+import org.hit.concurrent.pool.PoolUtils;
+import org.hit.concurrent.pool.Poolable;
 import org.hit.gossip.Gossip;
 
 /**
@@ -29,17 +32,26 @@ import org.hit.gossip.Gossip;
  * 
  * @author Balraja Subbiah
  */
-public class GossipNotificationEvent implements Event
+public class GossipNotificationEvent implements Event, Poolable
 {
     private final Collection<Gossip> myGossip;
 
     /**
      * CTOR
      */
-    public GossipNotificationEvent(Collection<Gossip> gossip)
+    public GossipNotificationEvent()
     {
-        super();
-        myGossip = gossip;
+        myGossip = new ArrayList<>();
+    }
+    
+    /**
+     * A fluent interface for initializing the instance returned from the
+     * pool.
+     */
+    public GossipNotificationEvent initialize(Collection<Gossip> gossip)
+    {
+        myGossip.addAll(gossip);
+        return this;
     }
 
     /**
@@ -48,5 +60,24 @@ public class GossipNotificationEvent implements Event
     public Collection<Gossip> getGossip()
     {
         return myGossip;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        PoolUtils.free(myGossip);
+        myGossip.clear();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
+        myGossip.clear();
     }
 }

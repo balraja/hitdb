@@ -184,8 +184,7 @@ public abstract class AbstractJanitor implements EngineJanitor
             myTransactionManager.processOperation(pne);
         }
         else if (event instanceof ConsensusResponseEvent) {
-            ConsensusResponseEvent cre = 
-                (ConsensusResponseEvent) event;
+            ConsensusResponseEvent cre = (ConsensusResponseEvent) event;
             myTransactionManager.processOperation(cre);
         }
         else if (event instanceof DataLoadRequest) {
