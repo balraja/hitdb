@@ -39,7 +39,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.hit.buffer.BufferManager;
 import org.hit.communicator.Communicator;
 import org.hit.communicator.CommunicatorException;
 import org.hit.communicator.Message;
@@ -47,6 +46,7 @@ import org.hit.communicator.MessageHandler;
 import org.hit.communicator.NodeID;
 import org.hit.communicator.SerializerFactory;
 import org.hit.concurrent.CloseableLock;
+import org.hit.io.buffer.BufferManager;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
 

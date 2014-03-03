@@ -23,9 +23,9 @@ package org.hit.communicator.nio;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
 
-import org.hit.buffer.BufferManager;
-import org.hit.buffer.ManagedBuffer;
 import org.hit.communicator.BinaryMessage;
+import org.hit.io.buffer.BufferManager;
+import org.hit.io.buffer.ManagedBuffer;
 
 /**
  * An abstraction to capture the active connection between two machines.

@@ -17,28 +17,18 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package org.hit.buffer;
-
-import org.hit.util.ApplicationProperties;
+package org.hit.io.buffer;
 
 /**
- * Defines an implementation of {@link BufferConfig} where the values for the 
- * given namespace is read from the properties.
+ * Defines the contract for the config that controls buffer management.
  * 
  * @author Balraja Subbiah
  */
-public class BufferPropertyConfig implements BufferConfig
+public interface BufferConfig
 {
-    private static final String NS_PREFIX = "org.hit.buffer.size";
-
     /**
-     * {@inheritDoc}
+     * Returns the size of memory to be managed by the memory manager
+     * for the given namespace.
      */
-    @Override
-    public int getBufferSize(String namespace)
-    {
-        String full_ns = NS_PREFIX + '.' + namespace;
-        String buf_size = ApplicationProperties.getProperty(full_ns);
-        return buf_size != null ? Integer.parseInt(buf_size) : -1;
-    }
+    public int getBufferSize(String namespace);
 }

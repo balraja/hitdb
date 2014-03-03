@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.hit.buffer.BufferManager;
 import org.hit.communicator.Communicator;
 import org.hit.communicator.CommunicatorException;
 import org.hit.communicator.Message;
@@ -38,6 +37,7 @@ import org.hit.communicator.nio.NIOCommunicator;
 import org.hit.db.model.mutations.BatchAddMutation;
 import org.hit.example.Airport;
 import org.hit.example.AirportDataLoader;
+import org.hit.io.buffer.BufferManager;
 import org.hit.messages.DBOperationMessage;
 import org.junit.Test;
 

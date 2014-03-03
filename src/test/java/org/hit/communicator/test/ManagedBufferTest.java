@@ -23,12 +23,12 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-import org.hit.buffer.BufferManager;
-import org.hit.buffer.ManagedBuffer;
-import org.hit.buffer.ManagedBufferInputStream;
-import org.hit.buffer.ManagedBufferOutputStream;
 import org.hit.communicator.NodeID;
 import org.hit.communicator.nio.IPNodeID;
+import org.hit.io.buffer.BufferManager;
+import org.hit.io.buffer.ManagedBuffer;
+import org.hit.io.buffer.ManagedBufferInputStream;
+import org.hit.io.buffer.ManagedBufferOutputStream;
 import org.junit.Assert;
 import org.junit.Test;
 

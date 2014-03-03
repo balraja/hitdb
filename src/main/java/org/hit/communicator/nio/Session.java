@@ -28,11 +28,11 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.hit.buffer.BufferManager;
 import org.hit.communicator.BinaryMessage;
 import org.hit.communicator.CommunicatorException;
 import org.hit.communicator.Message;
 import org.hit.communicator.MessageSerializer;
+import org.hit.io.buffer.BufferManager;
 import org.hit.util.LogFactory;
 
 /**

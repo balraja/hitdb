@@ -17,7 +17,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package org.hit.buffer;
+package org.hit.io.buffer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

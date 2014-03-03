@@ -20,7 +20,7 @@
 
 package org.hit.communicator;
 
-import org.hit.buffer.BufferManager;
+import org.hit.io.buffer.BufferManager;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;

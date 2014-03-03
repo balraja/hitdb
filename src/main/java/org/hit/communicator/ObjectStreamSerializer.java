@@ -27,10 +27,10 @@ import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.hit.buffer.BufferManager;
-import org.hit.buffer.ManagedBuffer;
-import org.hit.buffer.ManagedBufferInputStream;
-import org.hit.buffer.ManagedBufferOutputStream;
+import org.hit.io.buffer.BufferManager;
+import org.hit.io.buffer.ManagedBuffer;
+import org.hit.io.buffer.ManagedBufferInputStream;
+import org.hit.io.buffer.ManagedBufferOutputStream;
 import org.hit.util.LogFactory;
 
 import com.google.common.primitives.Ints;

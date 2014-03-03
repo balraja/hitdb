@@ -20,9 +20,6 @@
 
 package org.hit.di;
 
-import org.hit.buffer.BufferConfig;
-import org.hit.buffer.BufferManager;
-import org.hit.buffer.BufferPropertyConfig;
 import org.hit.communicator.Communicator;
 import org.hit.communicator.MessageSerializer;
 import org.hit.communicator.ObjectStreamSerializer;
@@ -31,6 +28,9 @@ import org.hit.communicator.SerializerFactory;
 import org.hit.communicator.nio.NIOCommunicator;
 import org.hit.gms.GroupID;
 import org.hit.gms.SimpleGroupID;
+import org.hit.io.buffer.BufferConfig;
+import org.hit.io.buffer.BufferManager;
+import org.hit.io.buffer.BufferPropertyConfig;
 import org.hit.util.ApplicationProperties;
 import org.hit.zookeeper.ZooKeeperClient;
 import org.hit.zookeeper.ZooKeeperClientConfig;

@@ -27,13 +27,13 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 
-import org.hit.buffer.BufferManager;
-import org.hit.buffer.ManagedBuffer;
 import org.hit.communicator.BinaryMessage;
 import org.hit.communicator.MessageSerializer;
 import org.hit.communicator.NodeID;
 import org.hit.communicator.ObjectStreamSerializer;
 import org.hit.communicator.nio.IPNodeID;
+import org.hit.io.buffer.BufferManager;
+import org.hit.io.buffer.ManagedBuffer;
 import org.junit.Assert;
 import org.junit.Test;
 
