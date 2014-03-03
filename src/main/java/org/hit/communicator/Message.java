@@ -34,6 +34,24 @@ import org.hit.event.Event;
  */
 public abstract class Message implements Externalizable, Event
 {
+    /**
+     * Defines the descriptor for the given message.
+     */
+    public static interface Descriptor
+    {
+        /**
+         * Defines the contract for an interface that uniquely identifies
+         * the {@link Message}.
+         */
+        public int getUniqueIdentifier();
+        
+        /**
+         * Returns the type of {@link Message} that's described by this 
+         * descriptor.
+         */
+        public Class<? extends Message> getMessageType();
+    }
+    
     private NodeID mySenderId;
     
     /**

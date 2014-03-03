@@ -34,7 +34,6 @@ import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
-import org.hit.concurrent.pool.PooledObjects;
 import org.hit.consensus.ConsensusAcceptor;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
@@ -43,6 +42,7 @@ import org.hit.consensus.raft.log.WALPropertyConfig;
 import org.hit.event.ProposalNotificationEvent;
 import org.hit.event.ProposalNotificationResponse;
 import org.hit.event.SendMessageEvent;
+import org.hit.pool.PooledObjects;
 import org.hit.util.LogFactory;
 
 /**

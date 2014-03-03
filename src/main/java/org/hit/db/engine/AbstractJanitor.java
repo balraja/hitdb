@@ -28,7 +28,6 @@ import java.util.logging.Logger;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
-import org.hit.concurrent.pool.PooledObjects;
 import org.hit.db.model.DBOperation;
 import org.hit.event.ConsensusResponseEvent;
 import org.hit.event.DBStatEvent;
@@ -39,6 +38,7 @@ import org.hit.messages.DBOperationFailureMessage;
 import org.hit.messages.DBOperationMessage;
 import org.hit.messages.DataLoadRequest;
 import org.hit.messages.DistributedDBOperationMessage;
+import org.hit.pool.PooledObjects;
 import org.hit.server.ServerConfig;
 import org.hit.util.LogFactory;
 

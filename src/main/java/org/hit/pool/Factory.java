@@ -17,33 +17,18 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package org.hit.concurrent.pool;
-
-import java.util.Collection;
+package org.hit.pool;
 
 /**
- * An util class to help releasing freed instances.
+ * Defines the contract for an interface that creates instances of 
+ * Objects.
  * 
  * @author Balraja Subbiah
  */
-public final class PoolUtils
+public interface Factory
 {
-    /** A helper method to free instances of objects in a collection */
-    public static <T> void free(Collection<T> freedInstances)
-    {
-        T instance = freedInstances.iterator().next();
-        boolean isPoolable = instance.getClass().isAssignableFrom(Poolable.class);
-        if (isPoolable) {
-            for (T freedInstance : freedInstances) {
-                PooledObjects.freeInstance((Poolable) freedInstance);
-            }
-        }
-    }
-    
     /**
-     * Pvt CTOR to avoid initialization.
+     * A factory method for creating instances.
      */
-    private PoolUtils()
-    {
-    }
+    public <T> T create(Class<T> instanceType);
 }

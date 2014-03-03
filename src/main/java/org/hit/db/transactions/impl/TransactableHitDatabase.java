@@ -25,13 +25,13 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
-import org.hit.concurrent.pool.PooledObjects;
 import org.hit.db.keyspace.HashKeyspace;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.HitTableSchema;
 import org.hit.db.transactions.TransactableDatabase;
 import org.hit.db.transactions.TransactableTable;
 import org.hit.event.DBStatEvent;
+import org.hit.pool.PooledObjects;
 import org.hit.util.LogFactory;
 
 /**

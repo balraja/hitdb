@@ -20,8 +20,8 @@
 
 package org.hit.event;
 
-import org.hit.concurrent.pool.PoolUtils;
-import org.hit.concurrent.pool.Poolable;
+import org.hit.pool.PoolUtils;
+import org.hit.pool.Poolable;
 
 /**
  * Defines an event that's specifies whether the proposal received via

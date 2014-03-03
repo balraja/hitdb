@@ -37,7 +37,6 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import org.hit.communicator.NodeID;
-import org.hit.concurrent.pool.PooledObjects;
 import org.hit.db.keyspace.domain.DiscreteDomain;
 import org.hit.db.model.HitTableSchema;
 import org.hit.db.partitioner.Partitioner;
@@ -46,6 +45,7 @@ import org.hit.event.GossipUpdateEvent;
 import org.hit.gossip.Gossip;
 import org.hit.messages.Allocation;
 import org.hit.messages.Heartbeat;
+import org.hit.pool.PooledObjects;
 import org.hit.server.ServerConfig;
 import org.hit.util.LogFactory;
 import org.hit.util.Pair;

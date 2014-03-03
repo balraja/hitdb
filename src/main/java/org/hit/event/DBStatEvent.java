@@ -20,7 +20,7 @@
 
 package org.hit.event;
 
-import org.hit.concurrent.pool.Poolable;
+import org.hit.pool.Poolable;
 
 import gnu.trove.map.TObjectLongMap;
 import gnu.trove.map.hash.TObjectLongHashMap;

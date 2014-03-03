@@ -20,9 +20,9 @@
 
 package org.hit.event;
 
-import org.hit.concurrent.pool.PoolUtils;
-import org.hit.concurrent.pool.Poolable;
 import org.hit.consensus.Proposal;
+import org.hit.pool.PoolUtils;
+import org.hit.pool.Poolable;
 
 /**
  * Defines the contract for an event responsible for soliciting consensus.

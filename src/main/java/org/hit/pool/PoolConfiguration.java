@@ -17,36 +17,19 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package org.hit.concurrent.pool;
-
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.hit.util.LogFactory;
+package org.hit.pool;
 
 /**
- * Implements <code>Factory</code> wherein it creates instances using 
- * reflection.
+ * Defines contract for an annotation that specifies the configuration for 
+ * an object pool used for a particular type.
  * 
  * @author Balraja Subbiah
  */
-public class ReflectiveFactory implements Factory
+public @interface PoolConfiguration
 {
-    private static final Logger LOG = 
-       LogFactory.getInstance().getLogger(ReflectiveFactory.class);
-                    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public <T> T create(Class<T> instanceType)
-    {
-        try {
-            return instanceType.newInstance();
-        }
-        catch (InstantiationException | IllegalAccessException e) {
-            LOG.log(Level.SEVERE, e.getMessage(), e);
-            return null;
-        }
-    }
+    int initialSize() ;
+    
+    int size();
+    
+    Class<? extends Factory> factoryClass();
 }

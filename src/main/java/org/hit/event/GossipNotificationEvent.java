@@ -23,9 +23,9 @@ package org.hit.event;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.hit.concurrent.pool.PoolUtils;
-import org.hit.concurrent.pool.Poolable;
 import org.hit.gossip.Gossip;
+import org.hit.pool.PoolUtils;
+import org.hit.pool.Poolable;
 
 /**
  * An event to publish the latest updates received via gossip protocol

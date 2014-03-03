@@ -29,7 +29,6 @@ import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
-import org.hit.concurrent.pool.PooledObjects;
 import org.hit.event.Event;
 import org.hit.event.GossipNotificationEvent;
 import org.hit.event.GossipUpdateEvent;
@@ -39,6 +38,7 @@ import org.hit.event.SendMessageEvent;
 import org.hit.messages.NodeAdvertisement;
 import org.hit.messages.ReconcillationRequest;
 import org.hit.messages.ReconcilliationResponse;
+import org.hit.pool.PooledObjects;
 import org.hit.util.LogFactory;
 
 import com.google.inject.Inject;

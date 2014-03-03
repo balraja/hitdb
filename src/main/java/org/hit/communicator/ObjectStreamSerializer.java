@@ -88,7 +88,6 @@ public class ObjectStreamSerializer implements MessageSerializer
         }
         catch (Exception e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
-            e.printStackTrace();
             return null;
         }
     }
@@ -105,7 +104,6 @@ public class ObjectStreamSerializer implements MessageSerializer
             ObjectOutputStream oStream = new ObjectOutputStream(mout);
             oStream.writeObject(message);
             oStream.close();
-            
             mout.seekToFirst();
             mout.write(Ints.toByteArray(mout.getByteCount() - 4));
             return mout.getWrittenData();

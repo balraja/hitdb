@@ -25,8 +25,8 @@ import java.util.Collection;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
-import org.hit.concurrent.pool.PoolUtils;
-import org.hit.concurrent.pool.Poolable;
+import org.hit.pool.PoolUtils;
+import org.hit.pool.Poolable;
 
 /**
  * Defines the contract for an event that initiates the sending to other

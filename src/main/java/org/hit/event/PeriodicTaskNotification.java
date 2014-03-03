@@ -19,7 +19,7 @@
 */
 package org.hit.event;
 
-import org.hit.concurrent.pool.Poolable;
+import org.hit.pool.Poolable;
 
 /**
  * An event to notify the {@link Runnable} that's supposed to be 

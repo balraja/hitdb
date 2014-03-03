@@ -21,7 +21,7 @@
 package org.hit.event;
 
 import org.hit.actors.Actor;
-import org.hit.concurrent.pool.Poolable;
+import org.hit.pool.Poolable;
 
 /**
  * This is a marker interface for objects passed between the {@link Actor}s.

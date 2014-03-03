@@ -23,10 +23,10 @@ package org.hit.event;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.hit.concurrent.pool.PoolUtils;
-import org.hit.concurrent.pool.Poolable;
 import org.hit.db.partitioner.Partitioner;
 import org.hit.gossip.Gossip;
+import org.hit.pool.PoolUtils;
+import org.hit.pool.Poolable;
 
 /**
  * Defines an event for updating the information to be spread via gossip

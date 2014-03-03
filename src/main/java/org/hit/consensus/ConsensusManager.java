@@ -28,7 +28,6 @@ import org.hit.actors.Actor;
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
-import org.hit.concurrent.pool.PooledObjects;
 import org.hit.event.ChangeAcceptorToLeaderEvent;
 import org.hit.event.ConsensusRequestEvent;
 import org.hit.event.CreateConsensusAcceptorEvent;
@@ -36,6 +35,7 @@ import org.hit.event.CreateConsensusLeaderEvent;
 import org.hit.event.Event;
 import org.hit.event.ProposalNotificationResponse;
 import org.hit.messages.ConsensusMessage;
+import org.hit.pool.PooledObjects;
 import org.hit.util.LogFactory;
 
 import com.google.inject.Inject;
