@@ -17,23 +17,52 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package org.hit.io;
+package org.hit.io.pool;
 
 import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
 
+import org.hit.io.ObjectIOFactory;
+
+import com.google.inject.Inject;
+
 /**
- * Defines the contract for an interface that's responsible for creating
- * serializing and de serializing the object.
+ * Implements <code>ObjectIOFactory</code> to support using poolable 
+ * instances when deserializng the data.
  * 
  * @author Balraja Subbiah
  */
-public interface ObjectIOFactory
+public class PoolableIOFactory implements ObjectIOFactory
 {
-    public ObjectOutput getOutput(OutputStream out);
-    
-    public ObjectInput  getInput(InputStream in);
-    
+    private final PoolableRegistry myRegistry;
+
+    /**
+     * CTOR
+     */
+    @Inject
+    public PoolableIOFactory(PoolableRegistry registry)
+    {
+        super();
+        myRegistry = registry;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ObjectOutput getOutput(OutputStream out)
+    {
+        return new PoolableOutput(out, myRegistry);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ObjectInput getInput(InputStream in)
+    {
+        return new PoolableInput(in, myRegistry);
+    }
 }

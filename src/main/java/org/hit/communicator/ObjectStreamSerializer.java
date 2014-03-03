@@ -20,13 +20,14 @@
 
 package org.hit.communicator;
 
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.hit.io.ObjectIOFactory;
 import org.hit.io.buffer.BufferManager;
 import org.hit.io.buffer.ManagedBuffer;
 import org.hit.io.buffer.ManagedBufferInputStream;
@@ -48,12 +49,16 @@ public class ObjectStreamSerializer implements MessageSerializer
     
     private final BufferManager myBufferManager;
     
+    private final ObjectIOFactory myIOFactory;
+    
     /**
      * CTOR
      */
-    public ObjectStreamSerializer(BufferManager manager)
+    public ObjectStreamSerializer(BufferManager manager, 
+                                  ObjectIOFactory ioFactory)
     {
         myBufferManager = manager;
+        myIOFactory     = ioFactory;
     }
 
     /**
@@ -76,8 +81,8 @@ public class ObjectStreamSerializer implements MessageSerializer
             }
             while (size > 0) {
                 min.setEOFMark(size);
-                ObjectInputStream oStream = new ObjectInputStream(min);
-                messages.add((Message) oStream.readObject());
+                ObjectInput oInput = myIOFactory.getInput(min);
+                messages.add((Message) oInput.readObject());
                 min.unsetEOFMark();
                 
                 int read = min.read(sizeArray);
@@ -101,9 +106,9 @@ public class ObjectStreamSerializer implements MessageSerializer
         try {
             ManagedBufferOutputStream mout = 
                 new ManagedBufferOutputStream(myBufferManager, 4);
-            ObjectOutputStream oStream = new ObjectOutputStream(mout);
-            oStream.writeObject(message);
-            oStream.close();
+            ObjectOutput oOutput = myIOFactory.getOutput(mout);
+            oOutput.writeObject(message);
+            oOutput.close();
             mout.seekToFirst();
             mout.write(Ints.toByteArray(mout.getByteCount() - 4));
             return mout.getWrittenData();

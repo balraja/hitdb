@@ -20,6 +20,7 @@
 
 package org.hit.communicator;
 
+import org.hit.io.ObjectIOFactory;
 import org.hit.io.buffer.BufferManager;
 
 import com.google.inject.Inject;
@@ -34,14 +35,18 @@ public class ObjectStreamSerializerFactory implements SerializerFactory
 {
     private final BufferManager myBufferManager;
     
+    private final ObjectIOFactory myIOFactory;
+    
     /**
      * CTOR
      */
     @Inject
     public ObjectStreamSerializerFactory(
-        @Named("communicator") BufferManager bufferManager)
+        @Named("communicator") BufferManager bufferManager,
+        ObjectIOFactory                      ioFactory)
     {
         myBufferManager = bufferManager;
+        myIOFactory     = ioFactory;
     }
 
     /**
@@ -50,7 +55,7 @@ public class ObjectStreamSerializerFactory implements SerializerFactory
     @Override
     public MessageSerializer makeSerializer()
     {
-        return new ObjectStreamSerializer(myBufferManager);
+        return new ObjectStreamSerializer(myBufferManager, myIOFactory);
     }
 
 }

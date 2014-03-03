@@ -55,6 +55,15 @@ public final class PooledObjects
      * Returns an instance of the given type from the pool.
      */
     @SuppressWarnings("unchecked")
+    public static Poolable getUnboundedInstance(Class<?> instanceType)
+    {
+        return (Poolable) getInstance((Class<? extends Poolable>) instanceType);
+    }
+    
+    /**
+     * Returns an instance of the given type from the pool.
+     */
+    @SuppressWarnings("unchecked")
     public static <T extends Poolable> T getInstance(Class<T> instanceType)
     {
         Pool<T> pool = (Pool<T>) ourTypeToPoolMap.get(instanceType);

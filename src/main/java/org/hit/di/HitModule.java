@@ -31,6 +31,8 @@ import org.hit.gms.SimpleGroupID;
 import org.hit.io.buffer.BufferConfig;
 import org.hit.io.buffer.BufferManager;
 import org.hit.io.buffer.BufferPropertyConfig;
+import org.hit.io.pool.PoolableRegistry;
+import org.hit.pool.SimplePoolableRegistry;
 import org.hit.util.ApplicationProperties;
 import org.hit.zookeeper.ZooKeeperClient;
 import org.hit.zookeeper.ZooKeeperClientConfig;
@@ -69,6 +71,7 @@ public abstract class HitModule extends AbstractModule
         bind(String.class).annotatedWith(Names.named("ServerGroupName"))
                           .toInstance("HitServers");
         bind(BufferConfig.class).to(BufferPropertyConfig.class);
+        bind(PoolableRegistry.class).to(SimplePoolableRegistry.class);
     }
 
     protected Integer getBoundPort()

@@ -17,23 +17,23 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package org.hit.io;
-
-import java.io.InputStream;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.io.OutputStream;
+package org.hit.io.pool;
 
 /**
- * Defines the contract for an interface that's responsible for creating
- * serializing and de serializing the object.
+ * Defines the contract for a PoolableRegistry, that assigns unique identifier
+ * for a given type.
  * 
  * @author Balraja Subbiah
  */
-public interface ObjectIOFactory
+public interface PoolableRegistry
 {
-    public ObjectOutput getOutput(OutputStream out);
-    
-    public ObjectInput  getInput(InputStream in);
-    
+    /**
+     * Returns an unique identifier for a given type.
+     */
+     public int getUniqueIdentifier(Class<?> poolableType);
+     
+     /**
+      * Returns the type for the given identifier.
+      */
+     public Class<?> getPoolableType(int identifier);
 }
