@@ -25,7 +25,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInput;
 
-import org.hit.pool.Poolable;
+import org.hit.pool.Internable;
+import org.hit.pool.Interner;
 import org.hit.pool.PooledObjects;
 
 /**
@@ -54,11 +55,17 @@ public class PoolableInput extends DataInputStream
     public Object readObject() throws ClassNotFoundException, IOException
     {
         int identifier = readInt();
-        Externalizable externalizable = 
-            (Externalizable) 
-                PooledObjects.getUnboundedInstance(
-                    myRegistry.getPoolableType(identifier));
-        externalizable.readExternal(this);
-        return externalizable;
+        Class<?> type = myRegistry.getPoolableType(identifier);
+        if (Internable.class.isAssignableFrom(type)) {
+           Interner<?> interner = Interner.getInterner(type);
+           return interner.readFromInput(this);
+        }
+        else {
+            Externalizable externalizable = 
+                (Externalizable) 
+                    PooledObjects.getUnboundedInstance(type);
+            externalizable.readExternal(this);
+            return externalizable;
+        }
     }
 }

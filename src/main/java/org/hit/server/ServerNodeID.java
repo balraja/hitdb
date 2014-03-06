@@ -19,18 +19,17 @@
 */
 package org.hit.server;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.net.InetSocketAddress;
 
 import org.hit.communicator.nio.IPNodeID;
+import org.hit.pool.InternedBy;
 
 /**
  * Extends {@link IPNodeID} to include the server name.
  * 
  * @author Balraja Subbiah
  */
+@InternedBy(interner=ServerIDInterner.class)
 public class ServerNodeID extends IPNodeID
 {
     private String myName;
@@ -123,26 +122,5 @@ public class ServerNodeID extends IPNodeID
     public String toString()
     {
         return myName + SEPARATOR + super.toString();
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void readExternal(ObjectInput in) 
-            throws IOException, ClassNotFoundException
-    {
-        super.readExternal(in);
-        myName = in.readUTF();;
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException
-    {
-        super.writeExternal(out);
-        out.writeUTF(myName);
     }
 }

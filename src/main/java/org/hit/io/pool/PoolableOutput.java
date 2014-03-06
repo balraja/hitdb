@@ -25,6 +25,8 @@ import java.io.IOException;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
 
+import org.hit.pool.Internable;
+import org.hit.pool.Interner;
 import org.hit.pool.Poolable;
 import org.hit.pool.PooledObjects;
 
@@ -66,6 +68,14 @@ public class PoolableOutput extends DataOutputStream
             else {
                 throw new IOException(obj.getClass().getName() 
                     + " hasn't been registered with the object registry");
+            }
+        }
+        else if (obj instanceof Internable) {
+            int id = myRegistry.getUniqueIdentifier(obj.getClass());
+            if (id >= 0) {
+                writeInt(id);
+                Interner<?> interner = Interner.getInterner(obj.getClass());
+                interner.writeToOutput(this, obj);
             }
         }
         else {

@@ -19,24 +19,13 @@
 */
 package org.hit.pool;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
 /**
- * Defines contract for an annotation that specifies the configuration for 
- * an object pool used for a particular type.
+ * Used for marking whether an object is internable.The internable objects
+ * will be serialized, deserialized using <code>Interner</code>s which creates
+ * reusable instances.
  * 
  * @author Balraja Subbiah
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
-public @interface PoolConfiguration
+public interface Internable
 {
-    int initialSize() ;
-    
-    int size();
-    
-    Class<? extends Factory> factoryClass();
 }

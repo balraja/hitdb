@@ -20,7 +20,7 @@
 
 package org.hit.communicator;
 
-import java.io.Externalizable;
+import org.hit.pool.Internable;
 
 /**
  * Encapsulates the identity of node in a distributed database. This is
@@ -29,6 +29,6 @@ import java.io.Externalizable;
  * 
  * @author Balraja Subbiah
  */
-public interface NodeID extends Externalizable
+public interface NodeID extends Internable
 {
 }

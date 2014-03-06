@@ -25,18 +25,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Defines contract for an annotation that specifies the configuration for 
- * an object pool used for a particular type.
+ * An annotation to specify the <code>Interner</code> for an <code>Internable
+ * </code>
  * 
  * @author Balraja Subbiah
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface PoolConfiguration
+public @interface InternedBy
 {
-    int initialSize() ;
-    
-    int size();
-    
-    Class<? extends Factory> factoryClass();
+    Class<? extends Interner<?>> interner();
 }

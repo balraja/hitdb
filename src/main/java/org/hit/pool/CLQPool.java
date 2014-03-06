@@ -19,14 +19,10 @@
 */
 package org.hit.pool;
 
-import java.util.List;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.hit.communicator.nio.NIOCommunicator;
-import org.hit.util.LogFactory;
 
 /**
  * Defines the contract for pool of objects uses a {@link ConcurrentLinkedQueue}
@@ -36,7 +32,7 @@ import org.hit.util.LogFactory;
  */
 public class CLQPool<T extends Poolable> extends AbstractPool<T>
 {
-    private final List<T> myAllocatedInstances;
+    private final Set<T> myAllocatedInstances;
     
     private final ConcurrentLinkedQueue<T> myFreeInstances;
     
@@ -49,7 +45,8 @@ public class CLQPool<T extends Poolable> extends AbstractPool<T>
                    Factory  factory)
     {
         super(size, initialSize, instanceType, factory);
-        myAllocatedInstances = new CopyOnWriteArrayList<>();
+        myAllocatedInstances = 
+            Collections.newSetFromMap(new IdentityHashMap<T,Boolean>(size));
         myFreeInstances      = new ConcurrentLinkedQueue<>();
         for (int i = 0; i < initialSize; i++) {
             myFreeInstances.add(newObject());

@@ -26,6 +26,8 @@ import java.io.ObjectOutput;
 import java.net.InetSocketAddress;
 
 import org.hit.communicator.NodeID;
+import org.hit.pool.Internable;
+import org.hit.pool.InternedBy;
 
 import com.google.common.net.InetAddresses;
 
@@ -35,8 +37,10 @@ import com.google.common.net.InetAddresses;
  * 
  * @author Balraja Subbiah
  */
-public class IPNodeID implements NodeID
+@InternedBy(interner=IPNodeIDInterner.class);
+public class IPNodeID implements NodeID,Internable
 {
+
     public static final String SEPARATOR = ":";
     
     private InetSocketAddress myIPAddress;
@@ -134,24 +138,5 @@ public class IPNodeID implements NodeID
                 InetAddresses.forString(hostAndPort[0]),
                 Integer.parseInt(hostAndPort[1]));
         return address;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException
-    {
-        out.writeObject(myIPAddress);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void readExternal(ObjectInput in)
-        throws IOException, ClassNotFoundException
-    {
-        myIPAddress = (InetSocketAddress) in.readObject();
     }
 }

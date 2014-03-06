@@ -26,13 +26,14 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import org.hit.event.Event;
+import org.hit.pool.Poolable;
 
 /**
  * Defines the contract for a Message to be sent on a wire.
  * 
  * @author Balraja Subbiah
  */
-public abstract class Message implements Externalizable, Event
+public abstract class Message implements Externalizable, Event, Poolable
 {
     private NodeID mySenderId;
     
