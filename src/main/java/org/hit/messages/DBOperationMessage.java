@@ -27,13 +27,14 @@ import java.io.ObjectOutput;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
 import org.hit.db.model.DBOperation;
+import org.hit.pool.Poolable;
 
 /**
  * Instructs the datbase to apply the given operation to the database.
  *
  * @author Balraja Subbiah
  */
-public class DBOperationMessage extends Message
+public class DBOperationMessage extends Message implements Poolable
 {
     private DBOperation myOperation;
 
@@ -44,15 +45,16 @@ public class DBOperationMessage extends Message
      */
     public DBOperationMessage()
     {
-        this(null, -1, null);
+        myOperation = null;
+        mySequenceNumber = -1L;
     }
 
     /**
      * CTOR
      */
-    public DBOperationMessage(NodeID clientID, long seqNum, DBOperation operation)
+    public void initialize(NodeID clientID, long seqNum, DBOperation operation)
     {
-        super(clientID);
+        setSenderID(clientID);
         mySequenceNumber = seqNum;
         myOperation = operation;
     }
@@ -94,5 +96,24 @@ public class DBOperationMessage extends Message
         super.writeExternal(out);
         out.writeLong(mySequenceNumber);
         out.writeObject(myOperation);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        setSenderID(null);
+        myOperation = null;
+        mySequenceNumber = -1;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
     }
 }

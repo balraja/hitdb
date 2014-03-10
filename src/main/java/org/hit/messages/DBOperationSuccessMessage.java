@@ -26,13 +26,14 @@ import java.io.ObjectOutput;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.pool.Poolable;
 
 /**
  * The reply message for a successful <code>DBOperation</code>
  *
  * @author Balraja Subbiah
  */
-public class DBOperationSuccessMessage extends Message
+public class DBOperationSuccessMessage extends Message implements Poolable
 {
     private Object myResult;
 
@@ -43,19 +44,20 @@ public class DBOperationSuccessMessage extends Message
      */
     public DBOperationSuccessMessage()
     {
-        this(null, -1, null);
+        mySequenceNumber = -1L;
+        myResult         = null;
     }
 
     /**
      * CTOR
      */
-    public DBOperationSuccessMessage(NodeID      serverID,
-                                     long        seqNum,
-                                     Object      result)
+    public DBOperationSuccessMessage initialize(
+        NodeID serverID, long seqNum, Object result)
     {
-        super(serverID);
+        setSenderID(null);
         mySequenceNumber = seqNum;
-        myResult = result;
+        myResult         = result;
+        return this;
     }
 
     /**
@@ -107,5 +109,23 @@ public class DBOperationSuccessMessage extends Message
         else {
             out.writeBoolean(false);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        mySequenceNumber = -1L;
+        myResult         = null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
     }
 }

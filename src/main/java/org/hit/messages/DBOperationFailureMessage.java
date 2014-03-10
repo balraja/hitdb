@@ -27,13 +27,14 @@ import java.io.ObjectOutput;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
 import org.hit.db.model.DatabaseException;
+import org.hit.pool.Poolable;
 
 /**
  * Message for denoting that <code>DBOperationFailed</code> on the database.
  *
  * @author Balraja Subbiah
  */
-public class DBOperationFailureMessage extends Message
+public class DBOperationFailureMessage extends Message implements Poolable
 {
     private Throwable myException;
 
@@ -46,33 +47,37 @@ public class DBOperationFailureMessage extends Message
      */
     public DBOperationFailureMessage()
     {
-        this(null, -1L, null);
+        myException = null;
+        mySequenceNumber = -1L;
+        myMessage = null;
     }
 
     /**
-     * CTOR
+     * A helper method to initialize the object.
      */
-    public DBOperationFailureMessage(
+    public DBOperationFailureMessage initialize(
         NodeID      nodeID,
         long        sequenceNumber,
         String      message)
     {
-        this(nodeID, sequenceNumber, message, new DatabaseException(message));
+        return initialize(
+            nodeID, sequenceNumber, message, new DatabaseException(message));
     }
 
     /**
-     * CTOR
+     * A helper method to initialize the object.
      */
-    public DBOperationFailureMessage(
+    public DBOperationFailureMessage initialize(
         NodeID      nodeID,
         long        sequenceNumber,
         String       message,
         Throwable    exception)
     {
-        super(nodeID);
+        setSenderID(nodeID);
         myMessage = message;
         mySequenceNumber = sequenceNumber;
         myException = exception;
+        return this;
     }
 
     /**
@@ -122,5 +127,24 @@ public class DBOperationFailureMessage extends Message
         out.writeLong(mySequenceNumber);
         out.writeUTF(myMessage);
         out.writeObject(myException);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myException = null;
+        mySequenceNumber = -1L;
+        myMessage = null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
     }
 }

@@ -173,14 +173,18 @@ public class TransactionManager
         {
             Message message =
                 result.isCommitted() ?
-                    new DBOperationSuccessMessage(
-                        myServerID,
-                        myClientInfo.getClientSequenceNumber(), 
-                        result.getResult())
-                    : new DBOperationFailureMessage(
-                          myServerID,
-                          myClientInfo.getClientSequenceNumber(),
-                          "Failed to apply the transaction on db");
+                    PooledObjects
+                         .getInstance(DBOperationSuccessMessage.class)
+                         .initialize(
+                                myServerID,
+                                myClientInfo.getClientSequenceNumber(), 
+                                result.getResult())
+                    : PooledObjects
+                          .getInstance(DBOperationFailureMessage.class)
+                          .initialize(
+                              myServerID,
+                              myClientInfo.getClientSequenceNumber(),
+                              "Failed to apply the transaction on db");
 
             myEventBus.publish(
                ActorID.DB_ENGINE,
@@ -201,11 +205,13 @@ public class TransactionManager
                    ActorID.DB_ENGINE,
                    PooledObjects.getInstance(SendMessageEvent.class).initialize(
                        myClientInfo.getClientID(),
-                       new DBOperationFailureMessage(
-                           myServerID,
-                           myClientInfo.getClientSequenceNumber(),
-                           exception.getMessage(),
-                           exception)));
+                       PooledObjects
+                           .getInstance(DBOperationFailureMessage.class)
+                           .initialize(
+                               myServerID,
+                               myClientInfo.getClientSequenceNumber(),
+                               exception.getMessage(),
+                               exception)));
             }
             
             // Remove the workflow as it's no longer needed.
@@ -512,18 +518,23 @@ public class TransactionManager
                                     myTransaction.getStartTime(),
                                     myTransaction.getEndTime())));
                 }
+                
                 if (myClientInfo != null) {
                     
                     Message message =
                         result.getPhase().getResult().isCommitted() ?
-                            new DBOperationSuccessMessage(
-                                myServerID,
-                                myClientInfo.getClientSequenceNumber(), 
-                                result.getPhase().getResult().getResult())
-                            : new DBOperationFailureMessage(
-                                  myServerID,
-                                  myClientInfo.getClientSequenceNumber(),
-                                  "Failed to apply the transaction on db");
+                            PooledObjects
+                                .getInstance(DBOperationSuccessMessage.class)
+                                .initialize(
+                                    myServerID,
+                                    myClientInfo.getClientSequenceNumber(), 
+                                    result.getPhase().getResult().getResult())
+                            : PooledObjects
+                                  .getInstance(DBOperationFailureMessage.class)
+                                  .initialize(
+                                      myServerID,
+                                      myClientInfo.getClientSequenceNumber(),
+                                      "Failed to apply the transaction on db");
     
                     myEventBus.publish(
                        ActorID.DB_ENGINE,

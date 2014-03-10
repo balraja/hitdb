@@ -33,7 +33,7 @@ import org.hit.pool.Poolable;
  * 
  * @author Balraja Subbiah
  */
-public abstract class Message implements Externalizable, Event, Poolable
+public abstract class Message implements Externalizable, Event
 {
     private NodeID mySenderId;
     
@@ -60,6 +60,15 @@ public abstract class Message implements Externalizable, Event, Poolable
     public NodeID getSenderId()
     {
         return mySenderId;
+    }
+    
+    /** 
+     * A helper method to set the <code>NodeID</code> corresponding to the 
+     * sender of <code>Message</code>
+     */
+    protected void setSenderID(NodeID senderID)
+    {
+        mySenderId = senderID;
     }
 
     /**

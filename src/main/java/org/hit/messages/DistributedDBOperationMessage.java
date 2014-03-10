@@ -23,11 +23,13 @@ package org.hit.messages;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
 import org.hit.db.model.DBOperation;
+import org.hit.pool.Poolable;
 
 /**
  * Defines the contract for the Message being sent to the nodes for 
@@ -37,31 +39,34 @@ import org.hit.db.model.DBOperation;
  * 
  * @author Balraja Subbiah
  */
-public class DistributedDBOperationMessage extends Message
+public class DistributedDBOperationMessage extends Message 
+    implements Poolable
 {
-    private long                     mySequenceNumber;
+    private long                           mySequenceNumber;
     
-    private Map<NodeID, DBOperation> myNodeToOperationMap;
+    private final Map<NodeID, DBOperation> myNodeToOperationMap;
     
     /**
      * CTOR
      */
     public DistributedDBOperationMessage()
     {
-        myNodeToOperationMap = null;
+        mySequenceNumber     = -1L;
+        myNodeToOperationMap = new HashMap<>();
     }
 
     /**
      * CTOR
      */
-    public DistributedDBOperationMessage(
+    public DistributedDBOperationMessage initialize(
         NodeID                   clientId,
         long                     sequenceNumber,
         Map<NodeID, DBOperation> nodeToOperationMap)
     {
-        super(clientId);
+        setSenderID(clientId);
         mySequenceNumber     = sequenceNumber;
-        myNodeToOperationMap = nodeToOperationMap;
+        myNodeToOperationMap.putAll(nodeToOperationMap);
+        return this;
     }
 
     /**
@@ -75,8 +80,7 @@ public class DistributedDBOperationMessage extends Message
     /**
      * Returns the value of sequenceNumber
      */
-    public
-        long getSequenceNumber()
+    public long getSequenceNumber()
     {
         return mySequenceNumber;
     }
@@ -84,14 +88,21 @@ public class DistributedDBOperationMessage extends Message
     /**
      * {@inheritDoc}
      */
-    @SuppressWarnings("unchecked")
     @Override
     public void readExternal(ObjectInput in)
         throws IOException, ClassNotFoundException
     {
         super.readExternal(in);
-        mySequenceNumber     = in.readLong();
-        myNodeToOperationMap = (Map<NodeID, DBOperation>) in.readObject();
+        mySequenceNumber = in.readLong();
+        boolean hasElements = in.readBoolean();
+        if (hasElements) {
+            int size = in.readInt();
+            for (int i = 0; i < size; i++) {
+                NodeID nodeID = (NodeID) in.readObject();
+                DBOperation operation = (DBOperation) in.readObject();
+                myNodeToOperationMap.put(nodeID, operation);
+            }
+        }
     }
     
     /**
@@ -102,6 +113,38 @@ public class DistributedDBOperationMessage extends Message
     {
         super.writeExternal(out);
         out.writeLong(mySequenceNumber);
-        out.writeObject(myNodeToOperationMap);
+        if (!myNodeToOperationMap.isEmpty()) {
+            out.writeBoolean(true);
+            out.writeInt(myNodeToOperationMap.size());
+            // We still end up creating Entry objects and iterator
+            // as garbage.
+            for (Map.Entry<NodeID, DBOperation> entry : 
+                    myNodeToOperationMap.entrySet())
+            {
+                out.writeObject(entry.getKey());
+                out.writeObject(entry.getValue());
+            }
+        }
+        else {
+            out.writeBoolean(false);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        mySequenceNumber = -1L;
+        myNodeToOperationMap.clear();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
     }
 }

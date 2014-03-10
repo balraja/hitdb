@@ -29,33 +29,38 @@ import gnu.trove.map.hash.TObjectLongHashMap;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.pool.Poolable;
 
 /**
  * Defines the heart beat to be published by client nodes to the master.
  * 
  * @author Balraja Subbiah
  */
-public class Heartbeat extends Message
+public class Heartbeat extends Message implements Poolable
 {
-    private TObjectLongHashMap<String> myTableToRowCountMap;
+    private final TObjectLongHashMap<String> myTableToRowCountMap;
     
     /**
      * CTOR
      */
     public Heartbeat()
     {
-        this(null, null);
+        myTableToRowCountMap = new TObjectLongHashMap<>();
     }
 
     /**
      * CTOR
      */
-    public Heartbeat(NodeID from, TObjectLongMap<String> tableRowCountMap)
+    public Heartbeat initialize(NodeID from, 
+                                TObjectLongMap<String> tableRowCountMap)
     {
-        super(from);
-        myTableToRowCountMap = 
-            tableRowCountMap != null ? 
-                new TObjectLongHashMap<>(tableRowCountMap) : null;
+        setSenderID(from);
+        Object[] keys = tableRowCountMap.keys();
+        long[] values = tableRowCountMap.values();
+        for (int i = 0; i < tableRowCountMap.size(); i++) {
+            myTableToRowCountMap.put(keys[i].toString(), values[i]);
+        }
+        return this;
     }
 
     /**
@@ -69,17 +74,21 @@ public class Heartbeat extends Message
     /**
      * {@inheritDoc}
      */
-    @SuppressWarnings("unchecked")
     @Override
     public void readExternal(ObjectInput in) throws IOException,
             ClassNotFoundException
     {
         super.readExternal(in);
         if (in.readBoolean()) {
-            myTableToRowCountMap = (TObjectLongHashMap<String>) in.readObject();
+            int size = in.readInt();
+            for (int i = 0; i < size; i++) {
+                String key = in.readUTF();
+                long value = in.readLong();
+                myTableToRowCountMap.put(key, value);
+            }
         }
         else {
-            myTableToRowCountMap = null;
+            myTableToRowCountMap.clear();
         }
     }
     
@@ -90,12 +99,36 @@ public class Heartbeat extends Message
     public void writeExternal(ObjectOutput out) throws IOException
     {
         super.writeExternal(out);
-        if (myTableToRowCountMap != null) {
+        if (!myTableToRowCountMap.isEmpty()) {
             out.writeBoolean(true);
-            out.writeObject(myTableToRowCountMap);
+            out.writeInt(myTableToRowCountMap.size());
+            Object[] keys = myTableToRowCountMap.keys();
+            long[] values = myTableToRowCountMap.values();
+            for (int i = 0; i < myTableToRowCountMap.size(); i++) {
+                out.writeUTF(keys[i].toString());
+                out.writeLong(values[i]);
+            }
         }
         else {
             out.writeBoolean(false);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        setSenderID(null);
+        myTableToRowCountMap.clear();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
     }
 }

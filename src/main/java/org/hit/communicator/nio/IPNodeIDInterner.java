@@ -30,10 +30,12 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.hit.communicator.NodeID;
 import org.hit.pool.Interner;
 
 /**
+ * Extends <code>Interner</code> to support reading writing <code>IPNodeID
+ * </code> values out of a network.
+ * 
  * @author Balraja Subbiah
  */
 public class IPNodeIDInterner extends Interner<IPNodeID>
@@ -50,9 +52,10 @@ public class IPNodeIDInterner extends Interner<IPNodeID>
 
     /**
      * {@inheritDoc}
+     * @throws IOException 
      */
     @Override
-    public IPNodeID readFromInput(ObjectInput input)
+    public IPNodeID readFromInput(ObjectInput input) throws IOException
     {
         String hostAddress = input.readUTF();
         int    port        = input.readInt();
@@ -80,10 +83,9 @@ public class IPNodeIDInterner extends Interner<IPNodeID>
 
     /**
      * {@inheritDoc}
-     * @throws IOException 
      */
     @Override
-    public IPNodeID writeToOutput(ObjectOutput output, IPNodeID instance) 
+    public void writeToOutput(ObjectOutput output, IPNodeID instance) 
         throws IOException
     {
         output.writeUTF(instance.getIPAddress().getHostString());
