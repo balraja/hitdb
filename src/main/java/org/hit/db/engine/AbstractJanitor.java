@@ -141,16 +141,19 @@ public abstract class AbstractJanitor implements EngineJanitor
                     ((DBOperationMessage) event).getOperation();
                 myTransactionManager.processOperation(
                     message.getSenderId(), operation, message.getSequenceNumber());
+                PooledObjects.freeInstance(message);
             }
             else {
                 myEventBus.publish(
                     ActorID.DB_ENGINE,
                     PooledObjects.getInstance(SendMessageEvent.class).initialize(
                         message.getSenderId(),
-                        new DBOperationFailureMessage(
-                            myServerID, 
-                            message.getSequenceNumber(),
-                            "DB not yet initialized")));
+                        PooledObjects
+                            .getInstance(DBOperationFailureMessage.class)
+                            .initialize(
+                                myServerID, 
+                                message.getSequenceNumber(),
+                                "DB not yet initialized")));
             }
         }
         else if (event instanceof DistributedDBOperationMessage) {
@@ -172,10 +175,12 @@ public abstract class AbstractJanitor implements EngineJanitor
                     ActorID.DB_ENGINE,
                     PooledObjects.getInstance(SendMessageEvent.class).initialize(
                         ddbMessage.getSenderId(),
-                        new DBOperationFailureMessage(
-                            myServerID, 
-                            ddbMessage.getSequenceNumber(),
-                            "DB not yet initialized")));
+                        PooledObjects
+                            .getInstance(DBOperationFailureMessage.class)
+                            .initialize(
+                                myServerID, 
+                                ddbMessage.getSequenceNumber(),
+                                "DB not yet initialized")));
             }
         }
         else if (event instanceof ProposalNotificationEvent) {

@@ -231,8 +231,7 @@ public class TransactionManager
                            myMemento));
         
                 Futures.addCallback(future,
-                                    new WorkflowProcessor<>(
-                                        SimpleWorkflow.this));
+                                    new WorkflowProcessor<>(SimpleWorkflow.this));
             }
         }
         
