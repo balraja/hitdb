@@ -28,6 +28,7 @@ import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
+import org.hit.pool.Poolable;
 
 /**
  * A marker interface that defines the characteristics of messages used in a
@@ -35,7 +36,7 @@ import org.hit.consensus.UnitID;
  * 
  * @author Balraja Subbiah
  */
-public abstract class ConsensusMessage extends Message
+public abstract class ConsensusMessage extends Message implements Poolable
 {
     /**
      * The id of the unit that's guarded by a consensus protocol for which
@@ -59,13 +60,20 @@ public abstract class ConsensusMessage extends Message
     }
 
     /**
-     * CTOR
+     * Initializes the message object with he required
      */
-    public ConsensusMessage(NodeID nodeId, UnitID unitID, Proposal proposal)
+    protected void initialize(NodeID nodeId, UnitID unitID, Proposal proposal)
     {
-        super(nodeId);
+        setSenderID(nodeId);
         myUnitID = unitID;
         myProposal = proposal;
+    }
+    
+    public void free()
+    {
+        setSenderID(null);
+        myUnitID = null;
+        myProposal = null;
     }
     
     /**

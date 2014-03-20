@@ -87,7 +87,7 @@ public class AddRowMutation<K extends Comparable<K>, P extends Persistable<K>>
     public void update(Database database)
     {
         Table<K, P> table = database.lookUpTable(myTableName);
-        table.update(null, myData);
+        table.update(myData);
     }
 
     /**

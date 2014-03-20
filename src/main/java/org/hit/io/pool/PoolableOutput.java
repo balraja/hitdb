@@ -57,26 +57,37 @@ public class PoolableOutput extends DataOutputStream
     @Override
     public void writeObject(Object obj) throws IOException
     {
-        if (obj instanceof Externalizable && obj instanceof Poolable) {
+        if (obj instanceof Internable) {
             int id = myRegistry.getUniqueIdentifier(obj.getClass());
             if (id >= 0) {
+                writeBoolean(true);
                 writeInt(id);
-                Externalizable externalizable = (Externalizable) obj;
-                externalizable.writeExternal(this);
-                PooledObjects.freeInstance((Poolable) obj); 
             }
             else {
-                throw new IOException(obj.getClass().getName() 
-                    + " hasn't been registered with the object registry");
+                writeBoolean(false);
+                writeUTF(obj.getClass().getName());
             }
+            Interner<?> interner = Interner.getInterner(obj.getClass());
+            interner.writeToOutput(this, obj);
         }
-        else if (obj instanceof Internable) {
-            int id = myRegistry.getUniqueIdentifier(obj.getClass());
+        else if (obj instanceof Externalizable) {
+            int id = 
+                obj instanceof Poolable ? 
+                    myRegistry.getUniqueIdentifier(obj.getClass())
+                    : -1;
+
             if (id >= 0) {
+                writeBoolean(true);
                 writeInt(id);
-                Interner<?> interner = Interner.getInterner(obj.getClass());
-                interner.writeToOutput(this, obj);
             }
+            else {
+                writeBoolean(false);
+                writeUTF(obj.getClass().getName());
+            }
+            
+            Externalizable externalizable = (Externalizable) obj;
+            externalizable.writeExternal(this);
+            PooledObjects.freeInstance((Poolable) obj); 
         }
         else {
             throw new IOException(

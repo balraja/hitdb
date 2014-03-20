@@ -85,7 +85,7 @@ public class TwoPCAcceptor extends ConsensusAcceptor
         else if (message instanceof CommitRequest) {
             CommitRequest commitRequest = (CommitRequest) message;
             if (LOG.isLoggable(Level.FINE)) {
-                LOG.info("Received commit " + commitRequest.shouldCommit()
+                LOG.fine("Received commit " + commitRequest.shouldCommit()
                          + " for " + commitRequest.getProposal()
                          + " from " + commitRequest.getSenderId());
             }
@@ -94,6 +94,7 @@ public class TwoPCAcceptor extends ConsensusAcceptor
                 PooledObjects.getInstance(ConsensusResponseEvent.class)
                              .initialize(commitRequest.getProposal(),
                                          commitRequest.shouldCommit()));
+            PooledObjects.freeInstance(commitRequest);
         }
     }
 
@@ -118,11 +119,14 @@ public class TwoPCAcceptor extends ConsensusAcceptor
             ActorID.CONSENSUS_MANAGER,
             PooledObjects.getInstance(SendMessageEvent.class).initialize(
                 scm.getSenderId(),
-                new ConsensusAcceptMessage(getNodeID(),
-                                           getConsensusUnitID(),
-                                           scm.getProposal(),
-                                           response.canAccept())));
+                PooledObjects.getInstance(ConsensusAcceptMessage.class)
+                             .initialize(getNodeID(),
+                                         getConsensusUnitID(),
+                                         scm.getProposal(),
+                                         response.canAccept())));
+        
         PooledObjects.freeInstance(response);
+        PooledObjects.freeInstance(scm);
     }
 
 }

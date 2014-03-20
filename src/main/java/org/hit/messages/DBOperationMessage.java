@@ -52,11 +52,13 @@ public class DBOperationMessage extends Message implements Poolable
     /**
      * CTOR
      */
-    public void initialize(NodeID clientID, long seqNum, DBOperation operation)
+    public DBOperationMessage 
+        initialize(NodeID clientID, long seqNum, DBOperation operation)
     {
         setSenderID(clientID);
         mySequenceNumber = seqNum;
         myOperation = operation;
+        return this;
     }
 
     /**

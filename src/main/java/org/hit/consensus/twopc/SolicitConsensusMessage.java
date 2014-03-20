@@ -40,16 +40,23 @@ public class SolicitConsensusMessage extends ConsensusMessage
     {
         super();
     }
+    
+    /**
+     * Initializes the message object with he required
+     */
+    public SolicitConsensusMessage 
+        initializeSCM(NodeID nodeId, UnitID unitID, Proposal proposal)
+    {
+        super.initialize(nodeId, unitID, proposal);   
+        return this;
+    }
 
     /**
-     * CTOR
+     * {@inheritDoc}
      */
-    public SolicitConsensusMessage(
-        NodeID nodeId,
-        UnitID unitID,
-        Proposal proposal)
+    @Override
+    public void initialize()
     {
-        super(nodeId, unitID, proposal);
     }
     
 }

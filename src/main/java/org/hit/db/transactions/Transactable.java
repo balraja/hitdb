@@ -88,7 +88,8 @@ public class Transactable<K extends Comparable<K>, P extends Persistable<K>>
             {
                 return new ValidationResult(true);
             }
-            // If an older version is locked by 
+            // If an older version is locked by another transaction, then allow
+            // the reads to proceed speculatively.
             else if (   !TransactionHelper.isTransactionID(myStart)
                      && myStart < time
                      && TransactionHelper.toTransactionID(myEnd) < transactionID

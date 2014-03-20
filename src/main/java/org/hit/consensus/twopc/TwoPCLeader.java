@@ -91,10 +91,12 @@ public class TwoPCLeader extends ConsensusLeader
                             .getInstance(SendMessageEvent.class)
                             .initialize(
                                 getAcceptors(),
-                                new CommitRequest(getNodeID(),
-                                                  getConsensusUnitID(),
-                                                  accept.getProposal(), 
-                                                  myShouldCommit)));
+                                PooledObjects
+                                    .getInstance(CommitRequest.class)
+                                    .initialize(getNodeID(),
+                                                getConsensusUnitID(),
+                                                accept.getProposal(), 
+                                                myShouldCommit)));
                     
                     getEventBus().publish(
                         ActorID.CONSENSUS_MANAGER,
@@ -132,6 +134,7 @@ public class TwoPCLeader extends ConsensusLeader
             AcceptanceInfo info = 
                 myProposalToAcceptanceInfo.get(cam.getProposal());
             info.handleAccept(cam);
+            PooledObjects.freeInstance(cam);
         }
     }
 
@@ -152,8 +155,11 @@ public class TwoPCLeader extends ConsensusLeader
         getEventBus().publish(
             ActorID.CONSENSUS_MANAGER,
             PooledObjects.getInstance(SendMessageEvent.class).initialize(
-                getAcceptors(), new SolicitConsensusMessage(
-                    getNodeID(), getConsensusUnitID(), proposal)));
+                getAcceptors(), 
+                PooledObjects.getInstance(SolicitConsensusMessage.class)
+                             .initializeSCM(getNodeID(), 
+                                            getConsensusUnitID(), 
+                                            proposal)));
     }
 
 }

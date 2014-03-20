@@ -97,13 +97,14 @@ public class RaftLeader extends ConsensusLeader implements RaftProtocol
                 ActorID.CONSENSUS_MANAGER,
                 PooledObjects.getInstance(SendMessageEvent.class).initialize(                   
                     myLogAcceptors,
-                    new RaftReplicationMessage(getNodeID(),
-                                               getConsensusUnitID(),
-                                               myProposal, 
-                                               myTermID, 
-                                               mySequenceNO,
-                                               myLCTermNo,
-                                               myLCSeqNo)));
+                    PooledObjects.getInstance(RaftReplicationMessage.class)
+                                 .initialize(getNodeID(),
+                                             getConsensusUnitID(),
+                                             myProposal, 
+                                             myTermID, 
+                                             mySequenceNO,
+                                             myLCTermNo,
+                                             myLCSeqNo)));
         }
         
         public void receivedAcceptance(NodeID acceptedNodeID)

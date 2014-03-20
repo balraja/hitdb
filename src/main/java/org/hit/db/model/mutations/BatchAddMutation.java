@@ -124,7 +124,7 @@ public class BatchAddMutation<K extends Comparable<K>, P extends Persistable<K>>
     {
         Table<K, P> table = database.lookUpTable(myTableName);
         for (P data : myData) {
-            table.update(null, data);
+            table.update(data);
         }
     }
 

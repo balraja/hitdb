@@ -23,12 +23,9 @@ package org.hit.messages;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
-import org.hit.db.partitioner.Partitioner;
 import org.hit.db.partitioner.TablePartitionInfo;
 
 /**

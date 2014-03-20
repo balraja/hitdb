@@ -55,7 +55,7 @@ public class RaftReplicationMessage extends ConsensusMessage
     /**
      * CTOR
      */
-    public RaftReplicationMessage(
+    public RaftReplicationMessage initialize(
         NodeID nodeId,
         UnitID unitID,
         Proposal proposal,
@@ -64,11 +64,25 @@ public class RaftReplicationMessage extends ConsensusMessage
         long lcTermID,
         long lcSeqNo)
     {
-        super(nodeId, unitID, proposal);
+        initialize(nodeId, unitID, proposal);
         myTermID = termID;
         mySequenceNumber = sequenceNumber;
         myLastCommittedTermID = lcTermID;
         myLastCommittedSeqNo = lcSeqNo;
+        return this;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        super.free();
+        myTermID = Long.MIN_VALUE;
+        mySequenceNumber = Long.MIN_VALUE;
+        myLastCommittedSeqNo = Long.MIN_VALUE;
+        myLastCommittedTermID = Long.MIN_VALUE;
     }
 
     /**
@@ -137,5 +151,13 @@ public class RaftReplicationMessage extends ConsensusMessage
     public String toString()
     {
         return "Raft replication message " + myTermID + " : " + mySequenceNumber;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
     }
 }

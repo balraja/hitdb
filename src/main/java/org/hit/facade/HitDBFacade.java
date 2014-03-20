@@ -62,6 +62,7 @@ import org.hit.messages.DBOperationSuccessMessage;
 import org.hit.messages.DistributedDBOperationMessage;
 import org.hit.messages.FacadeInitRequest;
 import org.hit.messages.FacadeInitResponse;
+import org.hit.pool.PooledObjects;
 import org.hit.registry.RegistryService;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
@@ -330,9 +331,11 @@ public class HitDBFacade
 
             try {
                 myCommunicator.sendTo(myNodeID,
-                                      new DBOperationMessage(myClientID,
-                                                             mySequenceNumber,
-                                                             myOperation));
+                                      PooledObjects
+                                          .getInstance(DBOperationMessage.class)
+                                          .initialize(myClientID,
+                                                      mySequenceNumber,
+                                                      myOperation));
             }
             catch (CommunicatorException e) {
                 mySettableFuture.setException(e);
@@ -382,10 +385,13 @@ public class HitDBFacade
 
             try {
                 myCommunicator.sendTo(myNodeID,
-                                      new DistributedDBOperationMessage(
-                                          myClientID, 
-                                          mySequenceNumber, 
-                                          myOperations));
+                                      PooledObjects
+                                          .getInstance(
+                                              DistributedDBOperationMessage.class)
+                                          .initialize(
+                                              myClientID, 
+                                              mySequenceNumber, 
+                                              myOperations));
             }
             catch (CommunicatorException e) {
                 mySettableFuture.setException(e);
@@ -443,9 +449,11 @@ public class HitDBFacade
             try {
                 myCommunicator.sendTo(
                     myServer,
-                    new DBOperationMessage(myClientID,
-                                           mySequenceNumber,
-                                           myQuery));
+                    PooledObjects
+                       .getInstance(DBOperationMessage.class)
+                       .initialize(myClientID,
+                                   mySequenceNumber,
+                                   myQuery));
             }
             catch (CommunicatorException e) {
                 myResultCallback.onFailure(e);

@@ -52,27 +52,28 @@ public class RaftReplicationResponse extends ConsensusMessage
     /**
      * CTOR
      */
-    public RaftReplicationResponse(
+    public RaftReplicationResponse initialize(
         NodeID nodeId,
         UnitID unitID)
     {
-        this(nodeId, unitID, false, -1L, -1L);
+        return initialize(nodeId, unitID, false, -1L, -1L);
     }
 
     /**
      * CTOR
      */
-    public RaftReplicationResponse(
+    public RaftReplicationResponse initialize(
         NodeID nodeId,
         UnitID unitID,
         boolean accepted,
         long acceptedTermID,
         long acceptedSeqNO)
     {
-        super(nodeId, unitID, null);
+        initialize(nodeId, unitID, null);
         myAccepted = accepted;
         myAcceptedTermID = acceptedTermID;
         myAcceptedSeqNo = acceptedSeqNO;
+        return this;
     }
 
     /**
@@ -123,5 +124,24 @@ public class RaftReplicationResponse extends ConsensusMessage
         out.writeBoolean(myAccepted);
         out.writeLong(myAcceptedTermID);
         out.writeLong(myAcceptedSeqNo);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myAccepted = false;
+        myAcceptedSeqNo = Long.MIN_VALUE;
+        myAcceptedTermID = Long.MIN_VALUE;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
     }
 }

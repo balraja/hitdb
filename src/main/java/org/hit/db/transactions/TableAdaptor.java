@@ -203,20 +203,15 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
      * {@inheritDoc}
      */
     @Override
-    public boolean update(P old, P updated)
+    public boolean update(P updated)
     {
-        if (old != null) {
-            if (!old.primaryKey().equals(updated.primaryKey())) {
-                return false;
-            }
-            Transactable<K, P> tableOld =
-                 myTable.getRow(updated.primaryKey(), myStartTime, myTransactionID);
+        Transactable<K, P> tableOld =
+                myTable.getRow(updated.primaryKey(), 
+                               myStartTime, 
+                               myTransactionID);
+        
+        if (tableOld != null) {
 
-            
-            if (!tableOld.getPersistable().equals(old)) {
-                return false;
-            }
-            
             ValidationResult result = 
                 tableOld.validate(myStartTime, myTransactionID);
                 
@@ -234,8 +229,7 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
             myTableTrail.getWriteSet().add(tableOld);
         }
 
-        Transactable<K,P> updatedTransactable =
-            new Transactable<K, P>(updated);
+        Transactable<K,P> updatedTransactable = new Transactable<K, P>(updated);
         updatedTransactable.setStart(
             TransactionHelper.toVersionID(myTransactionID));
         updatedTransactable.setEnd(TransactionHelper.INFINITY);
@@ -285,6 +279,7 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
         
         Collection<P> actualResult =
             Collections2.transform(result, new Transactable2Persistable<K,P>());
+        
         return Collections.unmodifiableCollection(actualResult);    
     }
 
@@ -297,4 +292,5 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
     {
         return deleteRange((K) primaryKey, (K) secondaryKey);
     }
+
 }

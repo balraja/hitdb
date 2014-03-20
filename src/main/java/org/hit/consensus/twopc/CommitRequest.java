@@ -48,13 +48,14 @@ public class CommitRequest extends ConsensusMessage
     /**
      * CTOR
      */
-    public CommitRequest(NodeID nodeId, 
-                         UnitID unitID, 
-                         Proposal proposal,
-                         boolean commit)
+    public CommitRequest initialize(NodeID nodeId, 
+                                    UnitID unitID, 
+                                    Proposal proposal,
+                                    boolean commit)
     {
-        super(nodeId, unitID, proposal);
+        super.initialize(nodeId, unitID, proposal);
         myShouldCommit = commit;
+        return this;
     }
 
     /**
@@ -86,5 +87,23 @@ public class CommitRequest extends ConsensusMessage
     {
         super.writeExternal(out);
         out.writeBoolean(myShouldCommit);
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        super.free();
+        myShouldCommit = false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
     }
 }

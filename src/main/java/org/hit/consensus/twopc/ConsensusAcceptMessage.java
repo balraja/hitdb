@@ -48,14 +48,15 @@ public class ConsensusAcceptMessage extends ConsensusMessage
     /**
      * CTOR
      */
-    public ConsensusAcceptMessage(
+    public ConsensusAcceptMessage initialize(
         NodeID nodeId,
         UnitID unitID,
         Proposal proposal,
         boolean accepted)
     {
-        super(nodeId, unitID, proposal);
+        super.initialize(nodeId, unitID, proposal);
         myAccepted = accepted;
+        return this;
     }
 
     /**
@@ -87,5 +88,23 @@ public class ConsensusAcceptMessage extends ConsensusMessage
     {
         super.writeExternal(out);
         out.writeBoolean(myAccepted);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        super.free();
+        myAccepted = false;
     }
 }

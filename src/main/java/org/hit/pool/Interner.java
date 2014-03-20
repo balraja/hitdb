@@ -47,7 +47,8 @@ public abstract class Interner<T extends Internable>
     {
         Interner<?> interner = ourTypeToInternMap.get(internableType);
         if (interner == null) {
-            InternedBy internedBy = internableType.getAnnotation(InternedBy.class);
+            InternedBy internedBy = 
+                internableType.getAnnotation(InternedBy.class);
             try {
                 interner = internedBy.interner().newInstance();
                 ourTypeToInternMap.put(internableType, interner);

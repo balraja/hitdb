@@ -20,9 +20,6 @@
 
 package org.hit.communicator.nio;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.net.InetSocketAddress;
 
 import org.hit.communicator.NodeID;
@@ -37,7 +34,7 @@ import com.google.common.net.InetAddresses;
  * 
  * @author Balraja Subbiah
  */
-@InternedBy(interner=IPNodeIDInterner.class);
+@InternedBy(interner=IPNodeIDInterner.class)
 public class IPNodeID implements NodeID,Internable
 {
 

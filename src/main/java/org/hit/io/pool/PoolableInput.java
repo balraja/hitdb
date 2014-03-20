@@ -54,8 +54,11 @@ public class PoolableInput extends DataInputStream
     @Override
     public Object readObject() throws ClassNotFoundException, IOException
     {
-        int identifier = readInt();
-        Class<?> type = myRegistry.getPoolableType(identifier);
+        boolean hasIdentifier = readBoolean();
+        Class<?> type = 
+            hasIdentifier ? myRegistry.getPoolableType(readInt())
+                          : Class.forName(readUTF());
+            
         if (Internable.class.isAssignableFrom(type)) {
            Interner<?> interner = Interner.getInterner(type);
            return interner.readFromInput(this);

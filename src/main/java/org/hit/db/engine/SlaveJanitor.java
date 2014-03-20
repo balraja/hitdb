@@ -78,7 +78,9 @@ public class SlaveJanitor extends AbstractJanitor
                     ActorID.DB_ENGINE,
                     PooledObjects.getInstance(SendMessageEvent.class).initialize(
                         myMaster,
-                        new Heartbeat(getServerID(), myTableRowCountMap)));
+                        PooledObjects.getInstance(Heartbeat.class)
+                                     .initialize(getServerID(), 
+                                                 myTableRowCountMap)));
             }
         }
     }

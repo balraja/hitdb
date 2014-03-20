@@ -56,7 +56,7 @@ public interface Table<K extends Comparable<K>, P extends Persistable<K>>
      * Deletes the rows that falls between the given key range and returns those
      * rows, else returns null.
      */
-    public Collection<P> deleteRange(K primaryKey, K secondaryKey);
+    public Collection<P> deleteRange(K first, K last);
     
     /** 
      * Deletes the rows that falls between the given key range and returns those
@@ -69,7 +69,7 @@ public interface Table<K extends Comparable<K>, P extends Persistable<K>>
     public HitTableSchema getSchema();
     
     /**
-     * Updates the old object with the new object
+     * Updates the object with the specified key with the new object
      */
-    public boolean update(P old, P updated);
+    public boolean update(P updated);
 }
