@@ -20,13 +20,16 @@
 
 package org.hit.db.model;
 
+import org.hit.pool.Copyable;
+import org.hit.pool.Poolable;
+
 /**
  * Defines the contract for objects that can be stored in a table.
  *
  * @author Balraja Subbiah
  */
 public interface Persistable<K extends Comparable<K>>
-    extends Cloneable, Row
+    extends Row, Poolable, Copyable<Persistable<K>>
 {
     /** Defines the contract for a primary key */
     public K primaryKey();

@@ -21,8 +21,6 @@
 package org.hit.di;
 
 import org.hit.communicator.Communicator;
-import org.hit.communicator.MessageSerializer;
-import org.hit.communicator.ObjectStreamSerializer;
 import org.hit.communicator.ObjectStreamSerializerFactory;
 import org.hit.communicator.SerializerFactory;
 import org.hit.communicator.nio.NIOCommunicator;

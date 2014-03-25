@@ -256,7 +256,7 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
         Transactable<K, P> result = myTable.deleteRow(primaryKey, 
                                                       myStartTime,
                                                       myTransactionID);
-                                                      
+        myTableTrail.getWriteSet().add(result);
         return result != null ? result.getPersistable() : null;
     }
 
@@ -273,10 +273,8 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
                                 myTransactionID);
         
         // XXX Not sure about how to validate
-        /*
-        myTableTrail.getPredicateToDataMap().put(
-           new PredicateWrapper<K,P>(predicate), result);  */
-        
+
+        myTableTrail.getWriteSet().addAll(result);        
         Collection<P> actualResult =
             Collections2.transform(result, new Transactable2Persistable<K,P>());
         

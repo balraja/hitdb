@@ -34,5 +34,9 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface InternedBy
 {
+    /**
+     * Returns the {@link Interner} used for interning the objects of the
+     * type annotated by this annotation.
+     */
     Class<? extends Interner<?>> interner();
 }

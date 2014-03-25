@@ -43,6 +43,9 @@ public abstract class Interner<T extends Internable>
     private static final Map<Class<?>, Interner<?>> ourTypeToInternMap = 
         new HashMap<Class<?>, Interner<?>>();
     
+    /**
+     * Returns the {@link Interner} for the given type.
+     */
     public static Interner<?> getInterner(Class<?> internableType)
     {
         Interner<?> interner = ourTypeToInternMap.get(internableType);
@@ -67,6 +70,9 @@ public abstract class Interner<T extends Internable>
     {
     }
     
+    /**
+     * Takes an instance of object and casts it to {@link Internable}.
+     */
     @SuppressWarnings("unchecked")
     public void writeToOutput(ObjectOutput output, Object instance) 
         throws IOException
@@ -74,9 +80,19 @@ public abstract class Interner<T extends Internable>
         writeToOutput(output, (T) instance); 
     }
     
+    /**
+     * Reads the value of {@link Internable} from the {@link ObjectInput}
+     */
     public abstract T readFromInput(ObjectInput input) throws IOException;
     
+    /**
+     * Writes the value of {@link Internable} to the {@link ObjectOutput}
+     */
     public abstract void writeToOutput(ObjectOutput output, T instance) 
         throws IOException;
     
+    /**
+     * Returns the value of instance from the parameters.
+     */
+    public abstract T contructInstance(Object...parameters);
 }

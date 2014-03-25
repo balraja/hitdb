@@ -49,17 +49,9 @@ public class IPNodeIDInterner extends Interner<IPNodeID>
     public IPNodeIDInterner()
     {
     }
-
-    /**
-     * {@inheritDoc}
-     * @throws IOException 
-     */
-    @Override
-    public IPNodeID readFromInput(ObjectInput input) throws IOException
+    
+    private IPNodeID doConstructInstance(String hostAddress, int port)
     {
-        String hostAddress = input.readUTF();
-        int    port        = input.readInt();
-
         TIntObjectMap<WeakReference<IPNodeID>> hostMap = 
             myIdentifierCache.get(hostAddress);
         
@@ -83,6 +75,18 @@ public class IPNodeIDInterner extends Interner<IPNodeID>
 
     /**
      * {@inheritDoc}
+     * @throws IOException 
+     */
+    @Override
+    public IPNodeID readFromInput(ObjectInput input) throws IOException
+    {
+        String hostAddress = input.readUTF().intern();
+        int    port        = input.readInt();
+        return doConstructInstance(hostAddress, port);
+    }
+
+    /**
+     * {@inheritDoc}
      */
     @Override
     public void writeToOutput(ObjectOutput output, IPNodeID instance) 
@@ -91,5 +95,14 @@ public class IPNodeIDInterner extends Interner<IPNodeID>
         output.writeUTF(instance.getIPAddress().getHostString());
         output.writeInt(instance.getIPAddress().getPort());
     }
-    
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public IPNodeID contructInstance(Object... parameters)
+    {
+        return doConstructInstance((String)  parameters[0],
+                                   (Integer) parameters[1]);
+    }
 }

@@ -81,7 +81,8 @@ public class ReplicationProposal implements Proposal
      * {@inheritDoc}
      */
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
+    public void readExternal(ObjectInput in) 
+            throws IOException, ClassNotFoundException
     {
         myUnitID = (UnitID) in.readObject();
         myMutation = (Mutation) in.readObject();

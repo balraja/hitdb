@@ -45,7 +45,8 @@ public class SimplePoolableRegistry implements PoolableRegistry
         myTypeToIdentifierMap = HashBiMap.<Class<?>, Integer>create();
         int identifier = 1;
         for (Class<?> poolableType : OUR_LISTED_CLASSES) {
-            myTypeToIdentifierMap.put(poolableType, Integer.valueOf(identifier++));
+            myTypeToIdentifierMap.put(poolableType, 
+                                      Integer.valueOf(identifier++));
         }
     }
 

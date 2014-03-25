@@ -21,6 +21,8 @@
 package org.hit.db.transactions;
 
 import org.hit.db.model.Persistable;
+import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * Defines the contract for an object that has necessary fields to be used
@@ -29,19 +31,22 @@ import org.hit.db.model.Persistable;
  * @author Balraja Subbiah
  */
 public class Transactable<K extends Comparable<K>, P extends Persistable<K>>
+    implements Poolable
 {
     private long myStart;
     
     private long myEnd;
     
-    private final P myPersitable;
+    private P myPersitable;
     
     /**
-     * CTOR
+     * Initializes the {@link Transactable} from the {@link Persistable} 
+     * objects.
      */
-    public Transactable(P persitable)
+    public Transactable<K,P> initialize(P persitable)
     {
         myPersitable = persitable;
+        return this;
     }
 
     /** Returns the time upto which this version is active */
@@ -141,5 +146,25 @@ public class Transactable<K extends Comparable<K>, P extends Persistable<K>>
     public void setStart(long start)
     {
         myStart = start;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myStart      = Long.MIN_VALUE;
+        myEnd        = Long.MIN_VALUE;
+        PooledObjects.freeInstance(myPersitable);
+        myPersitable = null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
     }
 }

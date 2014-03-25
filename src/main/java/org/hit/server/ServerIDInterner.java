@@ -22,15 +22,15 @@ package org.hit.server;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.lang.ref.WeakReference;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
 
 import org.hit.pool.Interner;
 
 /**
+ * Implements {@link Interner} for {@link ServerNodeID} type.
+ * 
  * @author Balraja Subbiah
  */
 public class ServerIDInterner extends Interner<ServerNodeID>
@@ -44,18 +44,9 @@ public class ServerIDInterner extends Interner<ServerNodeID>
     {
         myNameToIDCache = new WeakHashMap<>();
     }
-
-    /**
-     * {@inheritDoc}
-     * @throws IOException 
-     */
-    @Override
-    public ServerNodeID readFromInput(ObjectInput input) throws IOException
+    
+    private ServerNodeID doConstructInstance(String name, String host, int port)
     {
-        String name = input.readUTF().intern();
-        String host = input.readUTF().intern();
-        int    port = input.readInt();
-        
         ServerNodeID serverID = myNameToIDCache.get(name);
         if (serverID != null 
             && serverID.getIPAddress().getHostString().equals(host)
@@ -76,11 +67,34 @@ public class ServerIDInterner extends Interner<ServerNodeID>
      * {@inheritDoc}
      */
     @Override
+    public ServerNodeID readFromInput(ObjectInput input) throws IOException
+    {
+        String name = input.readUTF().intern();
+        String host = input.readUTF().intern();
+        int    port = input.readInt();
+        return doConstructInstance(name, host, port);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void writeToOutput(ObjectOutput output, ServerNodeID instance)
             throws IOException
     {
         output.writeUTF(instance.getName());
         output.writeUTF(instance.getIPAddress().getHostString());
         output.writeInt(instance.getIPAddress().getPort());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ServerNodeID contructInstance(Object... params)
+    {
+        return doConstructInstance((String)  params[0],
+                                   (String)  params[1],
+                                   (Integer) params[2]);
     }
 }
