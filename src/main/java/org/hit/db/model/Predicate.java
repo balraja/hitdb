@@ -28,5 +28,14 @@ package org.hit.db.model;
  */
 public interface Predicate
 {
+    public static final Predicate MATCH_ALL = 
+        new Predicate() {
+            @Override
+            public boolean isInterested(Row row)
+            {
+                return true;
+            }
+        };
+    
     public boolean isInterested(Row row);
 }

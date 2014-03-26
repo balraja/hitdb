@@ -195,4 +195,20 @@ public class Airline implements Persistable<Long>, Externalizable
     {
         return Lists.newArrayList(AIRLINE_ID, AIRLINE_NAME);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
+    }
 }

@@ -20,39 +20,39 @@
 
 package org.hit.db.transactions;
 
-import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
+import org.hit.pool.Poolable;
 
 /**
  * @author Balraja Subbiah
  */
-public class PredicateWrapper<K extends Comparable<K>, P extends Persistable<K>>
+public class PredicateWrapper<K extends Comparable<K>> implements Poolable
 {
-    private final Predicate myPredicate;
+    private Predicate myPredicate;
 
-    private final K         myStart;
+    private K         myStart;
 
-    private final K         myEnd;
+    private K         myEnd;
 
     /**
-     * CTOR
+     * Method for initializing the predicate wrappers.
      */
-    public PredicateWrapper(Predicate predicate)
+    public PredicateWrapper<K> initialize(Predicate predicate)
     {
-        this(predicate, null, null);
+        return initialize(predicate, null, null);
     }
 
     /**
      * CTOR
      */
-    public PredicateWrapper(Predicate predicate, 
-                            K         start,
-                            K         end)
+    public PredicateWrapper<K> initialize(Predicate predicate, 
+                                          K         start,
+                                          K         end)
     {
-        super();
         myPredicate = predicate;
         myStart = start;
         myEnd = end;
+        return this;
     }
     
     /**
@@ -82,5 +82,24 @@ public class PredicateWrapper<K extends Comparable<K>, P extends Persistable<K>>
     public boolean isRangeQuery()
     {
         return myStart != null && myEnd != null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myPredicate = null;
+        myStart     = null;
+        myEnd       = null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
     }
 }

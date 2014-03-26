@@ -44,8 +44,10 @@ public class TransactionTableTrail<K extends Comparable<K>,
     private final Set<Transactable<K,P>>               myWriteSet;
 
     private final Set<Transactable<K,P>>               myNewWriteSet;
+    
+    private final Set<K>                               myDeleteSet;
 
-    private final Map<PredicateWrapper<K,P>,
+    private final Map<PredicateWrapper<K>,
                       Collection<Transactable<K,P>>>   myPredicateToDataMap;
     
     /**
@@ -58,6 +60,7 @@ public class TransactionTableTrail<K extends Comparable<K>,
         myWriteSet           = new HashSet<>();
         myNewWriteSet        = new HashSet<>();
         myPredicateToDataMap = new HashMap<>();
+        myDeleteSet          = new HashSet<>();
     }
 
     /**
@@ -71,7 +74,7 @@ public class TransactionTableTrail<K extends Comparable<K>,
     /**
      * Returns the value of predicateToDataMap
      */
-    public Map<PredicateWrapper<K,P>, Collection<Transactable<K, P>>>
+    public Map<PredicateWrapper<K>, Collection<Transactable<K, P>>>
         getPredicateToDataMap()
     {
         return myPredicateToDataMap;
@@ -99,5 +102,13 @@ public class TransactionTableTrail<K extends Comparable<K>,
     public Set<Transactable<K,P>> getWriteSet()
     {
         return myWriteSet;
+    }
+
+    /**
+     * Returns the value of deleteSet
+     */
+    public Set<K> getDeleteSet()
+    {
+        return myDeleteSet;
     }
 }

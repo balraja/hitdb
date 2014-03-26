@@ -20,6 +20,7 @@
 
 package org.hit.db.transactions;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -27,6 +28,7 @@ import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
 import org.hit.db.model.HitTableSchema;
 import org.hit.db.model.Table;
+import org.hit.pool.PooledObjects;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
@@ -41,23 +43,6 @@ import com.google.common.collect.Collections2;
 public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
     implements Table<K, P>
 {
-    /**
-     * Implements {@link Function} to transform <code>Transactable</code>
-     * </code>Persistable</code>.
-     */
-    private static class Transactable2Persistable<K extends Comparable<K>,
-                                                  P extends Persistable<K>>
-        implements Function<Transactable<K, P>, P>
-    {
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public P apply(Transactable<K, P> transactable)
-        {
-            return transactable.getPersistable();
-        }
-    }
     
     private final long                        myStartTime;
 
@@ -90,7 +75,12 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
     {
         // Close the old version.
         for (Transactable<K,P> transactable : myTableTrail.getWriteSet()) {
-            transactable.setEnd(commitTime);
+            if (myTableTrail.getDeleteSet().contains(
+                    transactable.getPersistable().primaryKey()))
+            {
+                myTable.deleteVersion(transactable);
+            }
+            PooledObjects.freeInstance(transactable);
         }
         // Update the start time of the new version to the commit time.
         for (Transactable<K,P> transactable : myTableTrail.getNewWriteSet()) {
@@ -125,21 +115,27 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("unchecked")
     @Override
     public Collection<P> findMatching(Predicate predicate)
     {
         Collection<Transactable<K,P>> result =
             myTable.findMatching(predicate, myStartTime, myTransactionID);
         myTableTrail.getPredicateToDataMap().put(
-            new PredicateWrapper<K,P>(predicate), result);
-        Collection<P> actualResult =
-            Collections2.transform(result, new Transactable2Persistable<K,P>());
+            PooledObjects.getInstance(PredicateWrapper.class)
+                         .initialize(predicate),
+            result);
+        Collection<P> actualResult = new ArrayList<>(result.size());
+        for (Transactable<K,P> t : result) {
+            actualResult.add((P) t.getPersistable().getCopy());
+        }
         return Collections.unmodifiableCollection(actualResult);
     }
    
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("unchecked")
     @Override
     public Collection<P> findMatching(Predicate  predicate,  
                                       K          start, 
@@ -148,26 +144,37 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
         Collection<Transactable<K,P>> result =
             myTable.findMatching(
                 predicate, start, end, myStartTime, myTransactionID);
+        
         myTableTrail.getPredicateToDataMap().put(
-           new PredicateWrapper<K,P>(predicate), result);
-        Collection<P> actualResult =
-            Collections2.transform(result, new Transactable2Persistable<K,P>());
+                PooledObjects.getInstance(PredicateWrapper.class)
+                             .initialize(predicate),
+                result);
+        Collection<P> actualResult = new ArrayList<>(result.size());
+        for (Transactable<K,P> t : result) {
+            actualResult.add((P) t.getPersistable().getCopy());
+        }
         return Collections.unmodifiableCollection(actualResult);    
     }
 
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("unchecked")
     @Override
     public P getRow(K primarykey)
     {
-        
         Transactable<K, P> result =
             myTable.getRow(primarykey, myStartTime, myTransactionID);
         
         if (result != null) {
+            // If the key has been deleted by this transaction then
+            // return null;
+            if (myTableTrail.getDeleteSet().contains(primarykey)) {
+                return null;
+            }
+
             myTableTrail.getReadSet().add(result);
-            return result.getPersistable();
+            return (P) result.getPersistable().getCopy();
         }
         else {
             return null;
@@ -229,7 +236,11 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
             myTableTrail.getWriteSet().add(tableOld);
         }
 
-        Transactable<K,P> updatedTransactable = new Transactable<K, P>(updated);
+        @SuppressWarnings("unchecked")
+        Transactable<K,P> updatedTransactable = 
+            PooledObjects.getInstance(Transactable.class)
+                         .initialize(updated);
+        
         updatedTransactable.setStart(
             TransactionHelper.toVersionID(myTransactionID));
         updatedTransactable.setEnd(TransactionHelper.INFINITY);
@@ -250,19 +261,23 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("unchecked")
     @Override
     public P deleteRow(K primaryKey)
     {
-        Transactable<K, P> result = myTable.deleteRow(primaryKey, 
-                                                      myStartTime,
-                                                      myTransactionID);
-        myTableTrail.getWriteSet().add(result);
-        return result != null ? result.getPersistable() : null;
+        Transactable<K, P> result = myTable.getRow(primaryKey, 
+                                                   myStartTime,
+                                                   myTransactionID);
+        // Acquire a write lock.
+        result.setEnd(TransactionHelper.toVersionID(myTransactionID));
+        myTableTrail.getDeleteSet().add(result.getPersistable().primaryKey());
+        return (P) (result != null ? result.getPersistable().getCopy() : null);
     }
 
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("unchecked")
     @Override
     public Collection<P> deleteRange(K primaryKey, K secondaryKey)
     {
@@ -272,12 +287,14 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
                                 myStartTime, 
                                 myTransactionID);
         
-        // XXX Not sure about how to validate
+        Collection<P> actualResult = new ArrayList<>(result.size());
+        for (Transactable<K,P> t : result) {
+            t.setEnd(TransactionHelper.toVersionID(myTransactionID));
+            myTableTrail.getDeleteSet().add(t.getPersistable().primaryKey());
+            actualResult.add((P) t.getPersistable().getCopy());
+        }
 
-        myTableTrail.getWriteSet().addAll(result);        
-        Collection<P> actualResult =
-            Collections2.transform(result, new Transactable2Persistable<K,P>());
-        
+        myTableTrail.getWriteSet().addAll(result);                
         return Collections.unmodifiableCollection(actualResult);    
     }
 

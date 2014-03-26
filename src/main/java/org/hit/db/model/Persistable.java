@@ -29,7 +29,7 @@ import org.hit.pool.Poolable;
  * @author Balraja Subbiah
  */
 public interface Persistable<K extends Comparable<K>>
-    extends Row, Poolable, Copyable<Persistable<K>>
+    extends Row, Poolable, Copyable
 {
     /** Defines the contract for a primary key */
     public K primaryKey();
