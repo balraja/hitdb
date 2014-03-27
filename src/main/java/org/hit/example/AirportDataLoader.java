@@ -20,6 +20,8 @@
 
 package org.hit.example;
 
+import org.hit.pool.PooledObjects;
+
 /**
  * A simple class that's responsible for loading <code>Airport</code> from the 
  * 
@@ -43,14 +45,15 @@ public final class AirportDataLoader extends DataLoader<Airport>
     @Override
     protected Airport parseFromTokens(String[] parts)
     {
-        return new Airport(Long.parseLong(parts[0]),
-                           parts[1],
-                           parts[2],
-                           parts[3],
-                           parts[4],
-                           Double.parseDouble(parts[6]),
-                           Double.parseDouble(parts[7]),
-                           Double.parseDouble(parts[8]),
-                           Float.parseFloat(parts[9]));
+        return PooledObjects.getInstance(Airport.class).initialize(
+               Long.parseLong(parts[0]),
+               parts[1],
+               parts[2],
+               parts[3],
+               parts[4],
+               Double.parseDouble(parts[6]),
+               Double.parseDouble(parts[7]),
+               Double.parseDouble(parts[8]),
+               Float.parseFloat(parts[9]));
     }
 }

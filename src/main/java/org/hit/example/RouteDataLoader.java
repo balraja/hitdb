@@ -20,6 +20,8 @@
 
 package org.hit.example;
 
+import org.hit.pool.PooledObjects;
+
 /**
  * Extends <code>DataLoader</code> to support loading data for <code>Route
  * </code>s from the file.
@@ -47,18 +49,12 @@ public class RouteDataLoader extends DataLoader<Route>
     @Override
     protected Route parseFromTokens(String[] parts)
     {
-        long srcAirport = Long.parseLong(parts[3]);
-        
-        if (srcAirport == 3093 && myRouteID < 4) {
-
-            return new Route(
+        return PooledObjects.getInstance(Route.class).initialize(
               myRouteID++, 
               Long.parseLong(parts[1]),
               Long.parseLong(parts[3]),
               Long.parseLong(parts[5]),
               parts[6].trim().isEmpty(),
               Integer.parseInt(parts[7]));
-        }
-        return null;
     }
 }

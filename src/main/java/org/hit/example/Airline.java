@@ -28,6 +28,8 @@ import java.util.Collection;
 
 import org.hit.db.model.Persistable;
 import org.hit.db.model.mutations.MutationFactory;
+import org.hit.pool.Copyable;
+import org.hit.pool.PooledObjects;
 
 import com.google.common.collect.Lists;
 
@@ -59,11 +61,11 @@ public class Airline implements Persistable<Long>, Externalizable
     /**
      * CTOR
      */
-    public Airline(long iD, String name)
+    public Airline initialize(long iD, String name)
     {
-        super();
         myID = iD;
         myName = name;
+        return this;
     }
 
     /**
@@ -202,6 +204,8 @@ public class Airline implements Persistable<Long>, Externalizable
     @Override
     public void free()
     {
+        myID = Long.MIN_VALUE;
+        myName = null;
     }
 
     /**
@@ -210,5 +214,15 @@ public class Airline implements Persistable<Long>, Externalizable
     @Override
     public void initialize()
     {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Airline getCopy()
+    {
+        return PooledObjects.getInstance(Airline.class)
+                            .initialize(myID, myName);
     }
 }

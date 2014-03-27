@@ -19,10 +19,6 @@
 */
 package org.hit.db.engine;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-
 import org.hit.consensus.ConsensusType;
 import org.hit.consensus.UnitID;
 
@@ -31,14 +27,16 @@ import org.hit.consensus.UnitID;
  * 
  * @author Balraja Subbiah
  */
-public class ReplicationID extends UnitID
+public class ConsensusID extends UnitID
 {
+    public static final String DELIMITER = ":";
+    
     private String myServerName;
 
     /**
      * CTOR
      */
-    public ReplicationID()
+    public ConsensusID()
     {
         super();
     }
@@ -46,9 +44,9 @@ public class ReplicationID extends UnitID
     /**
      * CTOR
      */
-    public ReplicationID(String serverName)
+    public ConsensusID(ConsensusType type, String serverName)
     {
-        super(ConsensusType.RAFT);
+        super(type);
         myServerName = serverName;
     }
 
@@ -85,7 +83,7 @@ public class ReplicationID extends UnitID
             return false;
         if (getClass() != obj.getClass())
             return false;
-        ReplicationID other = (ReplicationID) obj;
+        ConsensusID other = (ConsensusID) obj;
         if (myServerName == null) {
             if (other.myServerName != null)
                 return false;
@@ -95,26 +93,6 @@ public class ReplicationID extends UnitID
         return true;
     }
     
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
-    {
-        super.readExternal(in);
-        myServerName = in.readUTF();
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException
-    {
-        super.writeExternal(out);
-        out.writeUTF(myServerName);
-    }
-
     /**
      * {@inheritDoc}
      */

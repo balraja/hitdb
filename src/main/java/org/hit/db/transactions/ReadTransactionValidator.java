@@ -93,7 +93,7 @@ public class ReadTransactionValidator implements TransactionValidator
         TransactableTable<K,P> table =
             myDatabase.lookUpTable(trail.getTableName());
         
-        for (Map.Entry<PredicateWrapper<K,P>, Collection<Transactable<K,P>>>
+        for (Map.Entry<PredicateWrapper<K>, Collection<Transactable<K,P>>>
                entry : trail.getPredicateToDataMap().entrySet())
         {
             Collection<Transactable<K,P>> newResult =

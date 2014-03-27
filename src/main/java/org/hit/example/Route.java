@@ -28,6 +28,8 @@ import java.util.Collection;
 
 import org.hit.db.model.Persistable;
 import org.hit.db.model.mutations.MutationFactory;
+import org.hit.pool.Copyable;
+import org.hit.pool.PooledObjects;
 
 import com.google.common.collect.Lists;
 
@@ -67,20 +69,21 @@ public class Route implements Persistable<Long>, Externalizable
     /**
      * CTOR
      */
-    public Route(long routeId, 
-                 long airlineId, 
-                 long srcAirportId, 
-                 long destnAirportId,
-                 boolean shared, 
-                 int numStops)
+    public Route initialize(
+        long routeId, 
+        long airlineId, 
+        long srcAirportId, 
+        long destnAirportId,
+        boolean shared, 
+        int numStops)
     {
-        super();
         myRouteId = routeId;
         mySrcAirportId = srcAirportId;
         myDestnAirportId = destnAirportId;
         myAirlineId = airlineId;
         myShared = shared;
         myNumStops = numStops;
+        return this;
     }
 
     /**
@@ -246,5 +249,42 @@ public class Route implements Persistable<Long>, Externalizable
             DESTN_AIRPORT, 
             AIRLINE_ID, 
             SHARED, NUM_STOPS);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myRouteId = Long.MIN_VALUE;
+        mySrcAirportId = Long.MIN_VALUE;
+        myDestnAirportId = Long.MIN_VALUE;
+        myAirlineId = Long.MIN_VALUE;
+        myShared = false;
+        myNumStops = Integer.MIN_VALUE;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Copyable getCopy()
+    {
+        return PooledObjects.getInstance(Route.class)
+                            .initialize(myRouteId, 
+                                        myAirlineId, 
+                                        mySrcAirportId, 
+                                        myDestnAirportId, 
+                                        myShared, 
+                                        myNumStops);
     }
 }

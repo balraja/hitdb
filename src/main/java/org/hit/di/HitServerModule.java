@@ -22,10 +22,11 @@ package org.hit.di;
 
 import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
+import org.hit.consensus.ConsensusType;
 import org.hit.consensus.UnitID;
 import org.hit.db.engine.Allocator;
 import org.hit.db.engine.EngineJanitor;
-import org.hit.db.engine.ReplicationID;
+import org.hit.db.engine.ConsensusID;
 import org.hit.db.engine.StandardAllocator;
 import org.hit.db.engine.TransactionManager;
 import org.hit.db.transactions.TransactableDatabase;
@@ -105,14 +106,14 @@ public class HitServerModule extends HitModule
     @Provides
     public UnitID makeReplicationUnitID(ServerConfig config)
     {
-        return new ReplicationID(config.getServerName());
+        return new ConsensusID(ConsensusType.RAFT, config.getServerName());
     }
     
     @Named("ReplicationSlaveUnitID")
     @Provides
     UnitID makeReplicationSlaveUnitID(ServerConfig config)
     {
-        return new ReplicationID(config.getReplicationGroup());
+        return new ConsensusID(ConsensusType.RAFT, config.getReplicationGroup());
     }
     
     @Named("ReplicationSlaveGroupID")

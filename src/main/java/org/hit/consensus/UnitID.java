@@ -25,13 +25,15 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import org.hit.pool.Internable;
+
 /**
  * Defines the contract for uniquely identifying the unit which is guarded by
  * {@link ConsensusProtocol}.
  * 
  * @author Balraja Subbiah
  */
-public abstract class UnitID implements Externalizable
+public abstract class UnitID implements Internable
 {
     private ConsensusType myConsensusType;
 
@@ -58,25 +60,6 @@ public abstract class UnitID implements Externalizable
     public ConsensusType getConsensusType()
     {
         return myConsensusType;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException
-    {
-        out.writeUTF(myConsensusType.name());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void readExternal(ObjectInput in)
-        throws IOException, ClassNotFoundException
-    {
-        myConsensusType = ConsensusType.valueOf(in.readUTF());
     }
 
     /**

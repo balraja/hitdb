@@ -34,6 +34,7 @@ import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.consensus.ConsensusType;
 import org.hit.consensus.UnitID;
 import org.hit.db.model.DBOperation;
 import org.hit.db.model.DatabaseException;
@@ -855,7 +856,11 @@ public class TransactionManager
         Set<NodeID> acceptors =
             Sets.difference(operations.keySet(),
                             Collections.singleton(myServerID));
-        UnitID unitID = new DistributedTrnID(clientID, sequenceNumber);
+        
+        UnitID unitID = new ConsensusID(ConsensusType.TW0_PC,
+                                        clientID.toString() 
+                                        + ConsensusID.DELIMITER
+                                        + sequenceNumber);
         
         myEventBus.publish(
             ActorID.DB_ENGINE,

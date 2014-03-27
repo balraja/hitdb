@@ -20,6 +20,8 @@
 
 package org.hit.example;
 
+import org.hit.pool.PooledObjects;
+
 /**
  * Extends <code>DataLoader</code> to support loading <code>Airline</code>
  * data.
@@ -44,7 +46,8 @@ public class AirlineDataLoader extends DataLoader<Airline>
     @Override
     protected Airline parseFromTokens(String[] parts)
     {
-        return new Airline(Long.valueOf(parts[0]),
-                           parts[1]);
+        return PooledObjects.getInstance(Airline.class)
+                            .initialize(Long.valueOf(parts[0]),
+                                        parts[1]);
     }
 }

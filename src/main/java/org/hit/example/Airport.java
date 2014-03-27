@@ -28,6 +28,8 @@ import java.util.Collection;
 
 import org.hit.db.model.Persistable;
 import org.hit.db.model.mutations.MutationFactory;
+import org.hit.pool.Copyable;
+import org.hit.pool.PooledObjects;
 
 import com.google.common.collect.Lists;
 
@@ -68,17 +70,17 @@ public class Airport implements Persistable<Long>, Externalizable
     /**
      * CTOR
      */
-    public Airport(long iD,
-                   String name,
-                   String city,
-                   String country,
-                   String iATACode,
-                   double latitude,
-                   double longitude,
-                   double altitude,
-                   float dST)
+    public Airport initialize(
+       long iD,
+       String name,
+       String city,
+       String country,
+       String iATACode,
+       double latitude,
+       double longitude,
+       double altitude,
+       float dST)
     {
-        super();
         myID = iD;
         myName = name;
         myCity = city;
@@ -88,6 +90,7 @@ public class Airport implements Persistable<Long>, Externalizable
         myLongitude = longitude;
         myAltitude = altitude;
         myDST = dST;
+        return this;
     }
 
     /**
@@ -248,5 +251,48 @@ public class Airport implements Persistable<Long>, Externalizable
             "longitude", 
             "altitude", 
             "dst");
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myAltitude = Double.NaN;
+        myCity     = null;
+        myCountry  = null;
+        myDST      = Float.NaN;
+        myIATACode = null;
+        myID       = Long.MIN_VALUE;
+        myLatitude = Double.NaN;
+        myLongitude = Double.NaN;
+        myName      = null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Airport getCopy()
+    {
+        return PooledObjects.getInstance(Airport.class)
+                            .initialize(myID, 
+                                        myName, 
+                                        myCity, 
+                                        myCountry, 
+                                        myIATACode, 
+                                        myLatitude, 
+                                        myLongitude, 
+                                        myAltitude, 
+                                        myDST);
     }
 }
