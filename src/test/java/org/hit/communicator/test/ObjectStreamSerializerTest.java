@@ -34,6 +34,8 @@ import org.hit.communicator.ObjectStreamSerializer;
 import org.hit.communicator.nio.IPNodeID;
 import org.hit.io.buffer.BufferManager;
 import org.hit.io.buffer.ManagedBuffer;
+import org.hit.io.pool.PoolableIOFactory;
+import org.hit.pool.SimplePoolableRegistry;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -50,7 +52,9 @@ public class ObjectStreamSerializerTest
         NodeID nodeID = new IPNodeID(10000);
         TestMessage message = new TestMessage(nodeID, 1001);
         MessageSerializer serializer = 
-            new ObjectStreamSerializer(new BufferManager(20));
+            new ObjectStreamSerializer(new BufferManager(20), 
+                                       new PoolableIOFactory(
+                                           new SimplePoolableRegistry()));
         BinaryMessage binaryMessage = serializer.serialize(message);
         TestMessage deserializedMessage =
             (TestMessage) serializer.parse(binaryMessage).iterator().next();
@@ -66,7 +70,9 @@ public class ObjectStreamSerializerTest
         NodeID nodeID = new IPNodeID(10000);
         BigTestMessage message = new BigTestMessage(nodeID);
         MessageSerializer serializer = 
-            new ObjectStreamSerializer(new BufferManager(20));
+                new ObjectStreamSerializer(new BufferManager(20), 
+                        new PoolableIOFactory(
+                            new SimplePoolableRegistry()));
         BinaryMessage binaryMessage = serializer.serialize(message);
         BigTestMessage deserializedMessage =
             (BigTestMessage) serializer.parse(binaryMessage).iterator().next();
@@ -88,7 +94,9 @@ public class ObjectStreamSerializerTest
         BufferManager manager = new BufferManager(5);
         
         MessageSerializer serializer = 
-            new ObjectStreamSerializer(manager);
+                new ObjectStreamSerializer(new BufferManager(20), 
+                        new PoolableIOFactory(
+                            new SimplePoolableRegistry()));
         BinaryMessage binaryMessage = serializer.serialize(message);
         binaryMessage.writeTo(channel);
         

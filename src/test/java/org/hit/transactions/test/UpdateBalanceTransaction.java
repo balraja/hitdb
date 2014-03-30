@@ -27,6 +27,7 @@ import java.io.ObjectOutput;
 import org.hit.db.model.Database;
 import org.hit.db.model.Mutation;
 import org.hit.db.model.Table;
+import org.hit.pool.PooledObjects;
 
 /**
  * A simple mutation to update the account balance.
@@ -77,12 +78,13 @@ public class UpdateBalanceTransaction implements Mutation
             database.lookUpTable(Account.TABLE_NAME);
         Account account = accountTable.getRow(Long.valueOf(myAccountID));
         if (account == null) {
-            accountTable.update(null, new Account(myAccountID, myBalance));
+            accountTable.update(PooledObjects.getInstance(Account.class)
+                                             .initialize(myAccountID, myBalance));
         }
         else {
-            accountTable.update(account, 
-                                new Account(myAccountID, 
-                                            account.getBalance() + myBalance));
+            accountTable.update(PooledObjects.getInstance(Account.class)
+                        .initialize(myAccountID, account.getBalance() + myBalance));
+
         }
     }
 }

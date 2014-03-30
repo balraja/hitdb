@@ -117,14 +117,6 @@ public class TestTable<K extends Comparable<K>, P extends Persistable<K>>
         return mySchema;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean update(P old, P updated)
-    {
-        return false;
-    }
 
     /**
      * {@inheritDoc}
@@ -152,5 +144,14 @@ public class TestTable<K extends Comparable<K>, P extends Persistable<K>>
     {
         // TODO Auto-generated method stub
         return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean update(P updated)
+    {
+        return false;
     }
 }

@@ -28,6 +28,9 @@ import org.hit.db.keyspace.domain.LongDomain;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Row;
 import org.hit.db.model.HitTableSchema;
+import org.hit.io.pool.PoolableOutput;
+import org.hit.pool.Copyable;
+import org.hit.pool.PooledObjects;
 
 import com.google.common.collect.Lists;
 
@@ -53,18 +56,18 @@ public class Account implements Persistable<Long>, Row
     
     private static final String BALANCE = "balance";
     
-    private final long myAccountID;
+    private long myAccountID;
     
-    private final double myBalance;
+    private double myBalance;
     
     /**
      * CTOR
      */
-    public Account(long accountID, double balance)
+    public Account initialize(long accountID, double balance)
     {
-        super();
         myAccountID = accountID;
         myBalance = balance;
+        return this;
     }
     
     /**
@@ -162,5 +165,33 @@ public class Account implements Persistable<Long>, Row
     public Collection<String> getFieldNames()
     {
         return Lists.newArrayList(ACCOUNT_ID, BALANCE);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myAccountID = Long.MIN_VALUE;
+        myBalance   = Double.NaN;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initialize()
+    {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Account getCopy()
+    {
+        return PooledObjects.getInstance(Account.class)
+                            .initialize(myAccountID, myBalance);
     }
 }

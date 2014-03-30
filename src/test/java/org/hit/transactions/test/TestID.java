@@ -20,10 +20,6 @@
 
 package org.hit.transactions.test;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-
 import org.hit.communicator.NodeID;
 
 /**
@@ -56,24 +52,6 @@ public class TestID implements NodeID
         return myID;
     }
     
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void readExternal(ObjectInput in)
-        throws IOException, ClassNotFoundException
-    {
-        myID = in.readUTF();        
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException
-    {
-        out.writeUTF(myID);        
-    }
 
     /**
      * {@inheritDoc}

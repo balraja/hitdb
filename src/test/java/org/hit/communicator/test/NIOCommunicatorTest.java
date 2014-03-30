@@ -38,7 +38,10 @@ import org.hit.db.model.mutations.BatchAddMutation;
 import org.hit.example.Airport;
 import org.hit.example.AirportDataLoader;
 import org.hit.io.buffer.BufferManager;
+import org.hit.io.pool.PoolableIOFactory;
 import org.hit.messages.DBOperationMessage;
+import org.hit.pool.PooledObjects;
+import org.hit.pool.SimplePoolableRegistry;
 import org.junit.Test;
 
 /**
@@ -68,10 +71,12 @@ public class NIOCommunicatorTest
         {
             BufferManager bufferManager = new BufferManager(20);
             myCommunicator =
-                new NIOCommunicator(new ObjectStreamSerializerFactory(
-                                        bufferManager),
-                                    bufferManager,
-                                    receiverID);
+                    new NIOCommunicator(new ObjectStreamSerializerFactory(
+                            bufferManager,
+                            new PoolableIOFactory(
+                                new SimplePoolableRegistry())),
+                        bufferManager,
+                        receiverID);
 
             myResultAvailable = new AtomicBoolean(false);
             myReceivedMessage = null;
@@ -152,7 +157,9 @@ public class NIOCommunicatorTest
             BufferManager bufferManager = new BufferManager(20);
             myCommunicator =
                 new NIOCommunicator(new ObjectStreamSerializerFactory(
-                                        bufferManager),
+                                        bufferManager,
+                                        new PoolableIOFactory(
+                                            new SimplePoolableRegistry())),
                                     bufferManager,
                                     mySenderID);
             myStop = new AtomicBoolean(false);
@@ -198,7 +205,8 @@ public class NIOCommunicatorTest
         BatchAddMutation<Long, Airport> batchMutation =
             new BatchAddMutation<>("Airport", new ArrayList<>(airportList.subList(0, 5)));
         DBOperationMessage message =
-            new DBOperationMessage(senderID, 1L, batchMutation);
+            PooledObjects.getInstance(DBOperationMessage.class)
+                         .initialize(senderID, 1L, batchMutation);
 
         Sender sender = new Sender(senderID, receiverID, message);
         Thread senderThread = new Thread(sender);
