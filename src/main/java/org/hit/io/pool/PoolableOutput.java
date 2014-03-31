@@ -71,10 +71,10 @@ public class PoolableOutput extends DataOutputStream
             interner.writeToOutput(this, obj);
         }
         else if (obj instanceof Externalizable) {
+            boolean isPoolable = obj instanceof Poolable;
             int id = 
-                obj instanceof Poolable ? 
-                    myRegistry.getUniqueIdentifier(obj.getClass())
-                    : -1;
+                isPoolable ? myRegistry.getUniqueIdentifier(obj.getClass())
+                           : -1;
 
             if (id >= 0) {
                 writeBoolean(true);
@@ -87,7 +87,9 @@ public class PoolableOutput extends DataOutputStream
             
             Externalizable externalizable = (Externalizable) obj;
             externalizable.writeExternal(this);
-            PooledObjects.freeInstance((Poolable) obj); 
+            if (isPoolable) {
+                PooledObjects.freeInstance((Poolable) obj); 
+            }
         }
         else {
             throw new IOException(

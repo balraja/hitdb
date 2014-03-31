@@ -49,7 +49,7 @@ public class CLQPool<T extends Poolable> extends AbstractPool<T>
             Collections.newSetFromMap(new IdentityHashMap<T,Boolean>(size));
         myFreeInstances      = new ConcurrentLinkedQueue<>();
         for (int i = 0; i < initialSize; i++) {
-            myFreeInstances.add(newObject());
+            myFreeInstances.offer(newObject());
         }
     }
     
@@ -59,8 +59,12 @@ public class CLQPool<T extends Poolable> extends AbstractPool<T>
     @Override
     protected void surrender(T freedObject)
     {
-        myAllocatedInstances.remove(freedObject);
-        myFreeInstances.add(freedObject);
+        if (freedObject == null) {
+            return;
+        }
+        if (myAllocatedInstances.remove(freedObject)) {
+            myFreeInstances.offer(freedObject);
+        }
     }
     
     /**
@@ -69,8 +73,22 @@ public class CLQPool<T extends Poolable> extends AbstractPool<T>
     @Override
     public T getObject()
     {
-        T allocatedObject = myFreeInstances.remove();
-        myAllocatedInstances.add(allocatedObject);
+        T allocatedObject = myFreeInstances.poll();
+        if (allocatedObject == null) {
+            if (myAllocatedInstances.size() < getPoolSize()) {
+                for (int i = 0; i < getInitialSize(); i++) {
+                    myFreeInstances.offer(newObject());
+                }
+            }
+        }
+        allocatedObject = myFreeInstances.poll();
+        if (allocatedObject != null) {
+            myAllocatedInstances.add(allocatedObject);
+        }
+        else {
+            allocatedObject = newObject();
+        }
         return allocatedObject;
+        
     }
 }

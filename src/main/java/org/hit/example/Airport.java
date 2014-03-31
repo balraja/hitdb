@@ -28,7 +28,7 @@ import java.util.Collection;
 
 import org.hit.db.model.Persistable;
 import org.hit.db.model.mutations.MutationFactory;
-import org.hit.pool.Copyable;
+import org.hit.pool.PoolConfiguration;
 import org.hit.pool.PooledObjects;
 
 import com.google.common.collect.Lists;
@@ -38,6 +38,7 @@ import com.google.common.collect.Lists;
  *
  * @author Balraja Subbiah
  */
+@PoolConfiguration(initialSize = 100, size = 20000)
 public class Airport implements Persistable<Long>, Externalizable
 {
     public static final String TABLE_NAME = "airports";

@@ -72,15 +72,15 @@ public final class PooledObjects
                 instanceType.getAnnotation(PoolConfiguration.class);
             
             if (configuration == null) {
-                pool = new CLQPool<T>(DEFAULT_INITIAL_SIZE,
-                                      DEFAULT_SIZE,
+                pool = new CLQPool<T>(DEFAULT_SIZE,
+                                      DEFAULT_INITIAL_SIZE,
                                       instanceType,
                                       new ReflectiveFactory());
             }
             else {
                 try {
-                    pool = new CLQPool<T>(configuration.initialSize(),
-                                          configuration.size(),
+                    pool = new CLQPool<T>(configuration.size(),
+                                          configuration.initialSize(),
                                           instanceType,
                                           configuration.factoryClass()
                                                        .newInstance());

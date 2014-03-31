@@ -38,5 +38,5 @@ public @interface PoolConfiguration
     
     int size();
     
-    Class<? extends Factory> factoryClass();
+    Class<? extends Factory> factoryClass() default ReflectiveFactory.class;
 }

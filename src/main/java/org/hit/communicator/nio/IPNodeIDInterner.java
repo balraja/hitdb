@@ -26,11 +26,16 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.lang.ref.WeakReference;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.hit.pool.Interner;
+import org.hit.util.LogFactory;
 
 /**
  * Extends <code>Interner</code> to support reading writing <code>IPNodeID
@@ -40,6 +45,9 @@ import org.hit.pool.Interner;
  */
 public class IPNodeIDInterner extends Interner<IPNodeID>
 {
+    private static final Logger LOG =
+            LogFactory.getInstance().getLogger(IPNodeIDInterner.class);
+                    
     private final Map<String, TIntObjectMap<WeakReference<IPNodeID>>>
          myIdentifierCache = new HashMap<>();
          
@@ -50,7 +58,8 @@ public class IPNodeIDInterner extends Interner<IPNodeID>
     {
     }
     
-    private IPNodeID doConstructInstance(String hostAddress, int port)
+    private IPNodeID doConstructInstance(String hostAddress, int port) 
+            throws IOException
     {
         TIntObjectMap<WeakReference<IPNodeID>> hostMap = 
             myIdentifierCache.get(hostAddress);
@@ -63,9 +72,16 @@ public class IPNodeIDInterner extends Interner<IPNodeID>
         WeakReference<IPNodeID> reference = hostMap.get(port);
         IPNodeID nodeID = reference != null ? reference.get() : null;
         if (nodeID == null) {
-            nodeID =
-                new IPNodeID(
-                    InetSocketAddress.createUnresolved(hostAddress, port));
+            try {
+                nodeID =
+                    new IPNodeID(new InetSocketAddress(
+                            InetAddress.getByName(hostAddress),
+                            port));
+            }
+            catch (UnknownHostException e) {
+                LOG.log(Level.SEVERE, e.getMessage(), e);
+                throw new IOException(e);
+            }
             
            reference = new WeakReference<IPNodeID>(nodeID);
            hostMap.put(port, reference);
@@ -102,7 +118,12 @@ public class IPNodeIDInterner extends Interner<IPNodeID>
     @Override
     public IPNodeID contructInstance(Object... parameters)
     {
-        return doConstructInstance((String)  parameters[0],
-                                   (Integer) parameters[1]);
+        try {
+            return doConstructInstance((String)  parameters[0],
+                                       (Integer) parameters[1]);
+        }
+        catch (IOException e) {
+            return null;
+        }
     }
 }

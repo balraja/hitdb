@@ -24,10 +24,14 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInput;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.hit.pool.Internable;
 import org.hit.pool.Interner;
+import org.hit.pool.Poolable;
 import org.hit.pool.PooledObjects;
+import org.hit.util.LogFactory;
 
 /**
  * Defines an input stream that initializes the object from pool.
@@ -37,6 +41,9 @@ import org.hit.pool.PooledObjects;
 public class PoolableInput extends DataInputStream
     implements ObjectInput
 {
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(PoolableInput.class);
+                    
     private final PoolableRegistry myRegistry;
 
     /**
@@ -63,12 +70,24 @@ public class PoolableInput extends DataInputStream
            Interner<?> interner = Interner.getInterner(type);
            return interner.readFromInput(this);
         }
-        else {
+        else if (Poolable.class.isAssignableFrom(type)){
             Externalizable externalizable = 
                 (Externalizable) 
                     PooledObjects.getUnboundedInstance(type);
             externalizable.readExternal(this);
             return externalizable;
+        }
+        else {
+            try {
+                Externalizable externalizable = 
+                    (Externalizable) type.newInstance();
+                externalizable.readExternal(this);
+                return externalizable;
+            }
+            catch (InstantiationException | IllegalAccessException e) {
+                LOG.log(Level.SEVERE, e.getMessage(), e);
+            }
+            return null;
         }
     }
 }
