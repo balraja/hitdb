@@ -125,8 +125,6 @@
                 </program>
                  <program>
                   <mainClass>org.hit.server.topology.TopologyLauncher</mainClass>
-                  <commandLineArguments>
-                  </commandLineArguments>
                   <name>start_topology_on_localhost</name>
                   <jvmSettings>
                     <systemProperties>
@@ -191,7 +189,7 @@
                     </systemProperties>
                   </jvmSettings>
                 </program>
-	            </programs>
+	          </programs>
 	        </configuration>
 	       </execution>
 	      </executions>

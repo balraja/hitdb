@@ -26,14 +26,23 @@ import java.io.OutputStream;
 
 /**
  * Defines the contract for an interface that's responsible for creating
- * serializing and de serializing the object.
+ * ObjectInput and ObjectOutput for serializing and deserializing the 
+ * objects.
  * 
  * @author Balraja Subbiah
  */
 public interface ObjectIOFactory
 {
+    /**
+     * Returns {@link ObjectOutput} that wraps the given {@link OutputStream}
+     * which in turn can be used for serializing objects.
+     */
     public ObjectOutput getOutput(OutputStream out);
     
+    /**
+     * Returns {@link ObjectInput} that wraps the given {@link InputStream}
+     * which in turn can be used for reading objects from that stream.
+     */
     public ObjectInput  getInput(InputStream in);
     
 }

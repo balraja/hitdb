@@ -49,6 +49,8 @@ public final class TopologyLauncher extends AbstractLauncher
     
     private static final String LOG_DIR = "log_directory";
     
+    private static final String DUMP_OUTPUT = "dump_output";
+    
     private static final String SERVER_LAUNCHER_COMMAND = "start_server";
     
     private static final String SERVER_NAME = " --server_name ";
@@ -65,7 +67,13 @@ public final class TopologyLauncher extends AbstractLauncher
     
     private static final String LOG_FILE = " --log_file ";
     
+    private static final String TRANSACTION_LOG_DIR = " --transaction_log_dir ";
+    
     private static final String LOG_SUFFIX = ".log";
+    
+    private static final String DUMP_FILE = " --dump_file ";
+    
+    private static final String DUMP_SUFFIX = ".dump";
     
     private final Options myServerCommandLineOptions;
 
@@ -85,6 +93,12 @@ public final class TopologyLauncher extends AbstractLauncher
             LOG_DIR, 
             true, 
             "Specifies the directory under which server's logs are stored");
+        
+        myServerCommandLineOptions.addOption(
+            DUMP_OUTPUT,
+            false,
+            "If specified the output will be dumped under server_name.dump"
+            + " under LOG_DIR specified");
         
         myServerCommandLineOptions.addOption(
             HELP,
@@ -140,6 +154,8 @@ public final class TopologyLauncher extends AbstractLauncher
                 System.exit(1);
             }
             
+            boolean dumpOutput = cmdLine.hasOption(DUMP_OUTPUT);
+            
             List<String> servers = topology.getServers();
             System.out.println("The list of servers is " + servers);
             for (String server : servers) {
@@ -150,13 +166,13 @@ public final class TopologyLauncher extends AbstractLauncher
                                        servers.size(), 
                                        topology.isMasterServer(server), 
                                        topology.getIamReplicaFor(server),
-                                       logDirectory);
+                                       logDirectory,
+                                       dumpOutput);
                 runCommand(command);
                     
             }
         }
-        catch(ParseException | ConfigurationException  e)
-        {
+        catch(ParseException | ConfigurationException  e) {
             e.printStackTrace();
         }
     }
@@ -168,7 +184,8 @@ public final class TopologyLauncher extends AbstractLauncher
         int serverCount,
         boolean isMaster,
         String replicaFor,
-        String baseLogDir)
+        String baseLogDir,
+        boolean dumpOutput)
     {
         StringBuilder commandBuilder = new StringBuilder();
         commandBuilder.append(appHome);
@@ -195,6 +212,20 @@ public final class TopologyLauncher extends AbstractLauncher
                              + serverName
                              + LOG_SUFFIX);
         
+        commandBuilder.append(TRANSACTION_LOG_DIR
+                              + baseLogDir
+                              + File.separator
+                              + serverName
+                              + File.separator);
+        
+        if (dumpOutput) {
+            commandBuilder.append(DUMP_FILE
+                                 + baseLogDir
+                                 + File.separator
+                                 + serverName
+                                 + DUMP_SUFFIX);
+        }
+        
         return commandBuilder.toString();
     }
     
@@ -203,12 +234,12 @@ public final class TopologyLauncher extends AbstractLauncher
         System.out.println("EXECUTING " + command);
         ProcessBuilder bldr = null;
         if (System.getProperty("os.name").toLowerCase().contains("win")) {
-            bldr = new ProcessBuilder(Arrays.<String>asList(
-                    "cmd", "/c", command));
+            bldr = 
+                new ProcessBuilder(Arrays.<String>asList("cmd", "/c", command));
         }
         else {
-            bldr = new ProcessBuilder(Arrays.<String>asList(
-                "bash", "-c", command));
+            bldr = 
+                new ProcessBuilder(Arrays.<String>asList("bash", "-c", command));
         }
         try {
             bldr.start();
@@ -218,6 +249,9 @@ public final class TopologyLauncher extends AbstractLauncher
         }
     }
     
+    /**
+     * The main application used for launching the servers.
+     */
     public static void main(String[] args)
     {
         TopologyLauncher launcher = new TopologyLauncher();

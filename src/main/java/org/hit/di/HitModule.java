@@ -26,9 +26,11 @@ import org.hit.communicator.SerializerFactory;
 import org.hit.communicator.nio.NIOCommunicator;
 import org.hit.gms.GroupID;
 import org.hit.gms.SimpleGroupID;
+import org.hit.io.ObjectIOFactory;
 import org.hit.io.buffer.BufferConfig;
 import org.hit.io.buffer.BufferManager;
 import org.hit.io.buffer.BufferPropertyConfig;
+import org.hit.io.pool.PoolableIOFactory;
 import org.hit.io.pool.PoolableRegistry;
 import org.hit.pool.SimplePoolableRegistry;
 import org.hit.util.ApplicationProperties;
@@ -70,6 +72,7 @@ public abstract class HitModule extends AbstractModule
                           .toInstance("HitServers");
         bind(BufferConfig.class).to(BufferPropertyConfig.class);
         bind(PoolableRegistry.class).to(SimplePoolableRegistry.class);
+        bind(ObjectIOFactory.class).to(PoolableIOFactory.class);
     }
 
     protected Integer getBoundPort()
