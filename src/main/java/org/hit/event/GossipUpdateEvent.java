@@ -25,14 +25,17 @@ import java.util.Collection;
 
 import org.hit.db.partitioner.Partitioner;
 import org.hit.gossip.Gossip;
+import org.hit.pool.PoolConfiguration;
 import org.hit.pool.PoolUtils;
 import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * Defines an event for updating the information to be spread via gossip
  * 
  * @author Balraja Subbiah
  */
+@PoolConfiguration(initialSize = 10, size = 100)
 public class GossipUpdateEvent implements Event, Poolable
 {
     private final Collection<Gossip> myGossip;
@@ -46,12 +49,15 @@ public class GossipUpdateEvent implements Event, Poolable
     }
 
     /**
-     * CTOR
+     * Factory method for creating an instance of <code>GossipUpdateEvent</code> 
+     * and populating with various parameters.
      */
-    public GossipUpdateEvent initialize(Collection<Partitioner<?, ?>> collection)
+    public static GossipUpdateEvent create(Collection<Partitioner<?, ?>> collection)
     {
-        myGossip.addAll(collection);
-        return this;
+        GossipUpdateEvent event = 
+            PooledObjects.getInstance(GossipUpdateEvent.class);
+        event.myGossip.addAll(collection);
+        return event;
     }
 
     /**
@@ -71,12 +77,4 @@ public class GossipUpdateEvent implements Event, Poolable
         PoolUtils.free(myGossip);
         myGossip.clear();
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
-    } 
 }

@@ -20,39 +20,37 @@
 
 package org.hit.db.transactions;
 
+import org.hit.pool.PoolConfiguration;
+import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
+
 /**
  * The type for capturing the result of a <code>Transaction</code>
  * 
  * @author Balraja Subbiah
  */
-public class TransactionResult
+@PoolConfiguration(size=20000,initialSize=200)
+public class TransactionResult implements Poolable
 {
-    private final long myTransactionID;
+    private long myTransactionID;
     
-    private final boolean myCommitted;
+    private boolean myCommitted;
     
-    private final Object myResult;
+    private Object myResult;
     
-
     /**
-     * CTOR
+     * Factory method for creating an instance of <code>TransactionResult</code> 
+     * and populating with various parameters.
      */
-    public TransactionResult(long transactionID, boolean committed)
+    public static TransactionResult create(
+        long transactionID, boolean committed, Object executionResult)
     {
-        this(transactionID, committed, null);
-    }
-
-    /**
-     * CTOR
-     */
-    public TransactionResult(long transactionID,
-                             boolean committed,
-                             Object result)
-    {
-        super();
-        myTransactionID = transactionID;
-        myCommitted = committed;
-        myResult = result;
+        TransactionResult result = 
+            PooledObjects.getInstance(TransactionResult.class);
+        result.myTransactionID = transactionID;
+        result.myCommitted = committed;
+        result.myResult = executionResult;
+        return result;
     }
 
     /**
@@ -85,5 +83,16 @@ public class TransactionResult
     public boolean isCommitted()
     {
         return myCommitted;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myTransactionID = Long.MIN_VALUE;
+        myCommitted = false;
+        myResult = null;
     }
 }

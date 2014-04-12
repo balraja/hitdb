@@ -29,8 +29,15 @@ import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
 
 /**
- * Defines the contract for a topology of servers. The default topology
- * will be read from HITDB_HOME/conf/server.topology.xml.
+ * Defines the contract for a topology of servers. A topology specifies the
+ * following:
+ * 
+ * <ul>
+ * <li>Number of servers</li>
+ * <li>Name of each server</li>
+ * <li>The names of servers to which server's data is replicated</li>
+ * </ul>
+ * The default topology will be read from HITDB_HOME/conf/server.topology.xml.
  * 
  * @author Balraja Subbiah
  */

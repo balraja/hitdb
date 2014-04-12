@@ -24,6 +24,8 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.hit.db.model.Persistable;
+import org.hit.pool.PoolConfiguration;
+import org.hit.pool.PooledObjects;
 
 /**
  * Implements {@link TransactionValidator} for validating the reads
@@ -31,24 +33,43 @@ import org.hit.db.model.Persistable;
  * 
  * @author Balraja Subbiah
  */
+@PoolConfiguration(size=10000, initialSize=100)
 public class ReadTransactionValidator implements TransactionValidator
 {
-    private final TransactableDatabase myDatabase;
+    private TransactableDatabase myDatabase;
     
-    private final long myValidationTime;
+    private long myValidationTime;
     
-    private final long myTransactionId;
+    private long myTransactionId;
     
     /**
      * CTOR
      */
-    public ReadTransactionValidator(TransactableDatabase database,
-                                    long validationTime,
-                                    long transactionId)
+    public static ReadTransactionValidator create(
+        TransactableDatabase database,
+        long validationTime,
+        long transactionId)
     {
-        myDatabase = database;
-        myValidationTime = validationTime;
-        myTransactionId = transactionId;
+        ReadTransactionValidator validator = 
+            PooledObjects.getInstance(ReadTransactionValidator.class);
+        validator.myDatabase = database;
+        validator.myValidationTime = validationTime;
+        validator.myTransactionId = transactionId;
+        return validator;
+    }
+    
+    /**
+     * CTOR
+     */
+    public static void initialize(
+        ReadTransactionValidator validator,
+        TransactableDatabase database,
+        long validationTime,
+        long transactionId)
+    {
+        validator.myDatabase = database;
+        validator.myValidationTime = validationTime;
+        validator.myTransactionId = transactionId;
     }
     
     /**
@@ -118,5 +139,15 @@ public class ReadTransactionValidator implements TransactionValidator
             }
         }
         return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myDatabase = null;
+        myValidationTime = myTransactionId = Long.MIN_VALUE;
     }
 }

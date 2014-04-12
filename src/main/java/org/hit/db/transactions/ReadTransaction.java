@@ -22,6 +22,9 @@ package org.hit.db.transactions;
 
 import org.hit.db.model.Database;
 import org.hit.db.model.Query;
+import org.hit.pool.PoolConfiguration;
+import org.hit.pool.PoolUtils;
+import org.hit.pool.PooledObjects;
 import org.hit.time.Clock;
 
 /**
@@ -30,23 +33,28 @@ import org.hit.time.Clock;
  * 
  * @author Balraja Subbiah
  */
+@PoolConfiguration(size=10000,initialSize=100)
 public class ReadTransaction extends ActiveTransaction
 {
-    private final Query myQuery;
+    private Query myQuery;
     
     private Object myResult;
 
     /**
-     * CTOR
+     * Factory method for creating an instance of <code>ReadTransaction</code> 
+     * and populating with various parameters.
      */
-    public ReadTransaction(long transactionId,
-                           TransactableDatabase database,
-                           Clock clock,
-                           Query query)
+    public static ReadTransaction create(
+        long transactionId,
+        TransactableDatabase database,
+        Clock clock,
+        Query query)
     {
-        super(transactionId, database, true, clock);
-        myQuery = query;
-        myResult = null;
+        ReadTransaction rt = PooledObjects.getInstance(ReadTransaction.class);
+        ActiveTransaction.initialize(rt, transactionId, database, true, clock);
+        rt.myQuery = query;
+        rt.myResult = null;
+        return rt;
     }
     
     /**
@@ -95,5 +103,18 @@ public class ReadTransaction extends ActiveTransaction
     protected void doAbort(DatabaseAdaptor adpator)
     {
         // Ignore as there is nothing to abort.
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        super.free();
+        PoolUtils.free(myQuery);
+        myQuery = null;
+        PoolUtils.free(myResult);
+        myResult = null;
     }
 }

@@ -27,13 +27,16 @@ import java.io.ObjectOutput;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
 import org.hit.db.model.DatabaseException;
+import org.hit.pool.PoolConfiguration;
 import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * Message for denoting that <code>DBOperationFailed</code> on the database.
  *
  * @author Balraja Subbiah
  */
+@PoolConfiguration(size=10000,initialSize=100)
 public class DBOperationFailureMessage extends Message implements Poolable
 {
     private Throwable myException;
@@ -41,6 +44,32 @@ public class DBOperationFailureMessage extends Message implements Poolable
     private String myMessage;
 
     private long mySequenceNumber;
+    
+    public static DBOperationFailureMessage create(
+            NodeID      nodeID,
+            long        sequenceNumber,
+            String      message)
+        {
+            return create(
+                nodeID, sequenceNumber, message, new DatabaseException(message));
+        }
+
+    /**
+     * A helper method to initialize the object.
+     */
+    public static DBOperationFailureMessage create(
+        NodeID      nodeID,
+        long        sequenceNumber,
+        String       message,
+        Throwable    exception)
+    {
+        DBOperationFailureMessage dbfm = 
+            PooledObjects.getInstance(DBOperationFailureMessage.class);
+        dbfm.setSenderID(nodeID);
+        dbfm.setException(exception);
+        dbfm.setSequenceNumber(sequenceNumber);
+        return dbfm;
+    }
 
     /**
      * CTOR
@@ -51,35 +80,7 @@ public class DBOperationFailureMessage extends Message implements Poolable
         mySequenceNumber = -1L;
         myMessage = null;
     }
-
-    /**
-     * A helper method to initialize the object.
-     */
-    public DBOperationFailureMessage initialize(
-        NodeID      nodeID,
-        long        sequenceNumber,
-        String      message)
-    {
-        return initialize(
-            nodeID, sequenceNumber, message, new DatabaseException(message));
-    }
-
-    /**
-     * A helper method to initialize the object.
-     */
-    public DBOperationFailureMessage initialize(
-        NodeID      nodeID,
-        long        sequenceNumber,
-        String       message,
-        Throwable    exception)
-    {
-        setSenderID(nodeID);
-        myMessage = message;
-        mySequenceNumber = sequenceNumber;
-        myException = exception;
-        return this;
-    }
-
+        
     /**
      * Returns the value of exception
      */
@@ -102,6 +103,30 @@ public class DBOperationFailureMessage extends Message implements Poolable
     public long getSequenceNumber()
     {
         return mySequenceNumber;
+    }
+    
+    /**
+     * Setter for exception
+     */
+    public void setException(Throwable exception)
+    {
+        myException = exception;
+    }
+
+    /**
+     * Setter for message
+     */
+    public void setMessage(String message)
+    {
+        myMessage = message;
+    }
+
+    /**
+     * Setter for sequenceNumber
+     */
+    public void setSequenceNumber(long sequenceNumber)
+    {
+        mySequenceNumber = sequenceNumber;
     }
 
     /**
@@ -140,11 +165,4 @@ public class DBOperationFailureMessage extends Message implements Poolable
         myMessage = null;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
-    }
 }

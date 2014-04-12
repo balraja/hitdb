@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.hit.db.model.Persistable;
+import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * Defines the contract for a type that captures the various objects read/written
@@ -36,8 +38,9 @@ import org.hit.db.model.Persistable;
  */
 public class TransactionTableTrail<K extends Comparable<K>,
                                    P extends Persistable<K>>
+    implements Poolable
 {
-    private final String                               myTableName;
+    private String                                    myTableName;
     
     private final Set<Transactable<K,P>>               myReadSet;
 
@@ -53,14 +56,26 @@ public class TransactionTableTrail<K extends Comparable<K>,
     /**
      * CTOR
      */
-    public TransactionTableTrail(String tableName)
+    public TransactionTableTrail()
     {
-        myTableName          = tableName;
         myReadSet            = new HashSet<>();
         myWriteSet           = new HashSet<>();
         myNewWriteSet        = new HashSet<>();
         myPredicateToDataMap = new HashMap<>();
         myDeleteSet          = new HashSet<>();
+    }
+    
+    /**
+     * CTOR
+     */
+    public static <PK extends Comparable<PK>, T extends Persistable<PK>>
+        TransactionTableTrail<PK,T> create(String tableName)
+    {
+        @SuppressWarnings("unchecked")
+        TransactionTableTrail<PK, T> trail =
+            PooledObjects.getInstance(TransactionTableTrail.class)
+        trail.myTableName = tableName;
+        return trail;
     }
 
     /**
@@ -95,6 +110,14 @@ public class TransactionTableTrail<K extends Comparable<K>,
     {
         return myTableName;
     }
+    
+    /**
+     * Setter for tableName
+     */
+    public void setTableName(String tableName)
+    {
+        myTableName = tableName;
+    }
 
     /**
      * Returns the value of writeSet
@@ -110,5 +133,19 @@ public class TransactionTableTrail<K extends Comparable<K>,
     public Set<K> getDeleteSet()
     {
         return myDeleteSet;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myTableName = null;
+        myReadSet.clear();
+        myWriteSet.clear();
+        myNewWriteSet.clear();
+        myDeleteSet.clear();
+        myPredicateToDataMap.clear();
     }
 }

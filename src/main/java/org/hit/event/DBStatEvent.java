@@ -20,10 +20,11 @@
 
 package org.hit.event;
 
-import org.hit.pool.Poolable;
-
 import gnu.trove.map.TObjectLongMap;
 import gnu.trove.map.hash.TObjectLongHashMap;
+
+import org.hit.pool.PoolConfiguration;
+import org.hit.pool.Poolable;
 
 /**
  * Defines the contract for an <code>Event</code> that publishes the 
@@ -32,6 +33,7 @@ import gnu.trove.map.hash.TObjectLongHashMap;
  * 
  * @author Balraja Subbiah
  */
+@PoolConfiguration(initialSize = 100, size = 1000)
 public class DBStatEvent implements Event, Poolable
 {
     private final TObjectLongMap<String> myTableToRowCountMap;
@@ -67,12 +69,4 @@ public class DBStatEvent implements Event, Poolable
         myTableToRowCountMap.clear();
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
-        myTableToRowCountMap.clear();
-    }
 }

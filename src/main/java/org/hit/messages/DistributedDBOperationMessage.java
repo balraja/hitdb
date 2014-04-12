@@ -29,7 +29,9 @@ import java.util.Map;
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
 import org.hit.db.model.DBOperation;
+import org.hit.pool.PoolConfiguration;
 import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * Defines the contract for the Message being sent to the nodes for 
@@ -39,6 +41,7 @@ import org.hit.pool.Poolable;
  * 
  * @author Balraja Subbiah
  */
+@PoolConfiguration(size=10000,initialSize=100)
 public class DistributedDBOperationMessage extends Message 
     implements Poolable
 {
@@ -56,17 +59,21 @@ public class DistributedDBOperationMessage extends Message
     }
 
     /**
-     * CTOR
+     *   Factory method for creating an instance of 
+     *   <code>DistributedDBOperationMessage</code> 
+     * and populating with various parameters.
      */
-    public DistributedDBOperationMessage initialize(
+    public static DistributedDBOperationMessage create(
         NodeID                   clientId,
         long                     sequenceNumber,
         Map<NodeID, DBOperation> nodeToOperationMap)
     {
-        setSenderID(clientId);
-        mySequenceNumber     = sequenceNumber;
-        myNodeToOperationMap.putAll(nodeToOperationMap);
-        return this;
+        DistributedDBOperationMessage operationMessage = 
+            PooledObjects.getInstance(DistributedDBOperationMessage.class);
+        operationMessage.setSenderID(clientId);
+        operationMessage.mySequenceNumber     = sequenceNumber;
+        operationMessage.myNodeToOperationMap.putAll(nodeToOperationMap);
+        return operationMessage;
     }
 
     /**
@@ -138,13 +145,5 @@ public class DistributedDBOperationMessage extends Message
     {
         mySequenceNumber = -1L;
         myNodeToOperationMap.clear();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
     }
 }

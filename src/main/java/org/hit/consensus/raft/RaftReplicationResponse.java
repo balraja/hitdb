@@ -26,6 +26,7 @@ import java.io.ObjectOutput;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.UnitID;
 import org.hit.messages.ConsensusMessage;
+import org.hit.pool.PooledObjects;
 
 /**
  * Extends {@link ConsensusMessage} to support sending a response to the 
@@ -52,28 +53,30 @@ public class RaftReplicationResponse extends ConsensusMessage
     /**
      * CTOR
      */
-    public RaftReplicationResponse initialize(
+    public static RaftReplicationResponse create(
         NodeID nodeId,
         UnitID unitID)
     {
-        return initialize(nodeId, unitID, false, -1L, -1L);
+        return create(nodeId, unitID, false, -1L, -1L);
     }
 
     /**
      * CTOR
      */
-    public RaftReplicationResponse initialize(
+    public static RaftReplicationResponse create(
         NodeID nodeId,
         UnitID unitID,
         boolean accepted,
         long acceptedTermID,
         long acceptedSeqNO)
     {
-        initialize(nodeId, unitID, null);
-        myAccepted = accepted;
-        myAcceptedTermID = acceptedTermID;
-        myAcceptedSeqNo = acceptedSeqNO;
-        return this;
+        RaftReplicationResponse response = 
+            PooledObjects.getInstance(RaftReplicationResponse.class);
+        populate(response, nodeId, unitID, null);
+        response.myAccepted = accepted;
+        response.myAcceptedTermID = acceptedTermID;
+        response.myAcceptedSeqNo = acceptedSeqNO;
+        return response;
     }
 
     /**
@@ -135,13 +138,5 @@ public class RaftReplicationResponse extends ConsensusMessage
         myAccepted = false;
         myAcceptedSeqNo = Long.MIN_VALUE;
         myAcceptedTermID = Long.MIN_VALUE;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
     }
 }

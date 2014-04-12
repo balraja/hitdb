@@ -22,8 +22,9 @@ package org.hit.event;
 
 import org.hit.consensus.ConsensusAcceptor;
 import org.hit.consensus.Proposal;
-import org.hit.pool.PoolUtils;
+import org.hit.pool.PoolConfiguration;
 import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * Defines the contract for an {@link Event} that's published by the 
@@ -32,6 +33,7 @@ import org.hit.pool.Poolable;
  * 
  * @author Balraja Subbiah
  */
+@PoolConfiguration(initialSize = 100, size = 1000)
 public class ProposalNotificationEvent implements Event, Poolable
 {
     private Proposal myProposal;
@@ -39,10 +41,12 @@ public class ProposalNotificationEvent implements Event, Poolable
     /**
      * Fluent interface method for initializing the pooled object
      */
-    public ProposalNotificationEvent initialize(Proposal proposal)
+    public static ProposalNotificationEvent create(Proposal proposal)
     {
-        myProposal = proposal;
-        return this;
+        ProposalNotificationEvent pne = 
+            PooledObjects.getInstance(ProposalNotificationEvent.class);
+        pne.myProposal = proposal;
+        return pne;
     }
 
     /**
@@ -58,15 +62,6 @@ public class ProposalNotificationEvent implements Event, Poolable
      */
     @Override
     public void free()
-    {
-        myProposal = null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
     {
         myProposal = null;
     }

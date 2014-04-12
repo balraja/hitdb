@@ -28,6 +28,7 @@ import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
+import org.hit.pool.PoolConfiguration;
 import org.hit.pool.Poolable;
 
 /**
@@ -36,6 +37,7 @@ import org.hit.pool.Poolable;
  * 
  * @author Balraja Subbiah
  */
+@PoolConfiguration(initialSize = 100, size = 1000)
 public abstract class ConsensusMessage extends Message implements Poolable
 {
     /**
@@ -62,11 +64,15 @@ public abstract class ConsensusMessage extends Message implements Poolable
     /**
      * Initializes the message object with he required
      */
-    protected void initialize(NodeID nodeId, UnitID unitID, Proposal proposal)
+    public static void populate(
+        ConsensusMessage message, 
+        NodeID nodeId, 
+        UnitID unitID, 
+        Proposal proposal)
     {
-        setSenderID(nodeId);
-        myUnitID = unitID;
-        myProposal = proposal;
+        message.setSenderID(nodeId);
+        message.setUnitID(unitID);
+        message.setProposal(proposal);
     }
     
     public void free()
@@ -90,6 +96,22 @@ public abstract class ConsensusMessage extends Message implements Poolable
     public Proposal getProposal()
     {
         return myProposal;
+    }
+
+    /**
+     * Setter for unitID
+     */
+    public void setUnitID(UnitID unitID)
+    {
+        myUnitID = unitID;
+    }
+
+    /**
+     * Setter for proposal
+     */
+    public void setProposal(Proposal proposal)
+    {
+        myProposal = proposal;
     }
 
     /**

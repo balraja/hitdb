@@ -21,6 +21,7 @@
 package org.hit.db.transactions;
 
 import org.hit.db.model.Persistable;
+import org.hit.pool.PoolConfiguration;
 import org.hit.pool.Poolable;
 import org.hit.pool.PooledObjects;
 
@@ -30,6 +31,7 @@ import org.hit.pool.PooledObjects;
  * 
  * @author Balraja Subbiah
  */
+@PoolConfiguration(initialSize = 1000, size = 10000)
 public class Transactable<K extends Comparable<K>, P extends Persistable<K>>
     implements Poolable
 {
@@ -43,10 +45,14 @@ public class Transactable<K extends Comparable<K>, P extends Persistable<K>>
      * Initializes the {@link Transactable} from the {@link Persistable} 
      * objects.
      */
-    public Transactable<K,P> initialize(P persitable)
+    public static <PK extends Comparable<PK>, T extends Persistable<PK>>
+        Transactable<PK,T> initialize(T persitable)
     {
-        myPersitable = persitable;
-        return this;
+        @SuppressWarnings("unchecked")
+        Transactable<PK, T> transactable = 
+             PooledObjects.getInstance(Transactable.class);
+        transactable.myPersitable = persitable;
+        return transactable;
     }
 
     /** Returns the time upto which this version is active */
@@ -158,13 +164,5 @@ public class Transactable<K extends Comparable<K>, P extends Persistable<K>>
         myEnd        = Long.MIN_VALUE;
         PooledObjects.freeInstance(myPersitable);
         myPersitable = null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
     }
 }

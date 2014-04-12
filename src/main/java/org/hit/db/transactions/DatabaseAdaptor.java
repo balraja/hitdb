@@ -24,9 +24,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.hit.db.model.Database;
-import org.hit.db.model.Persistable;
 import org.hit.db.model.HitTableSchema;
+import org.hit.db.model.Persistable;
 import org.hit.db.model.Table;
+import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * An adaptor to match {@link TransactableDatabase} to the requirements of
@@ -34,25 +36,35 @@ import org.hit.db.model.Table;
  * 
  * @author Balraja Subbiah
  */
-public class DatabaseAdaptor implements Database
+public class DatabaseAdaptor implements Database,Poolable
 {
-    private final TransactableDatabase           myDatabase;
+    private TransactableDatabase                 myDatabase;
     
     private final Map<String, TableAdaptor<?,?>> myCachedTables;
     
     private long                                 myTransactionTime;
     
-    private final long                           myTransactionId;
+    private long                                 myTransactionId;
+    
+    /**
+     * CTOR
+     */
+    public DatabaseAdaptor()
+    {
+        myCachedTables = new HashMap<String, TableAdaptor<?,?>>();
+    }
 
     /**
      * CTOR
      */
-    public DatabaseAdaptor(TransactableDatabase database, long transId)
+    public static DatabaseAdaptor create(
+        TransactableDatabase database, long transId)
     {
-        myDatabase = database;
-        myTransactionTime = Transaction.CONST_NULL_TIME;
-        myCachedTables = new HashMap<String, TableAdaptor<?,?>>();
-        myTransactionId = transId;
+        DatabaseAdaptor adaptor = PooledObjects.getInstance(DatabaseAdaptor.class);
+        adaptor.myDatabase = database;
+        adaptor.myTransactionTime = Transaction.CONST_NULL_TIME;
+        adaptor.myTransactionId = transId;
+        return adaptor;
     }
     
     /**
@@ -103,18 +115,18 @@ public class DatabaseAdaptor implements Database
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("unchecked")
     @Override
     public <K extends Comparable<K>, P extends Persistable<K>> Table<K, P>
         lookUpTable(String tableName)
     {
-        @SuppressWarnings("unchecked")
         TableAdaptor<K, P> cachedAdaptor =
            (TableAdaptor<K, P>) myCachedTables.get(tableName);
         
         if (cachedAdaptor == null) {
             TransactableTable<K, P> tt = myDatabase.lookUpTable(tableName);
             cachedAdaptor =
-                new TableAdaptor<>(tt, myTransactionTime, myTransactionId);
+                TableAdaptor.<K, P>create(tt, myTransactionTime, myTransactionId);
             myCachedTables.put(tableName, cachedAdaptor);
         }
         return cachedAdaptor;
@@ -154,5 +166,16 @@ public class DatabaseAdaptor implements Database
             }
         }
         return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myDatabase = null;
+        myTransactionId = Long.MIN_VALUE;
+        myTransactionId = Long.MIN_VALUE;
     }
 }

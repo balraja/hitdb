@@ -20,13 +20,15 @@
 
 package org.hit.db.transactions;
 
+import org.hit.pool.Poolable;
+
 /**
  * Defines the contract for a transaction that reads or modifies values in a
  * table.
  * 
  * @author Balraja Subbiah
  */
-public interface Transaction
+public interface Transaction extends Poolable
 {
     /** Defines a null value for transaction time */
     public static final long CONST_NULL_TIME = 0L;

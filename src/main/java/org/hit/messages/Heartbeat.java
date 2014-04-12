@@ -20,22 +20,25 @@
 
 package org.hit.messages;
 
+import gnu.trove.map.TObjectLongMap;
+import gnu.trove.map.hash.TObjectLongHashMap;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import gnu.trove.map.TObjectLongMap;
-import gnu.trove.map.hash.TObjectLongHashMap;
-
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.pool.PoolConfiguration;
 import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * Defines the heart beat to be published by client nodes to the master.
  * 
  * @author Balraja Subbiah
  */
+@PoolConfiguration(initialSize = 5, size = 10)
 public class Heartbeat extends Message implements Poolable
 {
     private final TObjectLongHashMap<String> myTableToRowCountMap;
@@ -49,18 +52,20 @@ public class Heartbeat extends Message implements Poolable
     }
 
     /**
-     * CTOR
+     * Factory method for creating an instance of <code>Heartbeat</code> 
+     * and populating with various parameters.
      */
-    public Heartbeat initialize(NodeID from, 
-                                TObjectLongMap<String> tableRowCountMap)
+    public static Heartbeat create(NodeID from, 
+                                   TObjectLongMap<String> tableRowCountMap)
     {
-        setSenderID(from);
+        Heartbeat heartbeat = PooledObjects.getInstance(Heartbeat.class);
+        heartbeat.setSenderID(from);
         Object[] keys = tableRowCountMap.keys();
         long[] values = tableRowCountMap.values();
         for (int i = 0; i < tableRowCountMap.size(); i++) {
-            myTableToRowCountMap.put(keys[i].toString(), values[i]);
+            heartbeat.myTableToRowCountMap.put(keys[i].toString(), values[i]);
         }
-        return this;
+        return heartbeat;
     }
 
     /**
@@ -122,13 +127,5 @@ public class Heartbeat extends Message implements Poolable
     {
         setSenderID(null);
         myTableToRowCountMap.clear();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
     }
 }

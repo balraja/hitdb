@@ -40,6 +40,14 @@ public final class PoolUtils
         }
     }
     
+    /** A helper method to free an instance if it's poolable */
+    public static<T> void free(T instance)
+    {
+        if (instance.getClass().isAssignableFrom(Poolable.class)) {
+            PooledObjects.freeInstance((Poolable) instance);
+        }
+    }
+    
     /**
      * Pvt CTOR to avoid initialization.
      */

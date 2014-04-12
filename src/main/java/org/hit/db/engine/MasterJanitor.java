@@ -46,7 +46,6 @@ import org.hit.messages.FacadeInitRequest;
 import org.hit.messages.FacadeInitResponse;
 import org.hit.messages.NodeAdvertisement;
 import org.hit.messages.NodeAdvertisementResponse;
-import org.hit.pool.PooledObjects;
 import org.hit.server.ServerConfig;
 import org.hit.util.LogFactory;
 import org.hit.util.NamedThreadFactory;
@@ -81,10 +80,10 @@ public class MasterJanitor extends AbstractJanitor
      */
     @Inject
     public MasterJanitor(TransactionManager transactionManager,
-                        ServerConfig engineConfig,
-                        EventBus eventBus,
-                        NodeID masterID,
-                        Allocator allocator)
+                         ServerConfig engineConfig,
+                         EventBus eventBus,
+                         NodeID masterID,
+                         Allocator allocator)
     {
         super(transactionManager, engineConfig, eventBus, masterID);
         myAllocator = allocator;
@@ -123,11 +122,9 @@ public class MasterJanitor extends AbstractJanitor
                         
                     getEventBus().publish(
                         ActorID.DB_ENGINE, 
-                        PooledObjects
-                            .getInstance(SendMessageEvent.class)
-                            .initialize(
-                                myAllocator.getMonitoredNodes(),
-                                new CreateTableMessage(getServerID(), schema)));
+                         SendMessageEvent.create(
+                            myAllocator.getMonitoredNodes(),
+                            new CreateTableMessage(getServerID(), schema)));
                     
 
                     LOG.info(" Schema for " + schema.getTableName()
@@ -147,9 +144,8 @@ public class MasterJanitor extends AbstractJanitor
                     
                     getEventBus().publish(
                             ActorID.DB_ENGINE,
-                            PooledObjects.getInstance(SendMessageEvent.class)
-                                         .initialize(ctm.getSenderId(),
-                                                     response));
+                            SendMessageEvent.create(ctm.getSenderId(),
+                                                    response));
                 }
             }
             else if (event instanceof CreateTableResponseMessage) {
@@ -180,10 +176,8 @@ public class MasterJanitor extends AbstractJanitor
                         
                         getEventBus().publish(
                             ActorID.DB_ENGINE,
-                            PooledObjects
-                                 .getInstance(SendMessageEvent.class)
-                                 .initialize(createTableState.getFirst(),
-                                             clientResponse));
+                            SendMessageEvent.create(createTableState.getFirst(),
+                                                    clientResponse));
                     }
                 }
                 else {
@@ -202,11 +196,10 @@ public class MasterJanitor extends AbstractJanitor
                 if (allocation != null) {
                     getEventBus().publish(
                         ActorID.DB_ENGINE,
-                        PooledObjects.getInstance(SendMessageEvent.class)
-                                     .initialize(
-                                         na.getSenderId(),
-                                         new NodeAdvertisementResponse(
-                                            getServerID(), allocation)));
+                        SendMessageEvent.create(
+                             na.getSenderId(),
+                             new NodeAdvertisementResponse(
+                                getServerID(), allocation)));
                     getEventBus().publish(
                         ActorID.DB_ENGINE,
                         myAllocator.getGossipUpdates());
@@ -216,7 +209,7 @@ public class MasterJanitor extends AbstractJanitor
                 FacadeInitRequest fir = (FacadeInitRequest) event;
                 getEventBus().publish(
                     ActorID.DB_ENGINE,
-                    PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                    SendMessageEvent.create(
                         fir.getSenderId(),
                         new FacadeInitResponse(
                             getServerID(),

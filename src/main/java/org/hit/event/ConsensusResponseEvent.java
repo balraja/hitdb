@@ -21,8 +21,9 @@
 package org.hit.event;
 
 import org.hit.consensus.Proposal;
-import org.hit.pool.PoolUtils;
+import org.hit.pool.PoolConfiguration;
 import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * Defines the contract for an event that get's generated to publish the
@@ -30,6 +31,7 @@ import org.hit.pool.Poolable;
  * 
  * @author Balraja Subbiah
  */
+@PoolConfiguration(initialSize = 100, size = 1000)
 public class ConsensusResponseEvent implements Event, Poolable
 {
     private Proposal myProposal;
@@ -39,11 +41,14 @@ public class ConsensusResponseEvent implements Event, Poolable
     /**
      * Fluent interface method for initializing the pooled object
      */
-    public ConsensusResponseEvent initialize(Proposal proposal, boolean accepted)
+    public static ConsensusResponseEvent create(
+         Proposal proposal, boolean accepted)
     {
-        myProposal = proposal;
-        myAccepted = accepted;
-        return this;
+        ConsensusResponseEvent cre = 
+            PooledObjects.getInstance(ConsensusResponseEvent.class);
+        cre.myProposal = proposal;
+        cre.myAccepted = accepted;
+        return cre;
     }
 
     /**
@@ -67,16 +72,6 @@ public class ConsensusResponseEvent implements Event, Poolable
      */
     @Override
     public void free()
-    {
-        myProposal = null;
-        myAccepted = false;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
     {
         myProposal = null;
         myAccepted = false;

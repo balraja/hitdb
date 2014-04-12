@@ -26,13 +26,16 @@ import java.io.ObjectOutput;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.pool.PoolConfiguration;
 import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * The reply message for a successful <code>DBOperation</code>
  *
  * @author Balraja Subbiah
  */
+@PoolConfiguration(size=10000,initialSize=100)
 public class DBOperationSuccessMessage extends Message implements Poolable
 {
     private Object myResult;
@@ -49,15 +52,19 @@ public class DBOperationSuccessMessage extends Message implements Poolable
     }
 
     /**
-     * CTOR
+     * Factory method for creating an instance of 
+     * <code>DBOperationSuccessMessage</code> 
+     * and populating it with various parameters.
      */
-    public DBOperationSuccessMessage initialize(
+    public static DBOperationSuccessMessage create(
         NodeID serverID, long seqNum, Object result)
     {
-        setSenderID(null);
-        mySequenceNumber = seqNum;
-        myResult         = result;
-        return this;
+        DBOperationSuccessMessage successMessage =
+            PooledObjects.getInstance(DBOperationSuccessMessage.class);
+        successMessage.setSenderID(null);
+        successMessage.mySequenceNumber = seqNum;
+        successMessage.myResult         = result;
+        return successMessage;
     }
 
     /**
@@ -74,6 +81,22 @@ public class DBOperationSuccessMessage extends Message implements Poolable
     public long getSequenceNumber()
     {
         return mySequenceNumber;
+    }
+    
+    /**
+     * Setter for result
+     */
+    public void setResult(Object result)
+    {
+        myResult = result;
+    }
+
+    /**
+     * Setter for sequenceNumber
+     */
+    public void setSequenceNumber(long sequenceNumber)
+    {
+        mySequenceNumber = sequenceNumber;
     }
 
     /**

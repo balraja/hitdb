@@ -21,7 +21,7 @@
 package org.hit.db.transactions;
 
 import org.hit.db.model.Database;
-import org.hit.time.Clock;
+import org.hit.pool.PooledObjects;
 
 /**
  * Defines an abstract implementation of a <code>Transaction</code>
@@ -32,9 +32,9 @@ import org.hit.time.Clock;
  */
 public abstract class AbstractTransaction implements Transaction
 {
-    private final DatabaseAdaptor myAdaptedDatabase;
+    private DatabaseAdaptor myAdaptedDatabase;
     
-    private final boolean myShouldUpdateRegistry;
+    private boolean myShouldUpdateRegistry;
 
     private long myEndTime;
 
@@ -42,22 +42,22 @@ public abstract class AbstractTransaction implements Transaction
 
     private TransactionState myState;
     
-    private final long myTransactionID;
-    
-    
+    private long myTransactionID;
 
     /**
      * CTOR
      */
-    public AbstractTransaction(long transactionId,
-                               TransactableDatabase database,
-                               boolean updateRegistry)
+    public static void initialize(
+        AbstractTransaction transaction,
+        long transactionId,
+        TransactableDatabase database,
+        boolean updateRegistry)
     {
-        myState = TransactionState.NOT_STARTED;
-        myTransactionID = transactionId;
-        myAdaptedDatabase =
-            new DatabaseAdaptor(database, myTransactionID);
-        myShouldUpdateRegistry = updateRegistry;
+        transaction.myState = TransactionState.NOT_STARTED;
+        transaction.myTransactionID = transactionId;
+        transaction.myAdaptedDatabase =
+            DatabaseAdaptor.create(database, transactionId);
+        transaction.myShouldUpdateRegistry = updateRegistry;
     }
 
     /**
@@ -153,6 +153,19 @@ public abstract class AbstractTransaction implements Transaction
         if (myShouldUpdateRegistry) {
             Registry.updateTransactionState(myTransactionID, myState);
         }
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        PooledObjects.freeInstance(myAdaptedDatabase);
+        myShouldUpdateRegistry = false;
+        myStartTime = myEndTime = Long.MIN_VALUE;
+        myState = null;
+        myTransactionID = Long.MIN_VALUE;
     }
 
     /**

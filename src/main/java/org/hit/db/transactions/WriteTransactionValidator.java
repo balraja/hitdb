@@ -21,6 +21,8 @@
 package org.hit.db.transactions;
 
 import org.hit.db.model.Persistable;
+import org.hit.pool.PoolConfiguration;
+import org.hit.pool.PooledObjects;
 
 /**
  * Implements {@link TransactionValidator} to validate whether the updates
@@ -28,16 +30,22 @@ import org.hit.db.model.Persistable;
  * 
  * @author Balraja Subbiah
  */
+@PoolConfiguration(size=10000,initialSize=100)
 public class WriteTransactionValidator extends ReadTransactionValidator
 {
     /**
      * CTOR
      */
-    public WriteTransactionValidator(TransactableDatabase database,
-                                     long                 validationTime,
-                                     long                 transactionId)
+    public static WriteTransactionValidator create(
+        TransactableDatabase database,
+        long                 validationTime,
+        long                 transactionId)
     {
-        super(database, validationTime, transactionId);
+        WriteTransactionValidator validator = 
+            PooledObjects.getInstance(WriteTransactionValidator.class);
+        ReadTransactionValidator.initialize(
+            validator, database, validationTime, transactionId);
+        return validator;
     }
 
     /**

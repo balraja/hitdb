@@ -38,9 +38,9 @@ import org.hit.consensus.ConsensusType;
 import org.hit.consensus.UnitID;
 import org.hit.db.model.DBOperation;
 import org.hit.db.model.DatabaseException;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.model.Mutation;
 import org.hit.db.model.Query;
-import org.hit.db.model.HitTableSchema;
 import org.hit.db.model.mutations.MutationWrapper;
 import org.hit.db.transactions.AbstractTransaction;
 import org.hit.db.transactions.IDAssigner;
@@ -174,22 +174,18 @@ public class TransactionManager
         {
             Message message =
                 result.isCommitted() ?
-                    PooledObjects
-                         .getInstance(DBOperationSuccessMessage.class)
-                         .initialize(
-                                myServerID,
-                                myClientInfo.getClientSequenceNumber(), 
-                                result.getResult())
-                    : PooledObjects
-                          .getInstance(DBOperationFailureMessage.class)
-                          .initialize(
+                    DBOperationSuccessMessage.create(
+                        myServerID,
+                        myClientInfo.getClientSequenceNumber(), 
+                        result.getResult())
+                    : DBOperationFailureMessage.create(
                               myServerID,
                               myClientInfo.getClientSequenceNumber(),
                               "Failed to apply the transaction on db");
 
             myEventBus.publish(
                ActorID.DB_ENGINE,
-               PooledObjects.getInstance(SendMessageEvent.class).initialize(
+               SendMessageEvent.create(
                    myClientInfo.getClientID(), message));
             
             // Remove the workflow as it's no longer needed.
@@ -204,15 +200,13 @@ public class TransactionManager
             if (myClientInfo != null) {
                 myEventBus.publish(
                    ActorID.DB_ENGINE,
-                   PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                   SendMessageEvent.create(
                        myClientInfo.getClientID(),
-                       PooledObjects
-                           .getInstance(DBOperationFailureMessage.class)
-                           .initialize(
-                               myServerID,
-                               myClientInfo.getClientSequenceNumber(),
-                               exception.getMessage(),
-                               exception)));
+                       DBOperationFailureMessage.create(
+                           myServerID,
+                           myClientInfo.getClientSequenceNumber(),
+                           exception.getMessage(),
+                           exception)));
             }
             
             // Remove the workflow as it's no longer needed.
@@ -222,6 +216,7 @@ public class TransactionManager
         /**
          * {@inheritDoc}
          */
+        @Override
         public void initiateCommit()
         {
             if (myMemento != null) {
@@ -239,6 +234,7 @@ public class TransactionManager
         /**
          * {@inheritDoc}
          */
+        @Override
         public void start()
         {
             if (myExecutionPhase) {
@@ -296,14 +292,12 @@ public class TransactionManager
                     
                     myEventBus.publish(
                         ActorID.DB_ENGINE,
-                        PooledObjects
-                            .getInstance(ConsensusRequestEvent.class)
-                            .initialize(
-                                new ReplicationProposal(
-                                    myReplicationUnitID,
-                                    ((WriteTransaction) myTransaction).getMutation(),
-                                    myTransaction.getStartTime(),
-                                    myTransaction.getEndTime())));
+                        ConsensusRequestEvent.create(
+                            ReplicationProposal.create(
+                                myReplicationUnitID,
+                                ((WriteTransaction) myTransaction).getMutation(),
+                                myTransaction.getStartTime(),
+                                myTransaction.getEndTime())));
                 }
                 
                 @SuppressWarnings("unchecked")
@@ -349,7 +343,7 @@ public class TransactionManager
         {
             myEventBus.publish(
                 ActorID.DB_ENGINE,
-                PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                SendMessageEvent.create(
                     getClientInfo().getClientID(),
                     new DataLoadResponse(myServerID,
                                          myMutation.getTableName(), 
@@ -476,8 +470,7 @@ public class TransactionManager
                 {
                     myEventBus.publish(
                         ActorID.DB_ENGINE,
-                        PooledObjects.getInstance(ConsensusRequestEvent.class)
-                                     .initialize(myProposal));
+                        ConsensusRequestEvent.create(myProposal));
                 }
                 myMemento = result;
             }
@@ -508,10 +501,8 @@ public class TransactionManager
                 if (myTransaction instanceof WriteTransaction) {
                     myEventBus.publish(
                         ActorID.DB_ENGINE,
-                        PooledObjects
-                            .getInstance(ConsensusRequestEvent.class)
-                            .initialize(
-                                new ReplicationProposal(
+                        ConsensusRequestEvent.create(
+                            ReplicationProposal.create(
                                     myReplicationUnitID,
                                     ((WriteTransaction) myTransaction)
                                         .getMutation(),
@@ -523,22 +514,18 @@ public class TransactionManager
                     
                     Message message =
                         result.getPhase().getResult().isCommitted() ?
-                            PooledObjects
-                                .getInstance(DBOperationSuccessMessage.class)
-                                .initialize(
-                                    myServerID,
-                                    myClientInfo.getClientSequenceNumber(), 
-                                    result.getPhase().getResult().getResult())
-                            : PooledObjects
-                                  .getInstance(DBOperationFailureMessage.class)
-                                  .initialize(
-                                      myServerID,
-                                      myClientInfo.getClientSequenceNumber(),
-                                      "Failed to apply the transaction on db");
+                            DBOperationSuccessMessage.create(
+                                myServerID,
+                                myClientInfo.getClientSequenceNumber(), 
+                                result.getPhase().getResult().getResult())
+                            : DBOperationSuccessMessage.create(
+                                  myServerID,
+                                  myClientInfo.getClientSequenceNumber(),
+                                  "Failed to apply the transaction on db");
     
                     myEventBus.publish(
                        ActorID.DB_ENGINE,
-                       PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                       SendMessageEvent.create(
                            myClientInfo.getClientID(), message));
                     
                     if (LOG.isLoggable(Level.FINE)) {

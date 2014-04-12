@@ -23,6 +23,7 @@ import org.hit.communicator.NodeID;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
 import org.hit.messages.ConsensusMessage;
+import org.hit.pool.PooledObjects;
 
 /**
  * Extends <code>ConsensusMessage</code> to support driving a 
@@ -32,7 +33,7 @@ import org.hit.messages.ConsensusMessage;
  */
 public class SolicitConsensusMessage extends ConsensusMessage
 {
-
+    
     /**
      * CTOR
      */
@@ -44,19 +45,12 @@ public class SolicitConsensusMessage extends ConsensusMessage
     /**
      * Initializes the message object with he required
      */
-    public SolicitConsensusMessage 
-        initializeSCM(NodeID nodeId, UnitID unitID, Proposal proposal)
+    public static SolicitConsensusMessage 
+        create(NodeID nodeId, UnitID unitID, Proposal proposal)
     {
-        super.initialize(nodeId, unitID, proposal);   
-        return this;
+        SolicitConsensusMessage scm = 
+            PooledObjects.getInstance(SolicitConsensusMessage.class);
+        ConsensusMessage.populate(scm, nodeId, unitID, proposal);   
+        return scm;
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
-    }
-    
 }

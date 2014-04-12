@@ -66,7 +66,7 @@ public class Disseminator extends Actor
             for (NodeID nodeID : myParticipants) {
                 getEventBus().publish(
                     ActorID.GOSSIPER,
-                    PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                    SendMessageEvent.create(
                         nodeID, new ReconcillationRequest(myOwner, digest)));
                
             }
@@ -108,8 +108,8 @@ public class Disseminator extends Actor
                 (ReconcilliationResponse) event;
             myRepository.update(response.getInformationList());
             publish(
-                PooledObjects.getInstance(GossipNotificationEvent.class)
-                             .initialize(myRepository.getLatestInformation()));
+                GossipNotificationEvent.create(
+                    myRepository.getLatestInformation()));
          
         }
         else if (event instanceof ReconcillationRequest) {
@@ -120,7 +120,7 @@ public class Disseminator extends Actor
                 myParticipants.add(rr.getSenderId());
             }
             publish(
-                PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                SendMessageEvent.create(
                     rr.getSenderId(),
                     new ReconcilliationResponse(
                         myOwner,

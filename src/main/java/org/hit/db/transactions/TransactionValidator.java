@@ -21,13 +21,14 @@
 package org.hit.db.transactions;
 
 import org.hit.db.model.Persistable;
+import org.hit.pool.Poolable;
 
 /**
  * Type for validating the objects involved in a transaction.
  * 
  * @author Balraja Subbiah
  */
-public interface TransactionValidator
+public interface TransactionValidator extends Poolable
 {
     /**
      * Returns true if the given <code>TransactionTableTrail</code>

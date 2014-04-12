@@ -20,7 +20,6 @@
 
 package org.hit.db.engine;
 
-import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,7 +29,6 @@ import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
 import org.hit.db.model.DBOperation;
 import org.hit.event.ConsensusResponseEvent;
-import org.hit.event.DBStatEvent;
 import org.hit.event.Event;
 import org.hit.event.ProposalNotificationEvent;
 import org.hit.event.SendMessageEvent;
@@ -146,14 +144,12 @@ public abstract class AbstractJanitor implements EngineJanitor
             else {
                 myEventBus.publish(
                     ActorID.DB_ENGINE,
-                    PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                    SendMessageEvent.create(
                         message.getSenderId(),
-                        PooledObjects
-                            .getInstance(DBOperationFailureMessage.class)
-                            .initialize(
-                                myServerID, 
-                                message.getSequenceNumber(),
-                                "DB not yet initialized")));
+                        DBOperationFailureMessage.create(
+                            myServerID, 
+                            message.getSequenceNumber(),
+                            "DB not yet initialized")));
             }
         }
         else if (event instanceof DistributedDBOperationMessage) {
@@ -173,14 +169,12 @@ public abstract class AbstractJanitor implements EngineJanitor
             else {
                 myEventBus.publish(
                     ActorID.DB_ENGINE,
-                    PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                    SendMessageEvent.create(
                         ddbMessage.getSenderId(),
-                        PooledObjects
-                            .getInstance(DBOperationFailureMessage.class)
-                            .initialize(
-                                myServerID, 
-                                ddbMessage.getSequenceNumber(),
-                                "DB not yet initialized")));
+                        DBOperationFailureMessage.create(
+                            myServerID, 
+                            ddbMessage.getSequenceNumber(),
+                            "DB not yet initialized")));
             }
         }
         else if (event instanceof ProposalNotificationEvent) {

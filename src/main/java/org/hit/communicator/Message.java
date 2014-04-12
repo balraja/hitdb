@@ -66,7 +66,7 @@ public abstract class Message implements Externalizable, Event
      * A helper method to set the <code>NodeID</code> corresponding to the 
      * sender of <code>Message</code>
      */
-    protected void setSenderID(NodeID senderID)
+    public void setSenderID(NodeID senderID)
     {
         mySenderId = senderID;
     }

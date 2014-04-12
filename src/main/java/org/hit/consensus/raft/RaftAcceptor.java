@@ -19,16 +19,16 @@
 */
 package org.hit.consensus.raft;
 
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import gnu.trove.map.TLongObjectMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
 import gnu.trove.procedure.TLongProcedure;
 import gnu.trove.set.TLongSet;
 import gnu.trove.set.hash.TLongHashSet;
+
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.hit.actors.ActorID;
 import org.hit.actors.EventBus;
@@ -104,15 +104,11 @@ public class RaftAcceptor extends ConsensusAcceptor
                 
                 getEventBus().publish(
                     ActorID.CONSENSUS_MANAGER,
-                    PooledObjects
-                        .getInstance(SendMessageEvent.class)
-                        .initialize(
-                             replicationMessage.getSenderId(),
-                             PooledObjects
-                                 .getInstance(RaftReplicationResponse.class)
-                                 .initialize(
-                                        getNodeID(),
-                                        replicationMessage.getUnitID())));
+                    SendMessageEvent.create(
+                       replicationMessage.getSenderId(),
+                       RaftReplicationResponse.create(
+                           getNodeID(),
+                           replicationMessage.getUnitID())));
                 
                 PooledObjects.freeInstance(replicationMessage);
             }
@@ -146,14 +142,11 @@ public class RaftAcceptor extends ConsensusAcceptor
                     
                     getEventBus().publish(
                         ActorID.CONSENSUS_MANAGER,
-                        PooledObjects.getInstance(SendMessageEvent.class)
-                            .initialize(replicationMessage.getSenderId(),
-                                        PooledObjects
-                                            .getInstance(
-                                                RaftReplicationResponse.class)
-                                            .initialize(
-                                                getNodeID(),
-                                                replicationMessage.getUnitID())));
+                        SendMessageEvent.create(
+                            replicationMessage.getSenderId(),
+                            RaftReplicationResponse.create(
+                                getNodeID(),
+                                replicationMessage.getUnitID())));
                     
                     PooledObjects.freeInstance(replicationMessage);
                     return;
@@ -184,17 +177,14 @@ public class RaftAcceptor extends ConsensusAcceptor
             
             getEventBus().publish(
                 ActorID.CONSENSUS_MANAGER,
-                PooledObjects
-                    .getInstance(SendMessageEvent.class)
-                    .initialize(replicationMessage.getSenderId(),
-                                PooledObjects
-                                    .getInstance(RaftReplicationResponse.class)
-                                    .initialize(
-                                        getNodeID(),
-                                        replicationMessage.getUnitID(),
-                                        true,
-                                        replicationMessage.getTermID(),
-                                        replicationMessage.getSequenceNumber())));
+                SendMessageEvent.create(
+                    replicationMessage.getSenderId(),
+                    RaftReplicationResponse.create(
+                        getNodeID(),
+                        replicationMessage.getUnitID(),
+                        true,
+                        replicationMessage.getTermID(),
+                        replicationMessage.getSequenceNumber())));
             
             final TreeMap<Long, Proposal> termLog = 
                 myProposalLog.get(
@@ -208,8 +198,7 @@ public class RaftAcceptor extends ConsensusAcceptor
                     {
                         getEventBus().publish(
                             ActorID.CONSENSUS_MANAGER,
-                            PooledObjects.getInstance(ProposalNotificationEvent.class)
-                                         .initialize(entry.getValue()));
+                            ProposalNotificationEvent.create(entry.getValue()));
                         
                         if (LOG.isLoggable(Level.FINE)) {
                             LOG.fine("The replication proposal : " 

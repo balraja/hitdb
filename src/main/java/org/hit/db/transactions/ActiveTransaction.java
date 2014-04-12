@@ -29,19 +29,28 @@ import org.hit.time.Clock;
  */
 public abstract class ActiveTransaction extends AbstractTransaction
 {
-    private final Clock myClock;
+    private Clock myClock;
 
     /**
      * CTOR
      */
-    public ActiveTransaction(
+    public static void initialize(
+        ActiveTransaction transaction,
         long transactionId,
         TransactableDatabase database,
         boolean updateRegistry,
         Clock clock)
     {
-        super(transactionId, database, updateRegistry);
-        myClock = clock;
+        AbstractTransaction.initialize(
+            transaction, transactionId, database, updateRegistry);
+        transaction.myClock = clock;
+    }
+    
+    @Override
+    public void free()
+    {
+        super.free();
+        myClock = null;
     }
 
     /**

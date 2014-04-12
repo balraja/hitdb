@@ -27,6 +27,7 @@ import org.hit.communicator.NodeID;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
 import org.hit.messages.ConsensusMessage;
+import org.hit.pool.PooledObjects;
 
 /**
  * Extends {@link ConsensusMessage} to notify followers about a new 
@@ -55,7 +56,7 @@ public class RaftReplicationMessage extends ConsensusMessage
     /**
      * CTOR
      */
-    public RaftReplicationMessage initialize(
+    public static RaftReplicationMessage create(
         NodeID nodeId,
         UnitID unitID,
         Proposal proposal,
@@ -64,12 +65,14 @@ public class RaftReplicationMessage extends ConsensusMessage
         long lcTermID,
         long lcSeqNo)
     {
-        initialize(nodeId, unitID, proposal);
-        myTermID = termID;
-        mySequenceNumber = sequenceNumber;
-        myLastCommittedTermID = lcTermID;
-        myLastCommittedSeqNo = lcSeqNo;
-        return this;
+        RaftReplicationMessage replicationMessage = 
+            PooledObjects.getInstance(RaftReplicationMessage.class);
+        ConsensusMessage.populate(replicationMessage, nodeId, unitID, proposal);
+        replicationMessage.myTermID = termID;
+        replicationMessage.mySequenceNumber = sequenceNumber;
+        replicationMessage.myLastCommittedTermID = lcTermID;
+        replicationMessage.myLastCommittedSeqNo = lcSeqNo;
+        return replicationMessage;
     }
     
     /**

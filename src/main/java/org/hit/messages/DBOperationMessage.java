@@ -28,9 +28,10 @@ import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
 import org.hit.db.model.DBOperation;
 import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
- * Instructs the datbase to apply the given operation to the database.
+ * Instructs the database to apply the given operation to the database.
  *
  * @author Balraja Subbiah
  */
@@ -50,15 +51,18 @@ public class DBOperationMessage extends Message implements Poolable
     }
 
     /**
-     * CTOR
+     * Factory method for creating an instance of DBOperationMessage and 
+     * populating with various parameters.
      */
-    public DBOperationMessage 
-        initialize(NodeID clientID, long seqNum, DBOperation operation)
+    public static DBOperationMessage 
+        create(NodeID clientID, long seqNum, DBOperation operation)
     {
-        setSenderID(clientID);
-        mySequenceNumber = seqNum;
-        myOperation = operation;
-        return this;
+        DBOperationMessage operationMessage = 
+            PooledObjects.getInstance(DBOperationMessage.class);
+        operationMessage.setSenderID(clientID);
+        operationMessage.setSequenceNumber(seqNum);
+        operationMessage.setOperation(operation);
+        return operationMessage;
     }
 
     /**
@@ -75,6 +79,22 @@ public class DBOperationMessage extends Message implements Poolable
     public long getSequenceNumber()
     {
         return mySequenceNumber;
+    }
+    
+    /**
+     * Setter for operation
+     */
+    public void setOperation(DBOperation operation)
+    {
+        myOperation = operation;
+    }
+
+    /**
+     * Setter for sequenceNumber
+     */
+    public void setSequenceNumber(long sequenceNumber)
+    {
+        mySequenceNumber = sequenceNumber;
     }
 
     /**
@@ -109,13 +129,5 @@ public class DBOperationMessage extends Message implements Poolable
         setSenderID(null);
         myOperation = null;
         mySequenceNumber = -1;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
     }
 }

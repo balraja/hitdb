@@ -20,49 +20,36 @@
 
 package org.hit.db.transactions;
 
+import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
+
 /**
  * A simple type that captures the result of validating a <code>Transactable
  * </code> with the given id.
  * 
  * @author Balraja Subbiah
  */
-public class ValidationResult
+public class ValidationResult implements Poolable
 {
-    private final boolean myIsValid;
+    private boolean myIsValid;
     
-    private final boolean myIsSpeculativelyValid;
+    private boolean myIsSpeculativelyValid;
     
-    private final long myTransactionId;
+    private long myTransactionId;
 
     /**
-     * CTOR
+     * Factory method for creating an instance of <code>ValidationResult</code> 
+     * and populating with various parameters.
      */
-    public ValidationResult(boolean isValid)
+    public static ValidationResult create(boolean isValid, long transactionID)
     {
-        myIsValid = isValid;
-        myIsSpeculativelyValid = false;
-        myTransactionId = -1L;
+        ValidationResult result = PooledObjects.getInstance(ValidationResult.class);
+        result.myIsValid = isValid;
+        result.myIsSpeculativelyValid = false;
+        result.myTransactionId = transactionID;
+        return result;
     }
     
-    /**
-     * CTOR
-     */
-    public ValidationResult(boolean isValid, long transactionID)
-    {
-        myIsValid = isValid;
-        myIsSpeculativelyValid = false;
-        myTransactionId = transactionID;
-    }
-    
-    /**
-     * CTOR
-     */
-    public ValidationResult(long trnsactionID)
-    {
-        myIsValid = false;
-        myIsSpeculativelyValid = true;
-        myTransactionId = trnsactionID;
-    }
 
     /**
      * Returns the value of isValid
@@ -86,5 +73,15 @@ public class ValidationResult
     public long getTransactionId()
     {
         return myTransactionId;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myIsValid = myIsSpeculativelyValid = false;
+        myTransactionId = Long.MIN_VALUE;
     }
 }

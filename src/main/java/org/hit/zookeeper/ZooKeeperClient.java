@@ -125,7 +125,6 @@ public class ZooKeeperClient
             return false;
         }
         try {
-           
             if (myZooKeeper.exists(path, false) == null) {
                 myZooKeeper.create(path,
                                    null,
@@ -138,9 +137,16 @@ public class ZooKeeperClient
             return true;
             
         }
+        catch (KeeperException.NodeExistsException e) {
+            // There can be still race conditions and because of which
+            // before node exists check and actual node creation the node 
+            // can be created and that's ok, return true stating that node
+            // has been created
+            return true;
+        }
         catch (KeeperException | InterruptedException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
-            throw new RuntimeException(e);
+            return false;
         }
     }
 

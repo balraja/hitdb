@@ -27,6 +27,7 @@ import org.hit.communicator.NodeID;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
 import org.hit.messages.ConsensusMessage;
+import org.hit.pool.PooledObjects;
 
 /**
  * The {@link ConsensusMessage} that's being sent to initiate the commit.
@@ -48,14 +49,15 @@ public class CommitRequest extends ConsensusMessage
     /**
      * CTOR
      */
-    public CommitRequest initialize(NodeID nodeId, 
-                                    UnitID unitID, 
-                                    Proposal proposal,
-                                    boolean commit)
+    public static CommitRequest create(NodeID nodeId, 
+                                       UnitID unitID, 
+                                       Proposal proposal,
+                                       boolean commit)
     {
-        super.initialize(nodeId, unitID, proposal);
-        myShouldCommit = commit;
-        return this;
+        CommitRequest cr = PooledObjects.getInstance(CommitRequest.class);
+        ConsensusMessage.populate(cr, nodeId, unitID, proposal);
+        cr.myShouldCommit = commit;
+        return cr;
     }
 
     /**
@@ -97,13 +99,5 @@ public class CommitRequest extends ConsensusMessage
     {
         super.free();
         myShouldCommit = false;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
     }
 }

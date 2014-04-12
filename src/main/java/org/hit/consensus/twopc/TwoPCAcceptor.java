@@ -79,8 +79,7 @@ public class TwoPCAcceptor extends ConsensusAcceptor
             myProposalToConsensusMap.put(scm.getProposal(), scm);
             getEventBus().publish(
                 ActorID.CONSENSUS_MANAGER,
-                PooledObjects.getInstance(ProposalNotificationEvent.class)
-                             .initialize(scm.getProposal()));
+                ProposalNotificationEvent.create(scm.getProposal()));
         }
         else if (message instanceof CommitRequest) {
             CommitRequest commitRequest = (CommitRequest) message;
@@ -91,9 +90,10 @@ public class TwoPCAcceptor extends ConsensusAcceptor
             }
             getEventBus().publish(
                 ActorID.CONSENSUS_MANAGER, 
-                PooledObjects.getInstance(ConsensusResponseEvent.class)
-                             .initialize(commitRequest.getProposal(),
-                                         commitRequest.shouldCommit()));
+                ConsensusResponseEvent.create(
+                    commitRequest.getProposal(),
+                    commitRequest.shouldCommit()));
+            
             PooledObjects.freeInstance(commitRequest);
         }
     }
@@ -117,13 +117,13 @@ public class TwoPCAcceptor extends ConsensusAcceptor
         
         getEventBus().publish(
             ActorID.CONSENSUS_MANAGER,
-            PooledObjects.getInstance(SendMessageEvent.class).initialize(
+            SendMessageEvent.create(
                 scm.getSenderId(),
-                PooledObjects.getInstance(ConsensusAcceptMessage.class)
-                             .initialize(getNodeID(),
-                                         getConsensusUnitID(),
-                                         scm.getProposal(),
-                                         response.canAccept())));
+                ConsensusAcceptMessage.create(
+                    getNodeID(),
+                    getConsensusUnitID(),
+                    scm.getProposal(),
+                    response.canAccept())));
         
         PooledObjects.freeInstance(response);
         PooledObjects.freeInstance(scm);

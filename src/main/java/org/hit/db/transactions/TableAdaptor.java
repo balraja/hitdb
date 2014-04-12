@@ -24,14 +24,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Predicate;
-import org.hit.db.model.HitTableSchema;
 import org.hit.db.model.Table;
+import org.hit.pool.Poolable;
 import org.hit.pool.PooledObjects;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
 
 /**
  * Defines the contract for adaptor that adapts {@link Table} to read/write data
@@ -41,29 +39,37 @@ import com.google.common.collect.Collections2;
  * @author Balraja Subbiah
  */
 public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
-    implements Table<K, P>
+    implements Table<K, P>, Poolable
 {
     
-    private final long                        myStartTime;
+    private long                        myStartTime;
 
-    private final TransactableTable<K, P>     myTable;
+    private TransactableTable<K, P>     myTable;
 
-    private final TransactionTableTrail<K, P> myTableTrail;
+    private TransactionTableTrail<K, P> myTableTrail;
 
-    private final long                        myTransactionID;
+    private long                        myTransactionID;
+    
     
     /**
-     * CTOR
+     * An factory method for initializing the pooled object with
+     * required values.
      */
-    public TableAdaptor(TransactableTable<K, P> table,
-                        long startTime,
-                        long transactionID)
+    public static <PK extends Comparable<PK>, T extends Persistable<PK>>
+         TableAdaptor<PK,T> create(
+             TransactableTable<PK,T> table,
+             long startTime,
+             long transactionID)
     {
-        myTable      = table;
-        myStartTime  = startTime;
-        myTableTrail =
-            new TransactionTableTrail<>(myTable.getSchema().getTableName());
-        myTransactionID = transactionID;
+        @SuppressWarnings("unchecked")
+        TableAdaptor<PK, T> adaptor = 
+            PooledObjects.getInstance(TableAdaptor.class);
+        adaptor.myTable      = table;
+        adaptor.myStartTime  = startTime;
+        adaptor.myTableTrail = TransactionTableTrail.<PK, T>create(
+                                   table.getSchema().getTableName());
+        adaptor.myTransactionID = transactionID;
+        return adaptor;
     }
 
     /**
@@ -308,4 +314,16 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
         return deleteRange((K) primaryKey, (K) secondaryKey);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myStartTime     = Long.MIN_VALUE;
+        myTable         = null;
+        myTransactionID = Long.MIN_VALUE;
+        PooledObjects.freeInstance(myTableTrail);
+        myTableTrail    = null;
+    }
 }

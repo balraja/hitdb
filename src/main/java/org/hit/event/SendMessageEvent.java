@@ -25,8 +25,10 @@ import java.util.Collection;
 
 import org.hit.communicator.Message;
 import org.hit.communicator.NodeID;
+import org.hit.pool.PoolConfiguration;
 import org.hit.pool.PoolUtils;
 import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * Defines the contract for an event that initiates the sending to other
@@ -34,6 +36,7 @@ import org.hit.pool.Poolable;
  * 
  * @author Balraja Subbiah
  */
+@PoolConfiguration(initialSize = 100, size = 10000)
 public class SendMessageEvent implements Event, Poolable
 {
     private final Collection<NodeID> myTargets;
@@ -76,35 +79,29 @@ public class SendMessageEvent implements Event, Poolable
         myMessage = null;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
-        myMessage = null;
-    }
     
     /**
      * Initializes the instance with the required attributes.
      */
-    public SendMessageEvent initialize(NodeID target, Message message)
+    public static SendMessageEvent create(NodeID target, Message message)
     {
-        myTargets.add(target);
-        myMessage = message;
-        return this;
+        SendMessageEvent sme = PooledObjects.getInstance(SendMessageEvent.class);
+        sme.myTargets.add(target);
+        sme.myMessage = message;
+        return sme;
     }
 
     
     /**
      * Initializes the instance with the required attributes.
      */
-    public SendMessageEvent initialize(Collection<NodeID> targets, 
-                                       Message            message)
+    public static SendMessageEvent create(Collection<NodeID> targets, 
+                                          Message            message)
     {
-        myTargets.addAll(targets);
-        myMessage = message;
-        return this;
+        SendMessageEvent sme = PooledObjects.getInstance(SendMessageEvent.class);
+        sme.myTargets.addAll(targets);
+        sme.myMessage = message;
+        return sme;
     }
 
 }

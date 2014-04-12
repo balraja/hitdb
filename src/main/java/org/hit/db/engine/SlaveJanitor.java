@@ -64,7 +64,6 @@ import com.google.inject.Inject;
  */
 public class SlaveJanitor extends AbstractJanitor
 {
-
     private class PublishHeartbeatTask implements Runnable
     {
         /**
@@ -76,11 +75,10 @@ public class SlaveJanitor extends AbstractJanitor
             if (myMaster != null && getIsInitialized().get()) {
                 getEventBus().publish(
                     ActorID.DB_ENGINE,
-                    PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                    SendMessageEvent.create(
                         myMaster,
-                        PooledObjects.getInstance(Heartbeat.class)
-                                     .initialize(getServerID(), 
-                                                 myTableRowCountMap)));
+                        Heartbeat.create(getServerID(), 
+                                         myTableRowCountMap)));
             }
         }
     }
@@ -194,7 +192,7 @@ public class SlaveJanitor extends AbstractJanitor
                      + ctm.getTableSchema());
             getEventBus().publish(
                     ActorID.DB_ENGINE,
-                    PooledObjects.getInstance(SendMessageEvent.class).initialize(
+                    SendMessageEvent.create(
                         ctm.getSenderId(),
                         new CreateTableResponseMessage(
                             getServerID(),
@@ -270,7 +268,7 @@ public class SlaveJanitor extends AbstractJanitor
         
         getEventBus().publish(
             ActorID.DB_ENGINE,
-            PooledObjects.getInstance(SendMessageEvent.class).initialize(
+            SendMessageEvent.create(
                 myMaster, new NodeAdvertisement(getServerID())));
         
         LOG.info("Scheduling task to publish hearbeats every  "
@@ -315,7 +313,7 @@ public class SlaveJanitor extends AbstractJanitor
         
         getEventBus().publish(
             ActorID.DB_ENGINE,
-            PooledObjects.getInstance(SendMessageEvent.class).initialize(
+            SendMessageEvent.create(
                 targetNode,
                 new DataLoadRequest(getServerID(), 
                                     tableName,

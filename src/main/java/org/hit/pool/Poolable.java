@@ -29,10 +29,4 @@ public interface Poolable
 {
     /** Frees the resources held by this object */
     public void free();
-    
-    /** 
-     * Initializes the values of the fields. Something like a default 
-     * constructor.
-     */
-    public void initialize();
 }

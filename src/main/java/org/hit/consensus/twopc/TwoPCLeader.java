@@ -87,22 +87,17 @@ public class TwoPCLeader extends ConsensusLeader
                     
                     getEventBus().publish(
                         ActorID.CONSENSUS_MANAGER,
-                        PooledObjects
-                            .getInstance(SendMessageEvent.class)
-                            .initialize(
-                                getAcceptors(),
-                                PooledObjects
-                                    .getInstance(CommitRequest.class)
-                                    .initialize(getNodeID(),
-                                                getConsensusUnitID(),
-                                                accept.getProposal(), 
-                                                myShouldCommit)));
+                        SendMessageEvent.create(
+                            getAcceptors(),
+                            CommitRequest.create(getNodeID(),
+                                                 getConsensusUnitID(),
+                                                 accept.getProposal(), 
+                                                 myShouldCommit)));
                     
                     getEventBus().publish(
                         ActorID.CONSENSUS_MANAGER,
-                        PooledObjects.getInstance(ConsensusResponseEvent.class)
-                                     .initialize(accept.getProposal(), 
-                                                  myShouldCommit));
+                        ConsensusResponseEvent.create(accept.getProposal(), 
+                                                      myShouldCommit));
                 }
             }
         }
@@ -154,12 +149,11 @@ public class TwoPCLeader extends ConsensusLeader
         
         getEventBus().publish(
             ActorID.CONSENSUS_MANAGER,
-            PooledObjects.getInstance(SendMessageEvent.class).initialize(
+            SendMessageEvent.create(
                 getAcceptors(), 
-                PooledObjects.getInstance(SolicitConsensusMessage.class)
-                             .initializeSCM(getNodeID(), 
-                                            getConsensusUnitID(), 
-                                            proposal)));
+                SolicitConsensusMessage.create(getNodeID(), 
+                                               getConsensusUnitID(), 
+                                               proposal)));
     }
 
 }

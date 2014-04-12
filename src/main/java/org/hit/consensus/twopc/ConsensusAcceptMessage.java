@@ -27,6 +27,7 @@ import org.hit.communicator.NodeID;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
 import org.hit.messages.ConsensusMessage;
+import org.hit.pool.PooledObjects;
 
 /**
  * Extends <code>ConsensusMessage</code> to support accepting consensus.
@@ -48,15 +49,17 @@ public class ConsensusAcceptMessage extends ConsensusMessage
     /**
      * CTOR
      */
-    public ConsensusAcceptMessage initialize(
+    public static ConsensusAcceptMessage create(
         NodeID nodeId,
         UnitID unitID,
         Proposal proposal,
         boolean accepted)
     {
-        super.initialize(nodeId, unitID, proposal);
-        myAccepted = accepted;
-        return this;
+        ConsensusAcceptMessage acceptMessage = 
+            PooledObjects.getInstance(ConsensusAcceptMessage.class);
+        ConsensusMessage.populate(acceptMessage, nodeId, unitID, proposal);
+        acceptMessage.myAccepted = accepted;
+        return acceptMessage;
     }
 
     /**
@@ -90,14 +93,6 @@ public class ConsensusAcceptMessage extends ConsensusMessage
         out.writeBoolean(myAccepted);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
-    }
-    
     /**
      * {@inheritDoc}
      */

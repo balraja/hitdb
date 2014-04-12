@@ -19,7 +19,9 @@
 */
 package org.hit.event;
 
+import org.hit.pool.PoolConfiguration;
 import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * An event to notify the {@link Runnable} that's supposed to be 
@@ -27,6 +29,7 @@ import org.hit.pool.Poolable;
  * 
  * @author Balraja Subbiah
  */
+@PoolConfiguration(initialSize = 100, size = 1000)
 public class PeriodicTaskNotification implements Event, Poolable
 {
     private Runnable myPeriodicTask;
@@ -34,10 +37,12 @@ public class PeriodicTaskNotification implements Event, Poolable
     /**
      * A fluent interface for initializing the event.
      */
-    public PeriodicTaskNotification initialize(Runnable periodicTask)
+    public static PeriodicTaskNotification create(Runnable periodicTask)
     {
-        myPeriodicTask = periodicTask;
-        return this;
+        PeriodicTaskNotification ptn = 
+            PooledObjects.getInstance(PeriodicTaskNotification.class);
+        ptn.myPeriodicTask = periodicTask;
+        return ptn;
     }
 
 
@@ -54,15 +59,6 @@ public class PeriodicTaskNotification implements Event, Poolable
      */
     @Override
     public void free()
-    {
-        myPeriodicTask = null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
     {
         myPeriodicTask = null;
     }

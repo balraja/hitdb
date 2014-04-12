@@ -37,6 +37,9 @@ import org.hit.consensus.UnitID;
 import org.hit.consensus.raft.log.WAL;
 import org.hit.consensus.raft.log.WALPropertyConfig;
 import org.hit.event.SendMessageEvent;
+import org.hit.pool.PoolConfiguration;
+import org.hit.pool.PoolUtils;
+import org.hit.pool.Poolable;
 import org.hit.pool.PooledObjects;
 import org.hit.util.LogFactory;
 
@@ -55,36 +58,61 @@ public class RaftLeader extends ConsensusLeader implements RaftProtocol
      * A simple class to keep track of progress of a {@link Proposal}
      * being replicated across the followers.
      */
-    private class ProposalTracker
+    @PoolConfiguration(size=10000,initialSize=100)
+    public static class ProposalTracker implements Poolable
     {
-        private final Set<NodeID> myLogAcceptors;
+        private final Set<NodeID> myLogAcceptors = new HashSet<>();
         
-        private final Proposal myProposal;
+        private WAL myWriteAheadLog;
         
-        private final long myTermID;
+        private EventBus myEventBus;
         
-        private final long mySequenceNO;
+        private Proposal myProposal;
         
-        private final long myLCTermNo;
+        private NodeID myNodeID;
         
-        private final long myLCSeqNo;
+        private UnitID myConsensusUnitID;
+        
+        private State myState;
+        
+        private long myTermID;
+        
+        private long mySequenceNO;
+        
+        private long myLCTermNo;
+        
+        private long myLCSeqNo;
         
         /**
-         * CTOR
+         * The factory method for instantiating the class
          */
-        public ProposalTracker(
-             Proposal proposal, 
-             long     termID,
-             long     sequenceNO,
-             long     lcTermID,
-             long     lcSeqNo)
+        public static ProposalTracker create(
+             EventBus    eventBus,
+             WAL         wal,
+             Proposal    proposal,
+             NodeID      sender,
+             Set<NodeID> acceptors,
+             UnitID      unitID,
+             long        termID,
+             long        sequenceNO,
+             long        lcTermID,
+             long        lcSeqNo,
+             State       state)
         {
-            myProposal        = proposal;
-            myLogAcceptors    = new HashSet<>(getAcceptors());
-            myTermID          = termID;
-            mySequenceNO      = sequenceNO;
-            myLCTermNo        = lcTermID;
-            myLCSeqNo         = lcSeqNo;
+            ProposalTracker tracker = 
+                PooledObjects.getInstance(ProposalTracker.class);
+            tracker.myNodeID          = sender;
+            tracker.myConsensusUnitID = unitID;
+            tracker.myEventBus        = eventBus;
+            tracker.myWriteAheadLog   = wal;
+            tracker.myProposal        = proposal;
+            tracker.myLogAcceptors.addAll(acceptors);
+            tracker.myTermID          = termID;
+            tracker.mySequenceNO      = sequenceNO;
+            tracker.myLCTermNo        = lcTermID;
+            tracker.myLCSeqNo         = lcSeqNo;
+            tracker.myState           = state;
+            return tracker;
         }
         
         /**
@@ -92,19 +120,19 @@ public class RaftLeader extends ConsensusLeader implements RaftProtocol
          */
         public void start()
         {
-            myWAL.addProposal(myTermID, mySequenceNO, myProposal);
-            getEventBus().publish(
+            myWriteAheadLog.addProposal(myTermID, mySequenceNO, myProposal);
+            myEventBus.publish(
                 ActorID.CONSENSUS_MANAGER,
-                PooledObjects.getInstance(SendMessageEvent.class).initialize(                   
+                SendMessageEvent.create(                   
                     myLogAcceptors,
-                    PooledObjects.getInstance(RaftReplicationMessage.class)
-                                 .initialize(getNodeID(),
-                                             getConsensusUnitID(),
-                                             myProposal, 
-                                             myTermID, 
-                                             mySequenceNO,
-                                             myLCTermNo,
-                                             myLCSeqNo)));
+                    RaftReplicationMessage.create(
+                        myNodeID,
+                        myConsensusUnitID,
+                        myProposal, 
+                        myTermID, 
+                        mySequenceNO,
+                        myLCTermNo,
+                        myLCSeqNo)));
         }
         
         public void receivedAcceptance(NodeID acceptedNodeID)
@@ -118,9 +146,25 @@ public class RaftLeader extends ConsensusLeader implements RaftProtocol
             }
             myLogAcceptors.remove(acceptedNodeID);
             if (myLogAcceptors.isEmpty()) {
-                myProtocolState.setCommitted(myTermID, mySequenceNO);
-                myProtocolState.deleteTracker(myTermID, mySequenceNO);
+                myState.setCommitted(myTermID, mySequenceNO);
+                myState.deleteTracker(myTermID, mySequenceNO);
+                PoolUtils.free(myProposal);
             }
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void free()
+        {
+            myLogAcceptors.clear();
+            myWriteAheadLog = null;
+            myState = null;
+            myNodeID = null;
+            myConsensusUnitID = null;
+            myEventBus = null;
+            mySequenceNO = myLCSeqNo = myLCTermNo = myTermID = Long.MIN_VALUE;
         }
     }
     
@@ -313,12 +357,18 @@ public class RaftLeader extends ConsensusLeader implements RaftProtocol
                      + myProtocolState.getSeqNumber());
         }
         ProposalTracker trace = 
-           new ProposalTracker(
+           ProposalTracker.create(
+               getEventBus(),
+               myWAL, 
                proposal,
+               getNodeID(), 
+               getAcceptors(),
+               getConsensusUnitID(), 
                myProtocolState.getTermNo(),
                myProtocolState.incAndGetSeqNum(),
                myProtocolState.getLastCommittedTermNo(),
-               myProtocolState.getLastCommittedSeqNo());
+               myProtocolState.getLastCommittedSeqNo(),
+               myProtocolState);
         
         if (LOG.isLoggable(Level.FINE)) {
             LOG.fine("The term-number:seq-no assigned is  " 

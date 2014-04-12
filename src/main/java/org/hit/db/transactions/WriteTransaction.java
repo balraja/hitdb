@@ -22,6 +22,9 @@ package org.hit.db.transactions;
 
 import org.hit.db.model.Database;
 import org.hit.db.model.Mutation;
+import org.hit.pool.PoolConfiguration;
+import org.hit.pool.PoolUtils;
+import org.hit.pool.PooledObjects;
 import org.hit.time.Clock;
 
 /**
@@ -30,32 +33,44 @@ import org.hit.time.Clock;
  *
  * @author Balraja Subbiah
  */
+@PoolConfiguration(size=10000,initialSize=100)
 public class WriteTransaction extends ActiveTransaction
 {
-    private final Mutation myMutation;
+    private Mutation myMutation;
+    
+    private long myStartTimeOverride;
+    
+    private long myEndTimeOverride;
 
     /**
-     * CTOR
+     *   Factory method for creating an instance of <code>WriteTransaction</code> 
+     * and populating with various parameters.
      */
-    public WriteTransaction(long transactionId,
-                            TransactableDatabase database,
-                            Clock clock,
-                            Mutation mutation)
+    public static WriteTransaction create(
+        long transactionId,
+        TransactableDatabase database,
+        Clock clock,
+        Mutation mutation)
     {
-        this(transactionId, database, clock, mutation, true);
+        return create(transactionId, database, clock, mutation, true);
     }
     
     /**
      * CTOR
      */
-    public WriteTransaction(long transactionId,
-                            TransactableDatabase database,
-                            Clock clock,
-                            Mutation mutation,
-                            boolean updateRegistry)
+    public static WriteTransaction create(
+        long transactionId,
+        TransactableDatabase database,
+        Clock clock,
+        Mutation mutation,
+        boolean updateRegistry)
     {
-        super(transactionId, database, updateRegistry, clock);
-        myMutation = mutation;
+        WriteTransaction writeTransaction =
+            PooledObjects.getInstance(WriteTransaction.class);
+        ActiveTransaction.initialize(
+            writeTransaction, transactionId, database, updateRegistry, clock);
+        writeTransaction.myMutation = mutation;
+        return writeTransaction;
     }
 
     /**
@@ -105,6 +120,47 @@ public class WriteTransaction extends ActiveTransaction
         void doAbort(DatabaseAdaptor adpator)
     {
         adpator.abort();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        PoolUtils.free(myMutation);
+        myMutation = null;
+        myStartTimeOverride = myEndTimeOverride = Long.MIN_VALUE;
+    }
+    
+    /** 
+     * Allows overriding the start and endtimes of a transaction. Useful
+     * when applying replicated transactions to the database.
+     */
+    public void setTimeOverride(long start, long end)
+    {
+        myStartTimeOverride = start;
+        myEndTimeOverride   = end;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected long makeStartTime()
+    {
+        return myStartTimeOverride == Long.MIN_VALUE ? super.makeStartTime()
+                                                     : myStartTimeOverride;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected long makeEndTime()
+    {
+        return myEndTimeOverride == Long.MIN_VALUE ? super.makeEndTime()
+                                                   : myEndTimeOverride;
     }
 
 }

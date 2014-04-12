@@ -24,14 +24,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import org.hit.gossip.Gossip;
+import org.hit.pool.PoolConfiguration;
 import org.hit.pool.PoolUtils;
 import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * An event to publish the latest updates received via gossip protocol
  * 
  * @author Balraja Subbiah
  */
+@PoolConfiguration(initialSize = 10, size = 100)
 public class GossipNotificationEvent implements Event, Poolable
 {
     private final Collection<Gossip> myGossip;
@@ -48,10 +51,12 @@ public class GossipNotificationEvent implements Event, Poolable
      * A fluent interface for initializing the instance returned from the
      * pool.
      */
-    public GossipNotificationEvent initialize(Collection<Gossip> gossip)
+    public static GossipNotificationEvent create(Collection<Gossip> gossip)
     {
-        myGossip.addAll(gossip);
-        return this;
+        GossipNotificationEvent gne = 
+            PooledObjects.getInstance(GossipNotificationEvent.class);
+        gne.myGossip.addAll(gossip);
+        return gne;
     }
 
     /**
@@ -69,15 +74,6 @@ public class GossipNotificationEvent implements Event, Poolable
     public void free()
     {
         PoolUtils.free(myGossip);
-        myGossip.clear();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
         myGossip.clear();
     }
 }

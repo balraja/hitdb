@@ -27,6 +27,9 @@ import java.util.Date;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
 import org.hit.db.model.Mutation;
+import org.hit.pool.PoolConfiguration;
+import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * Extends {@link Proposal} to support sending @link {Mutation} to 
@@ -34,7 +37,8 @@ import org.hit.db.model.Mutation;
  * 
  * @author Balraja Subbiah
  */
-public class ReplicationProposal implements Proposal
+@PoolConfiguration(size=10000,initialSize=100)
+public class ReplicationProposal implements Proposal, Poolable
 {
     private UnitID myUnitID;
     
@@ -44,25 +48,22 @@ public class ReplicationProposal implements Proposal
     
     private long myEndTime;
 
-    /**
-     * CTOR
-     */
-    public ReplicationProposal()
-    {
-        this(null, null, -1L, -1L);
-    }
     
     /**
-     * CTOR
+     * Factory method for creating an instance of 
+     * <code>ReplicationProposal</code> 
+     * and populating with various parameters.
      */
-    public ReplicationProposal(
+    public static ReplicationProposal create(
         UnitID unitID, Mutation mutation, long start, long endTime)
     {
-        super();
-        myUnitID = unitID; 
-        myMutation = mutation;
-        myStart = start;
-        myEndTime = endTime;
+        ReplicationProposal rp = 
+            PooledObjects.getInstance(ReplicationProposal.class);
+        rp.myUnitID = unitID; 
+        rp.myMutation = mutation;
+        rp.myStart = start;
+        rp.myEndTime = endTime;
+        return rp;
     }
 
     /**
@@ -133,5 +134,16 @@ public class ReplicationProposal implements Proposal
                 + myMutation + ", myStart=" + new Date(myStart) + ", myEndTime="
                 + new Date(myEndTime) + "]";
     }
-    
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myUnitID = null;
+        myMutation = null;
+        myStart = Long.MIN_VALUE;
+        myEndTime = Long.MIN_VALUE;
+    }
 }

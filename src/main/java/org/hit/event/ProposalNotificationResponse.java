@@ -20,8 +20,9 @@
 
 package org.hit.event;
 
-import org.hit.pool.PoolUtils;
+import org.hit.pool.PoolConfiguration;
 import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * Defines an event that's specifies whether the proposal received via
@@ -29,6 +30,7 @@ import org.hit.pool.Poolable;
  * 
  * @author Balraja Subbiah
  */
+@PoolConfiguration(initialSize = 100, size = 1000)
 public class ProposalNotificationResponse implements Event, Poolable
 {
     private ProposalNotificationEvent myProposalNotification;
@@ -38,13 +40,15 @@ public class ProposalNotificationResponse implements Event, Poolable
     /**
      * Fluent interface method for initializing the pooled object
      */
-    public ProposalNotificationResponse initialize(
+    public static ProposalNotificationResponse initialize(
         ProposalNotificationEvent proposalNotification,
         boolean canAccept)
     {
-        myProposalNotification = proposalNotification;
-        myCanAccept            = canAccept;
-        return this;
+        ProposalNotificationResponse pnr =
+            PooledObjects.getInstance(ProposalNotificationResponse.class);
+        pnr.myProposalNotification = proposalNotification;
+        pnr.myCanAccept            = canAccept;
+        return pnr;
     }
 
     /**
@@ -68,16 +72,6 @@ public class ProposalNotificationResponse implements Event, Poolable
      */
     @Override
     public void free()
-    {
-        myProposalNotification = null;
-        myCanAccept = false;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
     {
         myProposalNotification = null;
         myCanAccept = false;
