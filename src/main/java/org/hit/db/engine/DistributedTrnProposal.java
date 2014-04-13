@@ -23,12 +23,16 @@ package org.hit.db.engine;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.hit.communicator.NodeID;
 import org.hit.consensus.Proposal;
 import org.hit.consensus.UnitID;
 import org.hit.db.model.DBOperation;
+import org.hit.pool.PoolUtils;
+import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * Defines the contract for a {@link PaxosProposal} to be used for achieving 
@@ -36,7 +40,7 @@ import org.hit.db.model.DBOperation;
  * 
  * @author Balraja Subbiah
  */
-public class DistributedTrnProposal implements Proposal
+public class DistributedTrnProposal implements Proposal,Poolable
 {
     private long myTransactionNumber;
     
@@ -51,21 +55,24 @@ public class DistributedTrnProposal implements Proposal
     {
         super();
         myUnitID = null;
-        myNodeToDBOperationMap = null;
+        myNodeToDBOperationMap = new HashMap<NodeID, DBOperation>();
         myTransactionNumber = -1L;
     }
 
     /**
      * CTOR
      */
-    public DistributedTrnProposal(UnitID unitID,
-                                  Map<NodeID, DBOperation> nodeToDBOperationMap, 
-                                  long transactionNumber)
+    public static DistributedTrnProposal create(
+        UnitID unitID,
+        Map<NodeID, DBOperation> nodeToDBOperationMap, 
+        long transactionNumber)
     {
-        super();
-        myUnitID = unitID;
-        myNodeToDBOperationMap = nodeToDBOperationMap;
-        myTransactionNumber = transactionNumber;
+        DistributedTrnProposal proposal = 
+            PooledObjects.getInstance(DistributedTrnProposal.class);
+        proposal.myUnitID = unitID;
+        proposal.myNodeToDBOperationMap.putAll(nodeToDBOperationMap);
+        proposal.myTransactionNumber = transactionNumber;
+        return proposal;
     }
 
     /**
@@ -153,6 +160,18 @@ public class DistributedTrnProposal implements Proposal
             return false;
         return true;
     }
-    
-    
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myTransactionNumber = Long.MIN_VALUE;
+        myUnitID = null;
+        for (DBOperation operation : myNodeToDBOperationMap.values()) {
+            PoolUtils.free(operation);
+        }
+        myNodeToDBOperationMap.clear();
+    }  
 }

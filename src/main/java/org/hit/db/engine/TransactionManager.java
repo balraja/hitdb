@@ -22,9 +22,13 @@ package org.hit.db.engine;
 
 import gnu.trove.set.TLongSet;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -48,7 +52,6 @@ import org.hit.db.transactions.Memento;
 import org.hit.db.transactions.PhasedTransactionExecutor;
 import org.hit.db.transactions.ReadTransaction;
 import org.hit.db.transactions.Registry;
-import org.hit.db.transactions.ReplicatedWriteTransaction;
 import org.hit.db.transactions.ReplicationExecutor;
 import org.hit.db.transactions.TransactableDatabase;
 import org.hit.db.transactions.TransactionResult;
@@ -62,6 +65,11 @@ import org.hit.event.SendMessageEvent;
 import org.hit.messages.DBOperationFailureMessage;
 import org.hit.messages.DBOperationSuccessMessage;
 import org.hit.messages.DataLoadResponse;
+import org.hit.pool.CLQPool;
+import org.hit.pool.Factory;
+import org.hit.pool.Pool;
+import org.hit.pool.PoolUtils;
+import org.hit.pool.Poolable;
 import org.hit.pool.PooledObjects;
 import org.hit.time.Clock;
 import org.hit.util.LogFactory;
@@ -87,7 +95,7 @@ public class TransactionManager
      * Defines the contract for a workflow that captures the state of
      * transaction execution.
      */
-    private static interface WorkFlow
+    private static interface WorkFlow extends Poolable
     {
         /** Returns the transaction id corresponding to this work flow */
         public long getTransactionID();
@@ -129,25 +137,13 @@ public class TransactionManager
      */
     private class SimpleWorkflow extends AbstractWokflow
     {
-        private final ClientInfo myClientInfo;
+        private ClientInfo myClientInfo;
         
-        private final AbstractTransaction myTransaction;
+        private AbstractTransaction myTransaction;
         
         private boolean myExecutionPhase;
         
         private Memento<Boolean> myMemento;
-
-        /**
-         * CTOR
-         */
-        public SimpleWorkflow(ClientInfo clientInfo, 
-                              AbstractTransaction transaction)
-        {
-            super();
-            myClientInfo = clientInfo;
-            myTransaction = transaction;
-            myExecutionPhase = true;
-        }
 
         /**
          * {@inheritDoc}
@@ -155,7 +151,7 @@ public class TransactionManager
         @Override
         public long getTransactionID()
         {
-            return myTransaction.getTransactionID();
+            return getTransaction().getTransactionID();
         }
         
         /**
@@ -176,20 +172,17 @@ public class TransactionManager
                 result.isCommitted() ?
                     DBOperationSuccessMessage.create(
                         myServerID,
-                        myClientInfo.getClientSequenceNumber(), 
+                        getClientInfo().getClientSequenceNumber(), 
                         result.getResult())
                     : DBOperationFailureMessage.create(
                               myServerID,
-                              myClientInfo.getClientSequenceNumber(),
+                              getClientInfo().getClientSequenceNumber(),
                               "Failed to apply the transaction on db");
 
             myEventBus.publish(
                ActorID.DB_ENGINE,
                SendMessageEvent.create(
-                   myClientInfo.getClientID(), message));
-            
-            // Remove the workflow as it's no longer needed.
-            myWorkFlowMap.remove(myTransaction.getTransactionID());
+                   getClientInfo().getClientID(), message));
         }
 
         /**
@@ -197,20 +190,24 @@ public class TransactionManager
          */
         protected void sendErrorToClient(Exception exception)
         {
-            if (myClientInfo != null) {
+            if (getClientInfo() != null) {
                 myEventBus.publish(
                    ActorID.DB_ENGINE,
                    SendMessageEvent.create(
-                       myClientInfo.getClientID(),
+                       getClientInfo().getClientID(),
                        DBOperationFailureMessage.create(
                            myServerID,
-                           myClientInfo.getClientSequenceNumber(),
+                           getClientInfo().getClientSequenceNumber(),
                            exception.getMessage(),
                            exception)));
             }
             
+            
             // Remove the workflow as it's no longer needed.
-            myWorkFlowMap.remove(myTransaction.getTransactionID());
+            SimpleWorkflow workflow = 
+                (SimpleWorkflow) 
+                    myWorkFlowMap.remove(getTransaction().getTransactionID());
+            TransactionManager.this.<SimpleWorkflow>free(workflow);
         }
         
         /**
@@ -220,14 +217,16 @@ public class TransactionManager
         public void initiateCommit()
         {
             if (myMemento != null) {
-                myExecutionPhase = false;
+                setExecutionPhase(false);
+                PhasedTransactionExecutor<TransactionResult> callable =
+                    PhasedTransactionExecutor.<TransactionResult>create(myMemento);
                 ListenableFuture<Memento<TransactionResult>> future =
-                    myExecutor.submit(
-                       new PhasedTransactionExecutor<TransactionResult>(
-                           myMemento));
-        
+                    myExecutor.submit(callable);
                 Futures.addCallback(future,
-                                    new WorkflowProcessor<>(SimpleWorkflow.this));
+                                    WorkflowProcessor.create(callable, 
+                                                             SimpleWorkflow.this));
+                PooledObjects.freeInstance(myMemento);
+                myMemento = null;
             }
         }
         
@@ -237,16 +236,19 @@ public class TransactionManager
         @Override
         public void start()
         {
-            if (myExecutionPhase) {
+            if (isExecutionPhase()) {
+                PhasedTransactionExecutor<Boolean> callable =
+                    PhasedTransactionExecutor.<Boolean>create(
+                                    getTransaction(),
+                                    PhasedTransactionExecutor.ExecutionPhase.create(
+                                        getTransaction()));
+                
                 ListenableFuture<Memento<Boolean>> future =
-                    myExecutor.submit(
-                       new PhasedTransactionExecutor<Boolean>(
-                           myTransaction,
-                           new PhasedTransactionExecutor.ExecutionPhase(
-                               myTransaction)));
+                    myExecutor.submit(callable);
                     
                 Futures.addCallback(future, 
-                                    new WorkflowProcessor<>(SimpleWorkflow.this));
+                                    WorkflowProcessor.<Memento<Boolean>>create(
+                                        callable, SimpleWorkflow.this));
 
             }
             else {
@@ -261,7 +263,7 @@ public class TransactionManager
         @Override
         public void respondTO(Object event)
         {
-            if (event instanceof Memento && myExecutionPhase) {
+            if (event instanceof Memento && isExecutionPhase()) {
                 
                 @SuppressWarnings("unchecked")
                 Memento<Boolean> result = (Memento<Boolean>) event;
@@ -282,29 +284,37 @@ public class TransactionManager
                         "Transaction validation failed"));
                 }
             }
-            else if (event instanceof Memento && !myExecutionPhase) {
+            else if (event instanceof Memento && !isExecutionPhase()) {
                 
                 if (myJanitor != null) {
                     myJanitor.handleDbStats(myDatabase.getStatistics());
                 }
                 
-                if (myTransaction instanceof WriteTransaction) {
+                if (getTransaction() instanceof WriteTransaction) {
                     
                     myEventBus.publish(
                         ActorID.DB_ENGINE,
                         ConsensusRequestEvent.create(
                             ReplicationProposal.create(
                                 myReplicationUnitID,
-                                ((WriteTransaction) myTransaction).getMutation(),
-                                myTransaction.getStartTime(),
-                                myTransaction.getEndTime())));
+                                ((WriteTransaction) getTransaction()).getMutation(),
+                                getTransaction().getStartTime(),
+                                getTransaction().getEndTime())));
                 }
                 
                 @SuppressWarnings("unchecked")
                 Memento<TransactionResult> result = 
                     (Memento<TransactionResult>) event;
                 sendResponseToClient(result.getPhase().getResult());
-                scheduleNextTransactions(myTransaction.getTransactionID());
+                scheduleNextTransactions(getTransaction().getTransactionID());
+                
+                // Remove the workflow as it's no longer needed.
+                PooledObjects.freeInstance(result);
+                SimpleWorkflow workflow = 
+                    (SimpleWorkflow) 
+                        myWorkFlowMap.remove(getTransaction().getTransactionID());
+                TransactionManager.this.<SimpleWorkflow>free(workflow);
+
             }
             else if (event instanceof Exception) {
                 Exception exception = (Exception) event;
@@ -312,6 +322,64 @@ public class TransactionManager
                 // XXX Abort all transactions that is dependent 
                 // on this transaction.
             }
+        }
+
+        /**
+         * Setter for clientInfo
+         */
+        public void setClientInfo(ClientInfo clientInfo)
+        {
+            myClientInfo = clientInfo;
+        }
+
+        /**
+         * Returns the value of transaction
+         */
+        public AbstractTransaction getTransaction()
+        {
+            return myTransaction;
+        }
+
+        /**
+         * Setter for transaction
+         */
+        public void setTransaction(AbstractTransaction transaction)
+        {
+            myTransaction = transaction;
+        }
+
+        /**
+         * Returns the value of executionPhase
+         */
+        public boolean isExecutionPhase()
+        {
+            return myExecutionPhase;
+        }
+
+        /**
+         * Setter for executionPhase
+         */
+        public void setExecutionPhase(boolean executionPhase)
+        {
+            myExecutionPhase = executionPhase;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void free()
+        {
+            PooledObjects.freeInstance(myClientInfo);
+            PooledObjects.freeInstance(myTransaction);
+            if (myMemento != null) {
+                PooledObjects.freeInstance(myMemento);
+            }
+            
+            myClientInfo = null;
+            myTransaction = null;
+            myMemento = null;
+            myExecutionPhase = false;
         }
     }
     
@@ -321,19 +389,7 @@ public class TransactionManager
      */
     private class DeletionWorkflow extends SimpleWorkflow
     {
-        private final DeleteRangeMutation myMutation;
-
-        /**
-         * CTOR
-         */
-        public DeletionWorkflow(
-            ClientInfo clientInfo,
-            AbstractTransaction transaction,
-            DeleteRangeMutation mutation)
-        {
-            super(clientInfo, transaction);
-            myMutation = mutation;
-        }
+        private DeleteRangeMutation myMutation;
         
         /**
          * {@inheritDoc}
@@ -357,6 +413,16 @@ public class TransactionManager
             // Remove the workflow as it's no longer needed.
             myWorkFlowMap.remove(getTransactionID());
         }
+        
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void free()
+        {
+            super.free();
+            PoolUtils.free(myMutation);
+        }
     }
     
     /**
@@ -365,48 +431,18 @@ public class TransactionManager
      */
     private class DistributedWorkflow extends AbstractWokflow
     {
-        private final AbstractTransaction myTransaction;
+        private AbstractTransaction myTransaction;
         
-        private final ClientInfo myClientInfo;
+        private ClientInfo myClientInfo;
         
-        private final ProposalNotificationEvent myPne;
+        private ProposalNotificationEvent myPne;
         
-        private final DistributedTrnProposal myProposal;
+        private DistributedTrnProposal myProposal;
         
         private boolean myExecutionPhase;
         
         private Memento<Boolean> myMemento;
         
-        /**
-         * CTOR
-         */
-        public DistributedWorkflow(AbstractTransaction transaction,
-                                   ClientInfo clientInfo,
-                                   DistributedTrnProposal proposal)
-        {
-            super();
-            myTransaction = transaction;
-            myClientInfo = clientInfo;
-            myPne = null;
-            myExecutionPhase = true;
-            myProposal = proposal;
-        }
-
-        /**
-         * CTOR
-         */
-        public DistributedWorkflow(AbstractTransaction transaction,
-                                   ClientInfo clientInfo,
-                                   ProposalNotificationEvent pne)
-        {
-            super();
-            myTransaction = transaction;
-            myClientInfo = clientInfo;
-            myPne = pne;
-            myExecutionPhase = true;
-            myProposal = null;
-        }
-
         /**
          * {@inheritDoc}
          */
@@ -427,18 +463,20 @@ public class TransactionManager
                     LOG.fine("Initiating execution phase for distributed"
                              + " transaction " + getTransactionID());
                 }
+                PhasedTransactionExecutor<Boolean> callable =
+                    PhasedTransactionExecutor.<Boolean>create(
+                                myTransaction,
+                                PhasedTransactionExecutor.ExecutionPhase.create(
+                                    myTransaction));
+                
                 // Now schedule a distributed transaction to 
                 // execute.
                 ListenableFuture<Memento<Boolean>> future =
-                    myExecutor.submit(
-                       new PhasedTransactionExecutor<Boolean>(
-                           myTransaction,
-                           new PhasedTransactionExecutor.ExecutionPhase(
-                               myTransaction)));
+                    myExecutor.submit(callable);
                     
                 Futures.addCallback(future, 
-                                    new WorkflowProcessor<>(
-                                        DistributedWorkflow.this));
+                                    WorkflowProcessor.<Memento<Boolean>>create(
+                                        callable, DistributedWorkflow.this));
             }
             else if (LOG.isLoggable(Level.FINE)) {
                 LOG.fine("The database is locked by " 
@@ -461,9 +499,9 @@ public class TransactionManager
                 if (myPne != null) {
                     myEventBus.publish(
                         ActorID.DB_ENGINE,
-                        PooledObjects.getInstance(ProposalNotificationResponse.class)
-                                     .initialize(myPne,
-                                                 result.getPhase().getResult()));
+                        ProposalNotificationResponse.create(
+                            myPne,
+                            result.getPhase().getResult()));
                 }
                 else if (myProposal != null
                          && result.getPhase().getResult()) 
@@ -534,15 +572,19 @@ public class TransactionManager
                                  + message.getClass().getSimpleName());
                     }
                     
+                    scheduleNextTransactions(myTransaction.getTransactionID());
                     // Remove the workflow as it's no longer needed.
                     myWorkFlowMap.remove(myTransaction.getTransactionID());
+                    DistributedWorkflow workflow = 
+                        (DistributedWorkflow) 
+                            myWorkFlowMap.remove(myTransaction.getTransactionID());
+                    TransactionManager.this.<DistributedWorkflow>free(workflow);
+
                 }
                 else if (LOG.isLoggable(Level.FINE)) {
                     LOG.fine("The clients will be notified by the initiator"
                              + " of this transaction");
                 }
-                
-                scheduleNextTransactions(myTransaction.getTransactionID());
             }
         }
 
@@ -557,29 +599,60 @@ public class TransactionManager
                     LOG.fine("Initiating commit for " 
                              + myTransaction.getTransactionID());
                 }
+                PhasedTransactionExecutor<TransactionResult> callable = 
+                    PhasedTransactionExecutor.<TransactionResult>create(
+                        myMemento);
+                
                 ListenableFuture<Memento<TransactionResult>> future =
-                    myExecutor.submit(
-                       new PhasedTransactionExecutor<TransactionResult>(
-                           myMemento));
+                    myExecutor.submit(callable);
 
                 Futures.addCallback(future,
-                                    new WorkflowProcessor<>(
-                                        DistributedWorkflow.this));
+                                    WorkflowProcessor.<Memento<TransactionResult>>create(
+                                        callable, DistributedWorkflow.this));
             }
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void free()
+        {
+            PooledObjects.freeInstance(myClientInfo);
+            PooledObjects.freeInstance(myTransaction);
+            PooledObjects.freeInstance(myMemento);
+            PooledObjects.freeInstance(myProposal);
+            PooledObjects.freeInstance(myPne);
+            
+            myClientInfo = null;
+            myTransaction = null;
+            myMemento = null;
+            myProposal = null;
+            myPne = null;
+            myExecutionPhase = false;
         }
     }
     
-    private class WorkflowProcessor<T> implements FutureCallback<T>
+    private static class WorkflowProcessor<T> 
+        implements FutureCallback<T>, Poolable
     {
-        private final WorkFlow myWorkFlow;
+        private Callable<?> myCallable;
+        
+        private WorkFlow myWorkFlow;
 
         /**
          * CTOR
          */
-        public WorkflowProcessor(WorkFlow workFlow)
+        public static <P> WorkflowProcessor<P> create (
+            Callable<P> callable, WorkFlow workFlow)
         {
-            super();
-            myWorkFlow = workFlow;
+            @SuppressWarnings("unchecked")
+            WorkflowProcessor<P> wfp = 
+                PooledObjects.getInstance(
+                TransactionManager.WorkflowProcessor.class);
+            wfp.myCallable = callable;
+            wfp.myWorkFlow = workFlow;
+            return wfp;
         }
 
         /**
@@ -589,6 +662,7 @@ public class TransactionManager
         public void onFailure(Throwable exception)
         {
             myWorkFlow.respondTO(exception);
+            PooledObjects.freeInstance(WorkflowProcessor.this);
         }
 
         /**
@@ -598,6 +672,18 @@ public class TransactionManager
         public void onSuccess(T result)
         {
             myWorkFlow.respondTO(result);
+            PooledObjects.freeInstance(WorkflowProcessor.this);
+        }
+        
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void free()
+        {
+            PoolUtils.free(myCallable);
+            myCallable = null;
+            myWorkFlow = null;
         }
     }
     
@@ -693,6 +779,8 @@ public class TransactionManager
     
     private EngineJanitor myJanitor;
     
+    private final Map<Class<?>, Pool<?>> myWorkflowToPoolMap;
+    
     /**
      * CTOR
      */
@@ -713,6 +801,7 @@ public class TransactionManager
         myWorkFlowMap = new ConcurrentHashMap<>();
         myConsensusToWorkFlowMap = new ConcurrentHashMap<>();
         myReplicationUnitID = replicationID;
+        myWorkflowToPoolMap = new HashMap<>();
         myExecutor =
             MoreExecutors.listeningDecorator(
                 Executors.newFixedThreadPool(
@@ -758,12 +847,12 @@ public class TransactionManager
             new DeleteRangeMutation(tableName, deletedRange);
 
         AbstractTransaction transaction =
-            new WriteTransaction(
+            WriteTransaction.create(
                 id, myDatabase, myClock, operation);
         
-        ClientInfo clientInfo = new ClientInfo(originatorNode, -1L);
+        ClientInfo clientInfo = ClientInfo.create(originatorNode, -1L);
         WorkFlow workFlow = 
-            new DeletionWorkflow(clientInfo, transaction, operation);
+            createDeletionWorkflow(clientInfo, transaction, operation);
         myWorkFlowMap.put(Long.valueOf(id), workFlow);
         
         if (myDatabase.lock(id)) {
@@ -791,30 +880,32 @@ public class TransactionManager
                                  long sequenceNumber)
     {
         long id = myIdAssigner.getTransactionID();
-        ClientInfo clientInfo = new ClientInfo(clientID, sequenceNumber);
+        ClientInfo clientInfo = ClientInfo.create(clientID, sequenceNumber);
         
         AbstractTransaction transaction =
             operation instanceof Mutation ?
-                new WriteTransaction(
+                WriteTransaction.create(
                     id, myDatabase, myClock, (Mutation) operation)
-                : new ReadTransaction(
+                : ReadTransaction.create(
                     id, myDatabase, myClock, (Query) operation);
         
                     
-        WorkFlow workFlow = 
-            new SimpleWorkflow(clientInfo, transaction);
+        WorkFlow workFlow = createSimpleWorkflow(clientInfo, transaction);
         
         myWorkFlowMap.put(Long.valueOf(id), workFlow);
         
         if (myDatabase.canProcess(id)) {
+            PhasedTransactionExecutor<Boolean> callable =
+                PhasedTransactionExecutor.<Boolean>create(
+                    transaction,
+                    PhasedTransactionExecutor.ExecutionPhase.create(transaction));
+                              
             ListenableFuture<Memento<Boolean>> future =
-                myExecutor.submit(
-                   new PhasedTransactionExecutor<Boolean>(
-                       transaction,
-                       new PhasedTransactionExecutor.ExecutionPhase(transaction)));
+                myExecutor.submit(callable);
     
             Futures.addCallback(future, 
-                                new WorkflowProcessor<>(workFlow));
+                                WorkflowProcessor.<Memento<Boolean>>create(
+                                    callable, workFlow));
         }
         else {
             addDependencyToLockedTransaction(id);
@@ -858,17 +949,17 @@ public class TransactionManager
 
         AbstractTransaction transaction =
             operation instanceof Mutation ?
-                new WriteTransaction(
+                WriteTransaction.create(
                     id, myDatabase, myClock, (Mutation) operation)
-                : new ReadTransaction(
+                : ReadTransaction.create(
                     id, myDatabase, myClock, (Query) operation);
         
-        ClientInfo clientInfo = new ClientInfo(clientID, sequenceNumber);
+        ClientInfo clientInfo = ClientInfo.create(clientID, sequenceNumber);
         WorkFlow workFlow = 
-            new DistributedWorkflow(
+            createDistributedWorkflow(
                 transaction, 
                 clientInfo, 
-                new DistributedTrnProposal(unitID, operations, id));
+                DistributedTrnProposal.create(unitID, operations, id));
         
         myWorkFlowMap.put(Long.valueOf(id), workFlow);
         myConsensusToWorkFlowMap.put(unitID, workFlow);
@@ -915,15 +1006,18 @@ public class TransactionManager
                 LOG.fine("Applying " + replicationProposal 
                          + " to the database");
             }
-            ReplicatedWriteTransaction transaction =
-                new ReplicatedWriteTransaction(
+            WriteTransaction transaction =
+                WriteTransaction.create(
                     id, 
                     myReplicatedDatabase,
                     myClock,
-                    replicationProposal.getMutation(),
-                    replicationProposal.getStart(),
-                    replicationProposal.getEndTime());
-            myExecutor.submit(new ReplicationExecutor(transaction));
+                    replicationProposal.getMutation());
+            
+            // XXX Add tasks for cleaning it up
+            myExecutor.submit(ReplicationExecutor.create(
+                transaction,
+                replicationProposal.getStart(),
+                replicationProposal.getEndTime()));
         }
        else {        
            DistributedTrnProposal distributedTrnProposal =
@@ -942,13 +1036,14 @@ public class TransactionManager
            long id = myIdAssigner.getTransactionID();
            AbstractTransaction transaction =
                operation instanceof Mutation ?
-                   new WriteTransaction(
+                   WriteTransaction.create(
                        id, myDatabase, myClock, (Mutation) operation)
-                   : new ReadTransaction(
+                   : ReadTransaction.create(
                        id, myDatabase, myClock, (Query) operation);
                        
            WorkFlow workFlow = 
-               new DistributedWorkflow(transaction, null, pne);
+               createDistributedWorkflow(transaction, pne);
+           
            myWorkFlowMap.put(Long.valueOf(id), workFlow);
            myConsensusToWorkFlowMap.put(pne.getProposal().getUnitID(), 
                                         workFlow);
@@ -972,4 +1067,133 @@ public class TransactionManager
        }
        PooledObjects.freeInstance(pne);
     }
+    
+    /**
+     * Factory method for creating an instance of <code>SimpleWorkflow</code> 
+     * and populating with various parameters.
+     */
+    private SimpleWorkflow createSimpleWorkflow(ClientInfo clientInfo, 
+                                                AbstractTransaction transaction)
+    {
+        SimpleWorkflow simpleWorkflow = 
+            PooledObjects.getInstance(SimpleWorkflow.class);
+        simpleWorkflow.setClientInfo(clientInfo);
+        simpleWorkflow.setTransaction(transaction);
+        simpleWorkflow.setExecutionPhase(true);
+        return simpleWorkflow;
+    }
+    
+    /**
+     * Factory method for creating an instance of 
+     * <code>DeletionWorkflow</code> 
+     * and populating with various parameters.
+     */
+    private DeletionWorkflow createDeletionWorkflow(
+        ClientInfo clientInfo,
+        AbstractTransaction transaction,
+        DeleteRangeMutation mutation)
+    {
+        DeletionWorkflow simpleWorkflow = getInstance(DeletionWorkflow.class);
+        simpleWorkflow.setClientInfo(clientInfo);
+        simpleWorkflow.setTransaction(transaction);
+        simpleWorkflow.setExecutionPhase(true);
+        simpleWorkflow.myMutation = mutation;
+        return simpleWorkflow;
+    }
+    
+    /**
+     * Factory method for creating an instance of 
+     * <code>DistributedWorkflow</code> 
+     * and populating with various parameters.
+     */
+    private DistributedWorkflow createDistributedWorkflow(
+        AbstractTransaction transaction,
+        ClientInfo clientInfo,
+        DistributedTrnProposal proposal)
+    {
+        DistributedWorkflow distributedWorkflow = 
+            getInstance(DistributedWorkflow.class);
+        distributedWorkflow.myTransaction = transaction;
+        distributedWorkflow.myClientInfo = clientInfo;
+        distributedWorkflow.myPne = null;
+        distributedWorkflow.myProposal = proposal;
+        distributedWorkflow.myExecutionPhase = false;
+        return distributedWorkflow;
+    }
+    
+    /**
+     * Factory method for creating an instance of 
+     * <code>DistributedWorkflow</code> 
+     * and populating with various parameters.
+     */
+    private DistributedWorkflow createDistributedWorkflow(
+        AbstractTransaction transaction,
+        ProposalNotificationEvent pne)
+    {
+        DistributedWorkflow distributedWorkflow = 
+            getInstance(DistributedWorkflow.class);
+        distributedWorkflow.myTransaction = transaction;
+        distributedWorkflow.myClientInfo = null;
+        distributedWorkflow.myPne = pne;
+        distributedWorkflow.myProposal = null;
+        distributedWorkflow.myExecutionPhase = false;
+        return distributedWorkflow;
+    }
+
+
+    private <T extends WorkFlow> T getInstance(Class<T> type)
+    {
+        @SuppressWarnings("unchecked")
+        Pool<T> pool = (Pool<T>) myWorkflowToPoolMap.get(type);
+        synchronized(myWorkFlowMap) {
+            if (pool == null) {
+                pool = 
+                    new CLQPool<T>(10000, 
+                                   100, 
+                                   type,
+                                   new Factory() {
+                                        
+                                    @SuppressWarnings("unchecked")
+                                    @Override
+                                    public <X> X create(Class<X> instanceType)
+                                    {
+                                        try {
+                                            Constructor<?> ctor = 
+                                                instanceType.getDeclaredConstructor(
+                                                    TransactionManager.class);
+                                            
+                                            return (X) ctor.newInstance(
+                                                TransactionManager.this);
+                                        }
+                                        catch (NoSuchMethodException
+                                                | SecurityException
+                                                | InstantiationException
+                                                | IllegalAccessException
+                                                | IllegalArgumentException
+                                                | InvocationTargetException e) 
+                                        {
+                                            LOG.log(Level.SEVERE, 
+                                                    e.getMessage(),
+                                                    e);
+                                        }
+                                        return null;
+                                    }
+                                    });
+            }
+        }
+        return pool.getObject();
+    }
+    
+    private <T extends WorkFlow> void free(T instance)
+    {
+        @SuppressWarnings("unchecked")
+        Pool<T> pool = (Pool<T>) myWorkflowToPoolMap.get(instance.getClass());
+        if(pool != null) {
+            pool.free(instance);
+        }
+        else {
+            instance.free();
+        }
+    }
+    
 }

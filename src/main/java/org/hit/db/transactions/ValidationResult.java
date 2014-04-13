@@ -41,15 +41,17 @@ public class ValidationResult implements Poolable
      * Factory method for creating an instance of <code>ValidationResult</code> 
      * and populating with various parameters.
      */
-    public static ValidationResult create(boolean isValid, long transactionID)
+    public static ValidationResult create(boolean isValid, 
+                                          boolean isSpeculativelyValid,
+                                          long    transactionID)
     {
-        ValidationResult result = PooledObjects.getInstance(ValidationResult.class);
+        ValidationResult result = 
+             PooledObjects.getInstance(ValidationResult.class);
         result.myIsValid = isValid;
-        result.myIsSpeculativelyValid = false;
+        result.myIsSpeculativelyValid = isSpeculativelyValid;
         result.myTransactionId = transactionID;
         return result;
     }
-    
 
     /**
      * Returns the value of isValid

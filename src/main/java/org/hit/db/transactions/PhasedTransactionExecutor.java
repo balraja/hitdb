@@ -24,6 +24,8 @@ import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 import org.hit.util.LogFactory;
 
 /**
@@ -33,7 +35,8 @@ import org.hit.util.LogFactory;
  * 
  * @author Balraja Subbiah
  */
-public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
+public class PhasedTransactionExecutor<T> 
+    implements Callable<Memento<T>>,Poolable
 {
     /** LOGGER */
     private static final Logger LOG =
@@ -42,7 +45,7 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
     /**
      * Defines the contract for the phase of transaction execution.
      */
-    public static interface Phase<P>
+    public static interface Phase<P> extends Poolable
     {
         /** Executes the current state */
         public void execute();
@@ -60,15 +63,20 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
     {
         private Boolean myResult;
         
-        private final AbstractTransaction myTransaction;
+        private AbstractTransaction myTransaction;
 
         /**
-         * CTOR
+         * Factory method for creating an instance of 
+         * <code>PhasedTransactionExecutor.ExecutionPhase</code> 
+         * and populating it with various parameters.
          */
-        public ExecutionPhase(AbstractTransaction transaction)
+        public static ExecutionPhase create(AbstractTransaction transaction)
         {
-            super();
-            myTransaction = transaction;
+            ExecutionPhase executionPhase = 
+                PooledObjects.getInstance(ExecutionPhase.class);
+            executionPhase.myTransaction = transaction;
+            executionPhase.myResult = false;
+            return executionPhase;
         }
 
         /**
@@ -97,7 +105,17 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
         @Override
         public Phase<?> nextPhase(Memento<?> memento)
         {
-            return new CommitPhase(memento.getTransaction());
+            return CommitPhase.create(memento.getTransaction());
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void free()
+        {
+            myTransaction = null;
+            myResult      = false;
         }
     }
     
@@ -105,15 +123,20 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
     {
         private TransactionResult myResult;
         
-        private final AbstractTransaction myTransaction;
+        private AbstractTransaction myTransaction;
         
         /**
-         * CTOR
+         * Factory method for creating an instance of 
+         * <code>PhasedTransactionExecutor.CommitPhase</code> 
+         * and populating with various parameters.
          */
-        public CommitPhase(AbstractTransaction transaction)
+        public static CommitPhase create(AbstractTransaction transaction)
         {
-            super();
-            myTransaction = transaction;
+            CommitPhase commitPhase = 
+                PooledObjects.getInstance(CommitPhase.class);
+            commitPhase.myTransaction = transaction;
+            commitPhase.myResult = null;
+            return commitPhase;
         }
 
         /**
@@ -137,16 +160,18 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
             
             if (myTransaction instanceof ReadTransaction) {
                 myResult =
-                    new TransactionResult(myTransaction.getTransactionID(),
-                                          myTransaction.getMyState()
-                                              == TransactionState.COMMITTED,
-                                          ((ReadTransaction) myTransaction)
+                    TransactionResult.create(myTransaction.getTransactionID(),
+                                             myTransaction.getMyState()
+                                                 == TransactionState.COMMITTED,
+                                             ((ReadTransaction) myTransaction)
                                                  .getResult());
             }
             else {
-                myResult = new TransactionResult(myTransaction.getTransactionID(),
-                                                 myTransaction.getMyState()
-                                                     == TransactionState.COMMITTED);
+                myResult = TransactionResult.create(
+                                myTransaction.getTransactionID(),
+                                myTransaction.getMyState()
+                                    == TransactionState.COMMITTED,
+                                null);
             }
         }
 
@@ -167,30 +192,55 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
         {
             return null;
         }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void free()
+        {
+            myTransaction = null;
+            PooledObjects.freeInstance(myResult);
+            myResult = null;
+        }
     }
     
-    private final AbstractTransaction myTransaction;
+    private AbstractTransaction myTransaction;
     
     private Phase<T> myPhase;
     
     /**
-     * CTOR
+     * Factory method for creating an instance of 
+     * <code>PhasedTransactionExecutor</code> 
+     * and populating with various parameters.
      */
-    public PhasedTransactionExecutor(AbstractTransaction transaction,
-                                     Phase<T>            phase)
+    public static <T> PhasedTransactionExecutor<T> create(
+          AbstractTransaction transaction,
+          Phase<T>            phase)
     {
-        myTransaction = transaction;
-        myPhase = phase;
+        @SuppressWarnings("unchecked")
+        PhasedTransactionExecutor<T> phasedExecutor = 
+            PooledObjects.getInstance(PhasedTransactionExecutor.class);
+        phasedExecutor.myTransaction = transaction;
+        phasedExecutor.myPhase = phase;
+        return phasedExecutor;
     }
     
     /**
-     * CTOR
+     * Factory method for creating an instance of 
+     * <code>PhasedTransactionExecutor</code> 
+     * and populating with various parameters.
      */
     @SuppressWarnings("unchecked")
-    public PhasedTransactionExecutor(Memento<?> memento)
+    public static <T> PhasedTransactionExecutor<T> create(Memento<?> memento)
     {
-        myTransaction = memento.getTransaction();
-        myPhase = (Phase<T>) memento.getPhase().nextPhase(memento);
+        PhasedTransactionExecutor<T> phasedExecutor = 
+            PooledObjects.getInstance(PhasedTransactionExecutor.class);
+
+        phasedExecutor.myTransaction = memento.getTransaction();
+        phasedExecutor.myPhase = 
+            (Phase<T>) memento.getPhase().nextPhase(memento);
+        return phasedExecutor;
     }
 
     /**
@@ -201,7 +251,7 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
     {
         if (myPhase != null) {
             myPhase.execute();
-            return new Memento<>(myTransaction, myPhase);
+            return Memento.<T>create(myTransaction, myPhase);
         }
         else {
             if (LOG.isLoggable(Level.FINE)) {
@@ -210,5 +260,16 @@ public class PhasedTransactionExecutor<T> implements Callable<Memento<T>>
             throw new NullPointerException(
                  "The phase for this execution is not defined");
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        PooledObjects.freeInstance(myPhase);
+        myPhase = null;
+        myTransaction = null;
     }
 }

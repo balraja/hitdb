@@ -46,7 +46,7 @@ public class Transactable<K extends Comparable<K>, P extends Persistable<K>>
      * objects.
      */
     public static <PK extends Comparable<PK>, T extends Persistable<PK>>
-        Transactable<PK,T> initialize(T persitable)
+        Transactable<PK,T> create(T persitable)
     {
         @SuppressWarnings("unchecked")
         Transactable<PK, T> transactable = 
@@ -88,7 +88,9 @@ public class Transactable<K extends Comparable<K>, P extends Persistable<K>>
             && !TransactionHelper.isTransactionID(myEnd))
             
         {
-            return new ValidationResult(myStart <= time  && time <= myEnd);
+            return ValidationResult.create(myStart <= time && time <= myEnd,
+                                           false,
+                                           transactionID);
         }
         else {
             // if this is an old version that's updated by this transaction
@@ -97,7 +99,7 @@ public class Transactable<K extends Comparable<K>, P extends Persistable<K>>
                 && myStart < time
                 && TransactionHelper.toTransactionID(myEnd) == transactionID)
             {
-                return new ValidationResult(true);
+                return ValidationResult.create(true, false, transactionID);
             }
             // If an older version is locked by another transaction, then allow
             // the reads to proceed speculatively.
@@ -109,7 +111,9 @@ public class Transactable<K extends Comparable<K>, P extends Persistable<K>>
                                   TransactionState.VALIDATE,
                                   TransactionState.COMMITTED)))
             {
-                return new ValidationResult(
+                return ValidationResult.create(
+                    false,
+                    true,
                     TransactionHelper.toTransactionID(myEnd));
             }
             // If this is the version created by this transaction then its valid.
@@ -118,7 +122,7 @@ public class Transactable<K extends Comparable<K>, P extends Persistable<K>>
                      && !TransactionHelper.isTransactionID(myEnd)
                      && myEnd >= time)
             {
-                return new ValidationResult(true);
+                return ValidationResult.create(true, false, transactionID);
             }
             // If this is the new version created by a a preceding transaction
             // then still allow the values to be read by this transaction.
@@ -133,11 +137,13 @@ public class Transactable<K extends Comparable<K>, P extends Persistable<K>>
                      && !TransactionHelper.isTransactionID(myEnd)
                      && myEnd >= time)
             {
-                return new ValidationResult(
+                return ValidationResult.create(
+                    false,
+                    true,
                     TransactionHelper.toTransactionID(myStart));
             }
             else {
-                return new ValidationResult(false);
+                return ValidationResult.create(false, false, transactionID);
             }
         }
     }

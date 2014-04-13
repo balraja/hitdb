@@ -40,7 +40,7 @@ public class ProposalNotificationResponse implements Event, Poolable
     /**
      * Fluent interface method for initializing the pooled object
      */
-    public static ProposalNotificationResponse initialize(
+    public static ProposalNotificationResponse create(
         ProposalNotificationEvent proposalNotification,
         boolean canAccept)
     {

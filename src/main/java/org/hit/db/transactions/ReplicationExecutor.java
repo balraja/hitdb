@@ -19,23 +19,33 @@
 */
 package org.hit.db.transactions;
 
+import org.hit.pool.PoolConfiguration;
+import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
+
 /**
  * Implements a callable to perform replicated actions on a database.
  * 
  * @author Balraja Subbiah
  */
-public class ReplicationExecutor implements Runnable
+@PoolConfiguration(size=1000,initialSize=100)
+public class ReplicationExecutor implements Runnable, Poolable
 {
-    private final ReplicatedWriteTransaction myReplicatedWriteTransaction;
+    private WriteTransaction myReplicatedWriteTransaction;
     
     /**
      * CTOR
      */
-    public ReplicationExecutor(
-        ReplicatedWriteTransaction replicatedWriteTransaction)
+    public static ReplicationExecutor create(
+        WriteTransaction replicatedWriteTransaction,
+        long start,
+        long end)
     {
-        super();
-        myReplicatedWriteTransaction = replicatedWriteTransaction;
+        ReplicationExecutor executor =
+            PooledObjects.getInstance(ReplicationExecutor.class);
+        executor.myReplicatedWriteTransaction = replicatedWriteTransaction;
+        executor.myReplicatedWriteTransaction.setTimeOverride(start, end);
+        return executor;
     }
 
     /**
@@ -47,6 +57,16 @@ public class ReplicationExecutor implements Runnable
         myReplicatedWriteTransaction.init();
         myReplicatedWriteTransaction.execute();
         myReplicatedWriteTransaction.commit();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        PooledObjects.freeInstance(myReplicatedWriteTransaction);
+        myReplicatedWriteTransaction = null;
     }
     
 }

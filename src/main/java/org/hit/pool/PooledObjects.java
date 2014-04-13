@@ -57,7 +57,7 @@ public final class PooledObjects
     @SuppressWarnings("unchecked")
     public static Poolable getUnboundedInstance(Class<?> instanceType)
     {
-        return (Poolable) getInstance((Class<? extends Poolable>) instanceType);
+        return getInstance((Class<? extends Poolable>) instanceType);
     }
     
     /**
@@ -97,6 +97,10 @@ public final class PooledObjects
     @SuppressWarnings("unchecked")
     public static <T extends Poolable> void freeInstance(T freedInstance)
     {
+        if (freedInstance == null) {
+            return;
+        }
+        
         Pool<T> pool = (Pool<T>) ourTypeToPoolMap.get(freedInstance.getClass());
         if (pool == null) {
             return;

@@ -82,9 +82,9 @@ public class ReadTransaction extends ActiveTransaction
     protected boolean doValidation(DatabaseAdaptor adaptor)
     {
         ReadTransactionValidator validator =
-            new ReadTransactionValidator(adaptor.getDatabase(),
-                                         getEndTime(),
-                                         getTransactionID());
+            ReadTransactionValidator.create(adaptor.getDatabase(),
+                                            getEndTime(),
+                                            getTransactionID());
         return adaptor.validate(validator);
     }
 

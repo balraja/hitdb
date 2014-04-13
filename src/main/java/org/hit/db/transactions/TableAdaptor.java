@@ -242,11 +242,7 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
             myTableTrail.getWriteSet().add(tableOld);
         }
 
-        @SuppressWarnings("unchecked")
-        Transactable<K,P> updatedTransactable = 
-            PooledObjects.getInstance(Transactable.class)
-                         .initialize(updated);
-        
+        Transactable<K,P> updatedTransactable = Transactable.<K,P>create(updated);
         updatedTransactable.setStart(
             TransactionHelper.toVersionID(myTransactionID));
         updatedTransactable.setEnd(TransactionHelper.INFINITY);

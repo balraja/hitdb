@@ -20,28 +20,31 @@
 
 package org.hit.db.transactions;
 
-import org.hit.communicator.NodeID;
-import org.hit.consensus.raft.log.WAL;
 import org.hit.db.transactions.PhasedTransactionExecutor.Phase;
+import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /** 
  * The class that stores the intermediate state between phases 
  */
-public class Memento<T>
+public class Memento<T> implements Poolable
 {
-    private final AbstractTransaction myTransaction;
+    private AbstractTransaction myTransaction;
     
-    private final Phase<T> myPhase;
+    private Phase<T> myPhase;
     
     /**
      * CTOR
      */
-    public Memento(AbstractTransaction transaction, 
-                   Phase<T> phase)
+    public static <T> Memento<T> create(AbstractTransaction transaction, 
+                                        Phase<T> phase)
     {
-        super();
-        myTransaction = transaction;
-        myPhase = phase;
+        @SuppressWarnings("unchecked")
+        Memento<T> memento = 
+            PooledObjects.getInstance(Memento.class);
+        memento.myTransaction = transaction;
+        memento.myPhase = phase;
+        return memento;
     }
 
     /**
@@ -58,5 +61,13 @@ public class Memento<T>
     public PhasedTransactionExecutor.Phase<T> getPhase()
     {
         return myPhase;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
     }
 }

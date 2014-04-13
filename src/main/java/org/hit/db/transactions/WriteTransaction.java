@@ -98,9 +98,9 @@ public class WriteTransaction extends ActiveTransaction
     protected boolean doValidation(DatabaseAdaptor adaptor)
     {
         WriteTransactionValidator wtv =
-            new WriteTransactionValidator(adaptor.getDatabase(),
-                                          getEndTime(),
-                                          getTransactionID());
+            WriteTransactionValidator.create(adaptor.getDatabase(),
+                                             getEndTime(),
+                                             getTransactionID());
         return adaptor.validate(wtv);
     }
 

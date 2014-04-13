@@ -21,25 +21,29 @@
 package org.hit.db.engine;
 
 import org.hit.communicator.NodeID;
+import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
  * A simple class to implement a structure for capturing the 
  * client information.
  */
-public class ClientInfo
+public class ClientInfo implements Poolable
 {
-    private final NodeID myClientID;
+    private NodeID myClientID;
     
-    private final long myClientSequenceNumber;
+    private long myClientSequenceNumber;
 
     /**
-     * CTOR
+     * Factory method for creating an instance of <code>ClientInfo</code> 
+     * and populating with various parameters.
      */
-    public ClientInfo(NodeID clientID, long clientSequenceNumber)
+    public static ClientInfo create(NodeID clientID, long clientSequenceNumber)
     {
-        super();
-        myClientID = clientID;
-        myClientSequenceNumber = clientSequenceNumber;
+        ClientInfo clientInfo = PooledObjects.getInstance(ClientInfo.class);
+        clientInfo.myClientID = clientID;
+        clientInfo.myClientSequenceNumber = clientSequenceNumber;
+        return clientInfo;
     }
 
     /**
@@ -56,5 +60,15 @@ public class ClientInfo
     public long getClientSequenceNumber()
     {
         return myClientSequenceNumber;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void free()
+    {
+        myClientID = null;
+        myClientSequenceNumber = Long.MIN_VALUE;
     }
 }
