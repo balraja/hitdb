@@ -155,12 +155,4 @@ public class RaftReplicationMessage extends ConsensusMessage
     {
         return "Raft replication message " + myTermID + " : " + mySequenceNumber;
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
-    }
 }

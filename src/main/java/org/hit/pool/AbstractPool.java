@@ -79,9 +79,7 @@ public abstract class AbstractPool<T extends Poolable> implements Pool<T>
     /** Creates a new instance of object of the specified type */
     protected T newObject()
     {
-        T instance = myInstanceFactory.create(myPoolableType);
-        instance.initialize();
-        return instance;
+        return myInstanceFactory.create(myPoolableType);
     }
 
     /** Surrenders the object to the pool */

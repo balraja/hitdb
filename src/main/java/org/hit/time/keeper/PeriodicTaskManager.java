@@ -28,7 +28,6 @@ import org.hit.actors.EventBus;
 import org.hit.event.Event;
 import org.hit.event.PeriodicTaskNotification;
 import org.hit.event.PeriodicTaskScheduleRequest;
-import org.hit.pool.PooledObjects;
 import org.hit.util.NamedThreadFactory;
 
 import com.google.inject.Inject;
@@ -73,8 +72,7 @@ public class PeriodicTaskManager extends Actor
             getEventBus().publish(
                 ActorID.TIME_KEEPER,
                 myTargetActorID,
-                PooledObjects.getInstance(PeriodicTaskNotification.class)
-                             .initialize(myTask));
+                PeriodicTaskNotification.create(myTask));
         }
     }
     

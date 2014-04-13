@@ -68,6 +68,7 @@ import org.hit.messages.DataLoadResponse;
 import org.hit.pool.CLQPool;
 import org.hit.pool.Factory;
 import org.hit.pool.Pool;
+import org.hit.pool.PoolConfiguration;
 import org.hit.pool.PoolUtils;
 import org.hit.pool.Poolable;
 import org.hit.pool.PooledObjects;
@@ -633,6 +634,7 @@ public class TransactionManager
         }
     }
     
+    @PoolConfiguration(size=10000,initialSize=100)
     private static class WorkflowProcessor<T> 
         implements FutureCallback<T>, Poolable
     {
@@ -685,6 +687,54 @@ public class TransactionManager
             myCallable = null;
             myWorkFlow = null;
         }
+    }
+    
+    
+    @PoolConfiguration(size=10000, initialSize=100)
+    private static class RunnableRecycler 
+        implements FutureCallback<Object>, Poolable
+    {
+        private Runnable myRunnable;
+        
+        /**
+         * Factory method for creating the callable.
+         */
+        public static RunnableRecycler create(Runnable callable)
+        {
+            @SuppressWarnings("unchecked")
+            RunnableRecycler callableMonitor = 
+                    PooledObjects.getInstance(RunnableRecycler.class);
+            callableMonitor.myRunnable = callable;
+            return callableMonitor;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onFailure(Throwable arg0)
+        {
+            PoolUtils.free(this);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onSuccess(Object arg0)
+        {
+            PoolUtils.free(this);
+        }
+        
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void free()
+        {
+            PoolUtils.free(myRunnable);
+        }
+        
     }
     
     private class ScheduleDependentTransactionsTask implements Runnable
@@ -1013,11 +1063,14 @@ public class TransactionManager
                     myClock,
                     replicationProposal.getMutation());
             
-            // XXX Add tasks for cleaning it up
-            myExecutor.submit(ReplicationExecutor.create(
-                transaction,
-                replicationProposal.getStart(),
-                replicationProposal.getEndTime()));
+            Runnable runnable = 
+                ReplicationExecutor.create(
+                    transaction,
+                    replicationProposal.getStart(),
+                    replicationProposal.getEndTime());
+            ListenableFuture<?> future = myExecutor.submit(runnable);
+            Futures.addCallback(future,
+                                RunnableRecycler.create(runnable));
         }
        else {        
            DistributedTrnProposal distributedTrnProposal =

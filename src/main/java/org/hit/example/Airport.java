@@ -275,14 +275,6 @@ public class Airport implements Persistable<Long>, Externalizable
      * {@inheritDoc}
      */
     @Override
-    public void initialize()
-    {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public Airport getCopy()
     {
         return PooledObjects.getInstance(Airport.class)

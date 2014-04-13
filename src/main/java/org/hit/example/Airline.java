@@ -28,7 +28,6 @@ import java.util.Collection;
 
 import org.hit.db.model.Persistable;
 import org.hit.db.model.mutations.MutationFactory;
-import org.hit.pool.Copyable;
 import org.hit.pool.PooledObjects;
 
 import com.google.common.collect.Lists;
@@ -206,14 +205,6 @@ public class Airline implements Persistable<Long>, Externalizable
     {
         myID = Long.MIN_VALUE;
         myName = null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
     }
 
     /**

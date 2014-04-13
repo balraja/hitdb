@@ -73,7 +73,7 @@ public class TransactionTableTrail<K extends Comparable<K>,
     {
         @SuppressWarnings("unchecked")
         TransactionTableTrail<PK, T> trail =
-            PooledObjects.getInstance(TransactionTableTrail.class)
+            PooledObjects.getInstance(TransactionTableTrail.class);
         trail.myTableName = tableName;
         return trail;
     }

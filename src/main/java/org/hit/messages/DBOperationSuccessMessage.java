@@ -143,12 +143,4 @@ public class DBOperationSuccessMessage extends Message implements Poolable
         mySequenceNumber = -1L;
         myResult         = null;
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
-    }
 }

@@ -21,9 +21,14 @@
 package org.hit.db.transactions;
 
 import org.hit.db.model.Predicate;
+import org.hit.pool.PoolUtils;
 import org.hit.pool.Poolable;
+import org.hit.pool.PooledObjects;
 
 /**
+ * A type for capturing the result of query so that it will help us to 
+ * compare the results.
+ * 
  * @author Balraja Subbiah
  */
 public class PredicateWrapper<K extends Comparable<K>> implements Poolable
@@ -37,22 +42,28 @@ public class PredicateWrapper<K extends Comparable<K>> implements Poolable
     /**
      * Method for initializing the predicate wrappers.
      */
-    public PredicateWrapper<K> initialize(Predicate predicate)
+    public static <T extends Comparable<T>> PredicateWrapper<T> create(
+        Predicate predicate)
     {
-        return initialize(predicate, null, null);
+        return create(predicate, null, null);
     }
 
     /**
-     * CTOR
+     * Factory method for creating an instance of <code>PredicateWrapper</code> 
+     * and populating with various parameters.
      */
-    public PredicateWrapper<K> initialize(Predicate predicate, 
-                                          K         start,
-                                          K         end)
+    public static <T extends Comparable<T>> PredicateWrapper<T> create(
+        Predicate predicate, 
+        T         start,
+        T         end)
     {
-        myPredicate = predicate;
-        myStart = start;
-        myEnd = end;
-        return this;
+        @SuppressWarnings("unchecked")
+        PredicateWrapper<T> wrapper = 
+            PooledObjects.getInstance(PredicateWrapper.class);
+        wrapper.myPredicate = predicate;
+        wrapper.myStart = start;
+        wrapper.myEnd = end;
+        return wrapper;
     }
     
     /**
@@ -90,16 +101,12 @@ public class PredicateWrapper<K extends Comparable<K>> implements Poolable
     @Override
     public void free()
     {
+        PoolUtils.free(myPredicate);
+        PoolUtils.free(myStart);
+        PoolUtils.free(myEnd);
+        
         myPredicate = null;
         myStart     = null;
         myEnd       = null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
     }
 }

@@ -128,8 +128,7 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
         Collection<Transactable<K,P>> result =
             myTable.findMatching(predicate, myStartTime, myTransactionID);
         myTableTrail.getPredicateToDataMap().put(
-            PooledObjects.getInstance(PredicateWrapper.class)
-                         .initialize(predicate),
+            PredicateWrapper.<K>create(predicate),
             result);
         Collection<P> actualResult = new ArrayList<>(result.size());
         for (Transactable<K,P> t : result) {
@@ -152,8 +151,7 @@ public class TableAdaptor<K extends Comparable<K>, P extends Persistable<K>>
                 predicate, start, end, myStartTime, myTransactionID);
         
         myTableTrail.getPredicateToDataMap().put(
-                PooledObjects.getInstance(PredicateWrapper.class)
-                             .initialize(predicate),
+                PredicateWrapper.<K>create(predicate, start, end),
                 result);
         Collection<P> actualResult = new ArrayList<>(result.size());
         for (Transactable<K,P> t : result) {

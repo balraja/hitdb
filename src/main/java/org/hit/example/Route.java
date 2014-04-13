@@ -269,14 +269,6 @@ public class Route implements Persistable<Long>, Externalizable
      * {@inheritDoc}
      */
     @Override
-    public void initialize()
-    {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public Copyable getCopy()
     {
         return PooledObjects.getInstance(Route.class)
