@@ -25,11 +25,9 @@ import java.util.Collection;
 
 import org.hit.db.keyspace.LinearKeyspace;
 import org.hit.db.keyspace.domain.LongDomain;
+import org.hit.db.model.HitTableSchema;
 import org.hit.db.model.Persistable;
 import org.hit.db.model.Row;
-import org.hit.db.model.HitTableSchema;
-import org.hit.io.pool.PoolableOutput;
-import org.hit.pool.Copyable;
 import org.hit.pool.PooledObjects;
 
 import com.google.common.collect.Lists;
@@ -175,14 +173,6 @@ public class Account implements Persistable<Long>, Row
     {
         myAccountID = Long.MIN_VALUE;
         myBalance   = Double.NaN;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize()
-    {
     }
 
     /**

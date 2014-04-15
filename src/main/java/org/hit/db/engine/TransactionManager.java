@@ -136,7 +136,7 @@ public class TransactionManager
      * Defines a workflow wherein the transaction is performed only 
      * on the data present in this server.
      */
-    private class SimpleWorkflow extends AbstractWokflow
+    public class SimpleWorkflow extends AbstractWokflow
     {
         private ClientInfo myClientInfo;
         
@@ -388,7 +388,7 @@ public class TransactionManager
      * Defines a workflow to delete the data present in this server and send 
      * them to the requesting server.
      */
-    private class DeletionWorkflow extends SimpleWorkflow
+    public class DeletionWorkflow extends SimpleWorkflow
     {
         private DeleteRangeMutation myMutation;
         
@@ -430,7 +430,7 @@ public class TransactionManager
      * Defines a workflow wherein the transaction is performed across multitude  
      * of servers using two phase commit.
      */
-    private class DistributedWorkflow extends AbstractWokflow
+    public class DistributedWorkflow extends AbstractWokflow
     {
         private AbstractTransaction myTransaction;
         
@@ -635,7 +635,7 @@ public class TransactionManager
     }
     
     @PoolConfiguration(size=10000,initialSize=100)
-    private static class WorkflowProcessor<T> 
+    public static class WorkflowProcessor<T> 
         implements FutureCallback<T>, Poolable
     {
         private Callable<?> myCallable;
@@ -691,7 +691,7 @@ public class TransactionManager
     
     
     @PoolConfiguration(size=10000, initialSize=100)
-    private static class RunnableRecycler 
+    public static class RunnableRecycler 
         implements FutureCallback<Object>, Poolable
     {
         private Runnable myRunnable;
@@ -1128,8 +1128,7 @@ public class TransactionManager
     private SimpleWorkflow createSimpleWorkflow(ClientInfo clientInfo, 
                                                 AbstractTransaction transaction)
     {
-        SimpleWorkflow simpleWorkflow = 
-            PooledObjects.getInstance(SimpleWorkflow.class);
+        SimpleWorkflow simpleWorkflow = getInstance(SimpleWorkflow.class);
         simpleWorkflow.setClientInfo(clientInfo);
         simpleWorkflow.setTransaction(transaction);
         simpleWorkflow.setExecutionPhase(true);
@@ -1228,6 +1227,7 @@ public class TransactionManager
                                             LOG.log(Level.SEVERE, 
                                                     e.getMessage(),
                                                     e);
+                                            e.printStackTrace();
                                         }
                                         return null;
                                     }

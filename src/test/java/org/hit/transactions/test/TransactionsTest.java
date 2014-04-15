@@ -22,10 +22,8 @@ package org.hit.transactions.test;
 import org.hit.db.model.Mutation;
 import org.hit.db.model.Query;
 import org.hit.db.transactions.AbstractTransaction;
-import org.hit.db.transactions.DatabaseAdaptor;
 import org.hit.db.transactions.ReadTransaction;
 import org.hit.db.transactions.TransactableDatabase;
-import org.hit.db.transactions.Transaction;
 import org.hit.db.transactions.WriteTransaction;
 import org.hit.db.transactions.impl.TransactableHitDatabase;
 import org.hit.time.Clock;
@@ -60,10 +58,10 @@ public class TransactionsTest
     private void apply(Mutation mutation, boolean isCommit)
     {
         AbstractTransaction transaction = 
-            new WriteTransaction(myTransactionID++,
-                                 myDatabase,
-                                 myClock, 
-                                 mutation);
+            WriteTransaction.create(myTransactionID++,
+                                    myDatabase,
+                                    myClock, 
+                                    mutation);
         
         transaction.init();
         transaction.execute();
@@ -78,10 +76,10 @@ public class TransactionsTest
     private Object execute(Query query)
     {
         ReadTransaction transaction = 
-            new ReadTransaction(myTransactionID++,
-                                myDatabase,
-                                myClock, 
-                                query);
+            ReadTransaction.create(myTransactionID++,
+                                   myDatabase,
+                                   myClock, 
+                                   query);
         
         transaction.init();
         transaction.execute();

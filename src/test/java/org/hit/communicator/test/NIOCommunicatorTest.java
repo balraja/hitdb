@@ -40,7 +40,6 @@ import org.hit.example.AirportDataLoader;
 import org.hit.io.buffer.BufferManager;
 import org.hit.io.pool.PoolableIOFactory;
 import org.hit.messages.DBOperationMessage;
-import org.hit.pool.PooledObjects;
 import org.hit.pool.SimplePoolableRegistry;
 import org.junit.Test;
 
@@ -205,8 +204,7 @@ public class NIOCommunicatorTest
         BatchAddMutation<Long, Airport> batchMutation =
             new BatchAddMutation<>("Airport", new ArrayList<>(airportList.subList(0, 5)));
         DBOperationMessage message =
-            PooledObjects.getInstance(DBOperationMessage.class)
-                         .initialize(senderID, 1L, batchMutation);
+            DBOperationMessage.create(senderID, 1L, batchMutation);
 
         Sender sender = new Sender(senderID, receiverID, message);
         Thread senderThread = new Thread(sender);

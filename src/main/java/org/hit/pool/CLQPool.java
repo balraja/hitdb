@@ -47,7 +47,7 @@ public class CLQPool<T extends Poolable> extends AbstractPool<T>
         super(size, initialSize, instanceType, factory);
         myAllocatedInstances = 
             Collections.newSetFromMap(new IdentityHashMap<T,Boolean>(size));
-        myFreeInstances      = new ConcurrentLinkedQueue<>();
+        myFreeInstances = new ConcurrentLinkedQueue<>();
         for (int i = 0; i < initialSize; i++) {
             myFreeInstances.offer(newObject());
         }

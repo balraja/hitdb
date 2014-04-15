@@ -119,7 +119,7 @@ public class PhasedTransactionExecutor<T>
         }
     }
     
-    private static class CommitPhase implements Phase<TransactionResult>
+    public static class CommitPhase implements Phase<TransactionResult>
     {
         private TransactionResult myResult;
         
