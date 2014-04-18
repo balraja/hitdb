@@ -60,6 +60,12 @@ public class HitServerLauncher extends AbstractLauncher
     private static final String REPLICATION_SLAVE_FOR = "replication_slave_for";
     
     private static final String ZOOKEEPER_CONFIG = "zookeeper_config";
+    
+    private static final String LOG_GC = "log_gc";
+    
+    private static final String GCOPTS = " -Xloggc:%s -XX:+PrintGCDetails ";
+    
+    private static final String GC_SUFFIX = ".gc";
 
     public static void main (String[] args)
     {
@@ -81,6 +87,12 @@ public class HitServerLauncher extends AbstractLauncher
             true,
             "The complete path of server log file"
         );
+        
+        myServerCommandLineOptions.addOption(
+            LOG_GC,
+            false,
+            "Logs the garbage collection statsitics to <LOG_FILE>.gc");
+
 
         myServerCommandLineOptions.addOption(
              TRANSACTION_LOG_DIR,
@@ -125,7 +137,7 @@ public class HitServerLauncher extends AbstractLauncher
             REPLICATION_FACTOR,
             true,
             "The number of servers to which data has to be replicated");
-
+        
         myServerCommandLineOptions.addOption(
              HELP,
              false,
@@ -153,8 +165,7 @@ public class HitServerLauncher extends AbstractLauncher
             CommandLine cmdLine =
                 parser.parse(myServerCommandLineOptions, args);
             StringBuilder commandBuilder = new StringBuilder();
-            String applicationHome  =
-                System.getProperty(APP_HOME_PROPERTY);
+            String applicationHome  = System.getProperty(APP_HOME_PROPERTY);
 
             if (applicationHome == null) {
                 System.out.println("Application home is not defined");
@@ -178,6 +189,10 @@ public class HitServerLauncher extends AbstractLauncher
                 optsBuilder.append(addProperty(
                     PropertyLogConfig.LOG_FILE_NAME_PROPERTY,
                     cmdLine.getOptionValue(LOG_FILE)));
+            }
+            
+            if (cmdLine.hasOption(LOG_GC)) {
+                optsBuilder.append(String.format(GCOPTS, LOG_FILE + GC_SUFFIX));
             }
 
             if (cmdLine.hasOption(TRANSACTION_LOG_DIR)) {

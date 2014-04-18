@@ -20,17 +20,12 @@
 
 package org.hit.zookeeper;
 
-import gnu.trove.set.TLongSet;
-import gnu.trove.set.hash.TLongHashSet;
-
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,16 +33,11 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.ZooKeeper.States;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.ZooTrace;
-import org.hit.actors.EventBus;
 import org.hit.communicator.NodeID;
-import org.hit.communicator.nio.IPNodeID;
-import org.hit.event.MasterDownEvent;
 import org.hit.server.ServerNodeID;
 import org.hit.util.LogFactory;
 import org.hit.util.Pair;
@@ -61,10 +51,10 @@ import com.google.inject.Inject;
  */
 public class ZooKeeperClient
 {
-    public static final String PATH_SEPARATOR = "/";
-    
     private static final Logger LOG =
         LogFactory.getInstance().getLogger(ZooKeeperClient.class);
+    
+    public static final String PATH_SEPARATOR = "/";
     
     private static final String LOCK_NODE = "lock";
     
@@ -192,10 +182,14 @@ public class ZooKeeperClient
      *  A helper method to add {@link Watcher} to the zkNode at 
      *  the specified path.
      */
-    public boolean addWatchToLockNode(String path, Watcher watcher)
+    public boolean addWatchToLockNode(String path, 
+                                      Watcher watcher)
     {
         try {
             String lockPath = createLockNode(path);
+            // Set watch on getChildren so that it's triggered
+            // when there is some change to chiild count under
+            // the specified path.
             myZooKeeper.getChildren(lockPath, watcher);
             return true;
         }
@@ -224,7 +218,19 @@ public class ZooKeeperClient
      * Returns true if the number of nodes under a path matches the specified 
      * count.
      */
-    public boolean checkLockParticipantsCount(String treePath, int count)
+    public boolean checkLockParticipantsCount(String treePath, 
+                                              int count)
+    {
+        return checkLockParticipantsCount(treePath, count, null);
+    }
+    
+    /**
+     * Returns true if the number of nodes under a path matches the specified 
+     * count.
+     */
+    public boolean checkLockParticipantsCount(String treePath, 
+                                              int count,
+                                              Watcher watch)
     {
         try {
             String lockPath = 
@@ -240,7 +246,17 @@ public class ZooKeeperClient
                          + lockPath
                          + " and it has " + childCount + " children");
             }
-            return childCount == count;
+            
+            boolean isCountMatch = childCount == count;
+            if (!isCountMatch && watch != null) {
+                // Set watch on getChildren so that it's triggered
+                // when there is some change to chiild count under
+                // the specified path.
+                List<String> children = 
+                    myZooKeeper.getChildren(lockPath, watch);
+                isCountMatch = children.size() == count;
+            }
+            return isCountMatch;
         }
         catch (KeeperException | InterruptedException e) {
             return false;
@@ -260,15 +276,48 @@ public class ZooKeeperClient
     }
     
     /**
-     * A helper method to acquire lock under a given path using 
-     * zookeeper's sequential nodes.
+     * A method to help acquire lock under a given path using 
+     * zookeeper's ephimeral nodes with sequencing.This method creates nodes  
+     * under the given PATH as follows PATH/lock/EPHIMERAL_NODES.
+     * If this is the node with minimum value then this node wins. 
      */
     public boolean acquireLockUnder(String treePath, NodeID nodeID)
+    {
+        try {
+            
+            Long id = addNodeAsLockContender(treePath, nodeID);
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Acquired lock with  " + id + " for " + nodeID);
+            }
+            
+            String lockPath = treePath + PATH_SEPARATOR + LOCK_NODE;
+            SortedSet<Pair<String,Long>> sequenceNumbers = 
+                new TreeSet<>(new SeqNodeComparator());
+            for (String child : myZooKeeper.getChildren(lockPath, false)) {
+                sequenceNumbers.add(
+                    new Pair<>(child,
+                               parseSequenceNumber(child)));
+            }
+            return (sequenceNumbers.first().getSecond() == id);
+        }
+        catch (KeeperException | InterruptedException e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
+    }
+    
+    /**
+     * Adds a given node as contender to the lock stored under the given path
+     * in future.
+     */
+    public long addNodeAsLockContender(String treePath, NodeID nodeID)
     {
         try {
             String path = createLockNode(treePath);
             String createdPath = null;
             Stat stat = new Stat();
+            // Check whether the given node is already added to the list
+            // of lock contenders.
             for (String child : myZooKeeper.getChildren(path, false)) {
                 String childPath = path + PATH_SEPARATOR + child;
                 byte[] data = myZooKeeper.getData(childPath, null, stat);
@@ -279,6 +328,9 @@ public class ZooKeeperClient
             }
             
             if (createdPath == null) {
+                // If the node is not already added, the add it as
+                // participant under lock with the node id stored as it's
+                // data.
                 createdPath = 
                     myZooKeeper.create(
                         path + PATH_SEPARATOR + PARTICIPANTS_NODE,
@@ -291,28 +343,14 @@ public class ZooKeeperClient
                              " to zoo keeper under " + path);
                 }
             }
-            
-            Long id = 
-                parseSequenceNumber(
-                    createdPath.substring(
-                        createdPath.lastIndexOf(PATH_SEPARATOR) + 1));
-            
-            if (LOG.isLoggable(Level.FINE)) {
-                LOG.fine("Acquired lock with  " + id + " for " + nodeID);
-            }
-            
-            SortedSet<Pair<String,Long>> sequenceNumbers = 
-                new TreeSet<>(new SeqNodeComparator());
-            for (String child : myZooKeeper.getChildren(path, false)) {
-                sequenceNumbers.add(
-                    new Pair<>(child,
-                               parseSequenceNumber(child)));
-            }
-            return (sequenceNumbers.first().getSecond() == id);
+            return parseSequenceNumber(
+                createdPath.substring(
+                    createdPath.lastIndexOf(PATH_SEPARATOR) + 1));
+
         }
         catch (KeeperException | InterruptedException e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
-            throw new RuntimeException(e);
+            return -1L;
         }
     }
 

@@ -84,7 +84,6 @@ public class CommunicatingActor extends Actor
             for (NodeID nodeID : sme.getTargets()) {
                 try {
                     myCommunicator.sendTo(nodeID, sme.getMessage());
-                    PooledObjects.freeInstance(sme);
                 }
                 catch (CommunicatorException e) {
                     LOG.log(Level.SEVERE,
@@ -94,6 +93,7 @@ public class CommunicatingActor extends Actor
                              e);
                 }
             }
+            PooledObjects.freeInstance(sme);
         }
     }
 
