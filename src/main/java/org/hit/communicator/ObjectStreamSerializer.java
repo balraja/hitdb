@@ -67,11 +67,12 @@ public class ObjectStreamSerializer implements MessageSerializer
     @Override
     public Collection<Message> parse(BinaryMessage binaryMessage)
     {
-        try {
-            ArrayList<Message> messages = new ArrayList<>();
+        ArrayList<Message> messages = new ArrayList<>();
+        try (
             ManagedBufferInputStream min = 
                 ManagedBufferInputStream.wrapSerializedData(
-                    (ManagedBuffer) binaryMessage);
+                    (ManagedBuffer) binaryMessage))
+        {
             
             byte[] sizeArray = new byte[4];
             min.read(sizeArray);
@@ -88,14 +89,11 @@ public class ObjectStreamSerializer implements MessageSerializer
                 int read = min.read(sizeArray);
                 size = read == 4 ? Ints.fromByteArray(sizeArray) : -1;
             }
-            min.close();
-            return messages;
         }
         catch (Exception e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
-            e.printStackTrace();
-            return null;
         }
+        return messages;
     }
 
     /**
@@ -104,20 +102,21 @@ public class ObjectStreamSerializer implements MessageSerializer
     @Override
     public BinaryMessage serialize(Message message)
     {
-        try {
+        BinaryMessage result = null;
+        try (
             ManagedBufferOutputStream mout = 
-                new ManagedBufferOutputStream(myBufferManager, 4);
+                new ManagedBufferOutputStream(myBufferManager, 4))
+        {
             ObjectOutput oOutput = myIOFactory.getOutput(mout);
             oOutput.writeObject(message);
             oOutput.close();
             mout.seekToFirst();
             mout.write(Ints.toByteArray(mout.getByteCount() - 4));
-            return mout.getWrittenData();
+            result = mout.getWrittenData();
         }
         catch (Exception e) {
             LOG.log(Level.SEVERE, e.getMessage(), e);
-            e.printStackTrace();
-            return null;
         }
+        return result;
     }
 }

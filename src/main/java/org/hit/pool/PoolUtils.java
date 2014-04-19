@@ -31,8 +31,12 @@ public final class PoolUtils
     /** A helper method to free instances of objects in a collection */
     public static <T> void free(Collection<T> freedInstances)
     {
+        if (freedInstances == null || freedInstances.isEmpty()) {
+            return;
+        }
         T instance = freedInstances.iterator().next();
-        boolean isPoolable = instance.getClass().isAssignableFrom(Poolable.class);
+        boolean isPoolable = 
+            instance.getClass().isAssignableFrom(Poolable.class);
         if (isPoolable) {
             for (T freedInstance : freedInstances) {
                 PooledObjects.freeInstance((Poolable) freedInstance);
@@ -43,6 +47,9 @@ public final class PoolUtils
     /** A helper method to free an instance if it's poolable */
     public static<T> void free(T instance)
     {
+        if (instance == null) {
+            return;
+        }
         if (instance.getClass().isAssignableFrom(Poolable.class)) {
             PooledObjects.freeInstance((Poolable) instance);
         }

@@ -23,7 +23,9 @@ import java.io.DataOutputStream;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.io.Serializable;
 
 import org.hit.pool.Internable;
 import org.hit.pool.Interner;
@@ -34,21 +36,24 @@ import org.hit.pool.PooledObjects;
  * Defines the contract for a OutputStream that's responsible for 
  * releasing poolable Objects after they were serialized.
  * 
- * 
  * @author Balraja Subbiah
  */
 public class PoolableOutput extends DataOutputStream
     implements ObjectOutput
 {
     private final PoolableRegistry myRegistry;
+    
+    private final ObjectOutputStream mySerializableOutputStream;
 
     /**
      * CTOR
      */
-    public PoolableOutput(OutputStream out, PoolableRegistry registry)
+    public PoolableOutput(OutputStream out, PoolableRegistry registry) 
+        throws IOException
     {
         super(out);
         myRegistry = registry;
+        mySerializableOutputStream = new ObjectOutputStream(this);
     }
 
     /**
@@ -90,6 +95,9 @@ public class PoolableOutput extends DataOutputStream
             if (isPoolable) {
                 PooledObjects.freeInstance((Poolable) obj); 
             }
+        }
+        else if (obj instanceof Serializable) {
+            mySerializableOutputStream.writeObject(obj);
         }
         else {
             throw new IOException(

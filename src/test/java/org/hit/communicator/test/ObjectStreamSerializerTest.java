@@ -20,12 +20,15 @@
 
 package org.hit.communicator.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.hit.communicator.BinaryMessage;
 import org.hit.communicator.MessageSerializer;
@@ -62,6 +65,29 @@ public class ObjectStreamSerializerTest
         assertNotNull(deserializedMessage);
         assertEquals(nodeID, deserializedMessage.getSenderId());
         assertEquals(1001, deserializedMessage.getValue());
+    }
+    
+    public void testMessageWithSerializables()
+    {
+        NodeID nodeID = new IPNodeID(10000);
+        Map<String,String> testData = new HashMap<>();
+        testData.put("hello", "world");
+        MessageWithSerializable mws = 
+            new MessageWithSerializable(nodeID, testData);
+        MessageSerializer serializer = 
+                new ObjectStreamSerializer(new BufferManager(20), 
+                        new PoolableIOFactory(
+                            new SimplePoolableRegistry()));
+        BinaryMessage binaryMessage = serializer.serialize(mws);
+        MessageWithSerializable deserializedMessage =
+            (MessageWithSerializable) 
+                serializer.parse(binaryMessage).iterator().next();
+        
+        assertNotNull(deserializedMessage);
+        assertEquals(nodeID, deserializedMessage.getSenderId());
+        Assert.assertEquals(deserializedMessage.getTestData(), 
+                            testData);
+
     }
     
     @Test

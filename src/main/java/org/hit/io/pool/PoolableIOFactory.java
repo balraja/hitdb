@@ -19,6 +19,7 @@
 */
 package org.hit.io.pool;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -54,7 +55,12 @@ public class PoolableIOFactory implements ObjectIOFactory
     @Override
     public ObjectOutput getOutput(OutputStream out)
     {
-        return new PoolableOutput(out, myRegistry);
+        try {
+            return new PoolableOutput(out, myRegistry);
+        }
+        catch (IOException e) {
+            return null;
+        }
     }
 
     /**
@@ -63,6 +69,11 @@ public class PoolableIOFactory implements ObjectIOFactory
     @Override
     public ObjectInput getInput(InputStream in)
     {
-        return new PoolableInput(in, myRegistry);
+        try {
+            return new PoolableInput(in, myRegistry);
+        }
+        catch (IOException e) {
+            return null;
+        }
     }
 }

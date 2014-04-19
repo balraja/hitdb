@@ -24,6 +24,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInput;
+import java.io.ObjectInputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,14 +46,18 @@ public class PoolableInput extends DataInputStream
         LogFactory.getInstance().getLogger(PoolableInput.class);
                     
     private final PoolableRegistry myRegistry;
+    
+    private final ObjectInputStream mySerializableInputStream;
 
     /**
      * CTOR
      */
-    public PoolableInput(InputStream in, PoolableRegistry registry)
+    public PoolableInput(InputStream in, PoolableRegistry registry) 
+        throws IOException
     {
         super(in);
         myRegistry = registry;
+        mySerializableInputStream = new ObjectInputStream(this);
     }
 
     /**
@@ -65,6 +70,8 @@ public class PoolableInput extends DataInputStream
         Class<?> type = 
             hasIdentifier ? myRegistry.getPoolableType(readInt())
                           : Class.forName(readUTF());
+        
+        LOG.info("Reading object of " + type);
             
         if (Internable.class.isAssignableFrom(type)) {
            Interner<?> interner = Interner.getInterner(type);
@@ -77,7 +84,7 @@ public class PoolableInput extends DataInputStream
             externalizable.readExternal(this);
             return externalizable;
         }
-        else {
+        else if (Externalizable.class.isAssignableFrom(type)) {
             try {
                 Externalizable externalizable = 
                     (Externalizable) type.newInstance();
@@ -88,6 +95,9 @@ public class PoolableInput extends DataInputStream
                 LOG.log(Level.SEVERE, e.getMessage(), e);
             }
             return null;
+        }
+        else {
+           return mySerializableInputStream.readObject();
         }
     }
 }

@@ -39,11 +39,11 @@ import org.hit.db.partitioner.Partitioner;
  */
 public class Allocation implements Externalizable
 {
-    private Map<String, HitTableSchema> myTable2SchemaMap;
+    private final Map<String, HitTableSchema> myTable2SchemaMap;
     
-    private Map<String, Partitioner<?,?>> myTable2PartitionMap;
+    private final Map<String, Partitioner<?,?>> myTable2PartitionMap;
     
-    private Map<String, NodeID> myTableToDataNodeMap;
+    private final Map<String, NodeID> myTableToDataNodeMap;
     
     /**
      * CTOR
@@ -107,22 +107,52 @@ public class Allocation implements Externalizable
     @Override
     public void writeExternal(ObjectOutput out) throws IOException
     {
-        out.writeObject(myTable2PartitionMap);
-        out.writeObject(myTable2SchemaMap);
+        out.writeInt(myTable2SchemaMap.size());
+        for (Map.Entry<String,HitTableSchema> schemaEntry : 
+                 myTable2SchemaMap.entrySet())
+        {
+            out.writeUTF(schemaEntry.getKey());
+            out.writeObject(schemaEntry.getValue());
+            Partitioner<?,?> partitioner = 
+                myTable2PartitionMap.get(schemaEntry.getKey());
+            if (partitioner != null) {
+                out.writeBoolean(true);
+                out.writeObject(partitioner);
+            }
+            else {
+                out.writeBoolean(false);
+            }
+            NodeID dataNode = myTableToDataNodeMap.get(schemaEntry.getKey());
+            if (dataNode != null) {
+                out.writeBoolean(true);
+                out.writeObject(dataNode);
+            }
+            else {
+                out.writeBoolean(false);
+            }
+        }
         out.writeObject(myTableToDataNodeMap);
     }
 
     /**
      * {@inheritDoc}
      */
-    @SuppressWarnings("unchecked")
     @Override
     public void readExternal(ObjectInput in)
         throws IOException,ClassNotFoundException
     {
-        myTable2PartitionMap = 
-           (Map<String, Partitioner<?,?>>) in.readObject();
-        myTable2SchemaMap = (Map<String, HitTableSchema>) in.readObject();
-        myTableToDataNodeMap = (Map<String, NodeID>) in.readObject();
+        int elementCount = in.readInt();
+        for (int i = 0; i < elementCount; i++) {
+            String tableName = in.readUTF();
+            HitTableSchema schema = (HitTableSchema) in.readObject();
+            myTable2SchemaMap.put(tableName, schema);
+            if (in.readBoolean()) {
+                myTable2PartitionMap.put(tableName, 
+                                         (Partitioner<?, ?>) in.readObject());
+            }
+            if (in.readBoolean()) {
+                myTableToDataNodeMap.put(tableName, (NodeID) in.readObject());
+            }
+        }
     }
 }

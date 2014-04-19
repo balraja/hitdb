@@ -239,7 +239,6 @@ public class NIOCommunicator implements Communicator
         
         try (CloseableLock lock = mySessionMapLock.open()) {
             
-            //Session session = myIdSessionMap.get(node);
             SelectionKey selectionKey = myIdSelectKeyMap.get(node);
             if (selectionKey == null) {
                 LOG.info("Creating new session for " + node);
@@ -258,23 +257,16 @@ public class NIOCommunicator implements Communicator
                 
                 selectionKey.attach(session);
                 myIdSelectKeyMap.put(node, selectionKey);
-                
-               // myKeySessionMap.put(key, session);
-               // myIdSessionMap.put(node, session);
-               // session.cacheForWrite(m);
-                
             }
-            else {
                 
-                if (LOG.isLoggable(Level.FINE)) {
-                    LOG.fine("Adding message to the cache");
-                }
-                
-                Session session = (Session) selectionKey.attachment();
-                session.cacheForWrite(m);
-                if (LOG.isLoggable(Level.FINE)) {
-                    LOG.fine("Successfully added message to the cache");
-                }
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Adding message to the cache");
+            }
+            
+            Session session = (Session) selectionKey.attachment();
+            session.cacheForWrite(m);
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Successfully added message to the cache");
             }
         }
         catch(IOException e) {

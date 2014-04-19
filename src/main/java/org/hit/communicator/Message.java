@@ -26,7 +26,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import org.hit.event.Event;
-import org.hit.pool.Poolable;
 
 /**
  * Defines the contract for a Message to be sent on a wire.

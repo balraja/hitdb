@@ -22,11 +22,15 @@ package org.hit.server;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.logging.Logger;
 
 import org.hit.pool.Interner;
+import org.hit.util.LogFactory;
 
 /**
  * Implements {@link Interner} for {@link ServerNodeID} type.
@@ -35,6 +39,9 @@ import org.hit.pool.Interner;
  */
 public class ServerIDInterner extends Interner<ServerNodeID>
 {
+    private static final Logger LOG =
+        LogFactory.getInstance().getLogger(ServerIDInterner.class);
+    
     private final Map<String, ServerNodeID> myNameToIDCache;
     
     /**
@@ -55,9 +62,15 @@ public class ServerIDInterner extends Interner<ServerNodeID>
             return serverID;
         }
         else {
-            serverID = 
-                new ServerNodeID(InetSocketAddress.createUnresolved(host, port), 
-                                 name);
+            try {
+                serverID = 
+                    new ServerNodeID(new InetSocketAddress(
+                                         InetAddress.getByName(host), port), 
+                                     name);
+            }
+            catch (UnknownHostException e) {
+                LOG.severe("Unresolved host " + name + " : " + e.getMessage());
+            }
             myNameToIDCache.put(name, serverID);
             return serverID;
         }
@@ -72,6 +85,7 @@ public class ServerIDInterner extends Interner<ServerNodeID>
         String name = input.readUTF().intern();
         String host = input.readUTF().intern();
         int    port = input.readInt();
+        LOG.info("Creating a cached instance for " + name);
         return doConstructInstance(name, host, port);
     }
 

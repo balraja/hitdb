@@ -115,9 +115,10 @@ public class ManagedBufferInputStream extends InputStream
      * {@inheritDoc}
      */
     @Override
-    public void close()
+    public void close() throws IOException
     {
         myBuffer.free();
+        super.close();
     }
 
     /**
