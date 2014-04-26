@@ -20,6 +20,7 @@
 
 package org.hit.fs;
 
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 
 /**
@@ -37,6 +38,11 @@ public interface FileSystemFacacde
      * unsuccessful.
      */
     public DataOutputStream createFile(String path, boolean append);
+    
+    /**
+     * Opens a file for reading.
+     */
+    public DataInputStream openFileForRead(String path);
     
     /**
      * Returns true if the call to create a directory with the given path is

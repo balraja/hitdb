@@ -19,10 +19,15 @@
 */
 package org.hit.consensus.raft;
 
+import gnu.trove.iterator.TLongObjectIterator;
 import gnu.trove.map.TLongObjectMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -58,7 +63,7 @@ public class RaftLeader extends ConsensusLeader implements RaftProtocol
      * A simple class to keep track of progress of a {@link Proposal}
      * being replicated across the followers.
      */
-    @PoolConfiguration(size=10000,initialSize=100)
+    @PoolConfiguration(size=10000, initialSize=100)
     public static class ProposalTracker implements Poolable
     {
         private final Set<NodeID> myLogAcceptors = new HashSet<>();
@@ -241,10 +246,23 @@ public class RaftLeader extends ConsensusLeader implements RaftProtocol
             return myLastCommittedSeqNo;
         }
 
-        public ProposalTracker getTracker(long termID, long sequenceNo)
+        public Collection<ProposalTracker> 
+            getTracker(long termID, long sequenceNo)
         {
             TLongObjectMap<ProposalTracker> seqMap = myProposalLog.get(termID);
-            return seqMap != null ? seqMap.get(sequenceNo) : null;
+            if (seqMap != null) {
+                TLongObjectIterator<ProposalTracker> itr = seqMap.iterator();
+                List<ProposalTracker> proposalTrackers = new ArrayList<>();
+                while (itr.hasNext()) {
+                    if (itr.key() <= sequenceNo) {
+                        proposalTrackers.add(itr.value());
+                    }
+                }
+                return proposalTrackers;
+            }
+            else{
+                return Collections.<ProposalTracker>emptyList();
+            }
         }
         
         public void setTracker(
@@ -326,19 +344,43 @@ public class RaftLeader extends ConsensusLeader implements RaftProtocol
             } 
             
             if (response.isAccepted()) {
-                ProposalTracker supervisor = 
+                Collection<ProposalTracker> trackers = 
                     myProtocolState.getTracker(
                         response.getAcceptedTermID(),
                         response.getAcceptedSeqNo());
-                if (supervisor != null) {
-                    supervisor.receivedAcceptance(response.getSenderId());
+                
+                if (!trackers.isEmpty()) {
+                    for (ProposalTracker tracker : trackers) {
+                        tracker.receivedAcceptance(response.getSenderId());
+                    }
                 }
             }
             else {
                 // It can fail because:
                 // a. Term is not known to be elected by the remote server
+                // XXX We have to fix this.
                 // b. Last seen sequence number by that server doesn't match
                 //    the current sequence number.
+                if (response.getAcceptedSeqNo() 
+                        < myProtocolState.getSeqNumber())
+                {
+                    TLongObjectMap<Proposal> replayedProposals = 
+                        myWAL.readProposalsFromLog(
+                            response.getAcceptedTermID(),
+                            response.getAcceptedSeqNo(),
+                            myProtocolState.getSeqNumber());
+                    
+                    RaftReplayMessage replayMessage = 
+                        new RaftReplayMessage(getNodeID(), 
+                                              getConsensusUnitID(),
+                                              response.getAcceptedTermID(), 
+                                              replayedProposals);
+                    
+                    getEventBus().publish(ActorID.CONSENSUS_MANAGER,
+                                          SendMessageEvent.create(
+                                              response.getSenderId(), 
+                                              replayMessage));
+                }
             }
         }
     }

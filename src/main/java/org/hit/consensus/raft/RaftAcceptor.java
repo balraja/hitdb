@@ -21,6 +21,7 @@ package org.hit.consensus.raft;
 
 import gnu.trove.map.TLongObjectMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
+import gnu.trove.procedure.TLongObjectProcedure;
 import gnu.trove.procedure.TLongProcedure;
 import gnu.trove.set.TLongSet;
 import gnu.trove.set.hash.TLongHashSet;
@@ -62,6 +63,8 @@ public class RaftAcceptor extends ConsensusAcceptor
     
     private final TLongObjectMap<TreeMap<Long,Proposal>> myProposalLog;
     
+    private final TreeMap<Long,Proposal> myQueuedProposals;
+    
     private final WAL myWAL;
     
     /**
@@ -78,6 +81,7 @@ public class RaftAcceptor extends ConsensusAcceptor
         myTermID = termID;
         myProposalLog = new TLongObjectHashMap<>();
         myWAL = new WAL(new WALPropertyConfig(consensusUnitID.toString()));
+        myQueuedProposals = new TreeMap<>();
     }
 
     /**
@@ -124,8 +128,8 @@ public class RaftAcceptor extends ConsensusAcceptor
             else {
                 long maxSequenceNumber = seqMap.lastKey();
                 
-                // Reject if we receive a request if it's sequence 
-                // number is not equal to 1 + the max sequence
+                // Queue up proposal if we receive a request whose  
+                // sequence number is not equal to 1 + the max sequence
                 // number known for that term.
                 if ((replicationMessage.getSequenceNumber() - 1) != 
                        maxSequenceNumber)
@@ -140,13 +144,20 @@ public class RaftAcceptor extends ConsensusAcceptor
                             + " and the seqno doesn't match 1 + "
                             + maxSequenceNumber);
                     
+                    myQueuedProposals.put(
+                        replicationMessage.getSequenceNumber(),
+                        replicationMessage.getProposal());
+                    
                     getEventBus().publish(
                         ActorID.CONSENSUS_MANAGER,
                         SendMessageEvent.create(
                             replicationMessage.getSenderId(),
                             RaftReplicationResponse.create(
                                 getNodeID(),
-                                replicationMessage.getUnitID())));
+                                replicationMessage.getUnitID(),
+                                false,
+                                replicationMessage.getTermID(),
+                                maxSequenceNumber)));
                     
                     PooledObjects.freeInstance(replicationMessage);
                     return;
@@ -194,7 +205,8 @@ public class RaftAcceptor extends ConsensusAcceptor
             
                 final TLongSet removedKeys = new TLongHashSet();
                 for (Map.Entry<Long, Proposal> entry : termLog.entrySet()) {
-                    if (entry.getKey() <= replicationMessage.getLastCommittedSeqNo())
+                    if (entry.getKey() <= 
+                            replicationMessage.getLastCommittedSeqNo())
                     {
                         getEventBus().publish(
                             ActorID.CONSENSUS_MANAGER,
@@ -225,6 +237,61 @@ public class RaftAcceptor extends ConsensusAcceptor
                 
                 PooledObjects.freeInstance(replicationMessage);
             }
+        }
+        else if (message instanceof RaftReplayMessage) {
+            RaftReplayMessage replayMessage = (RaftReplayMessage) message;
+            replayMessage.getReplayedProposals().forEachEntry(
+                new TLongObjectProcedure<Proposal>() {
+                    /** {@inheritDoc} */
+                    @Override
+                    public boolean execute(long seqNo, Proposal proposal)
+                    {
+                        myQueuedProposals.put(Long.valueOf(seqNo), proposal);
+                        return true;
+                    }
+                });
+            
+            TreeMap<Long, Proposal> termLog = 
+                myProposalLog.get(replayMessage.getTermID());
+            long lastProcessedSequenceNumber = termLog.lastKey();
+            TLongSet removedKeys = new TLongHashSet();
+            for (Map.Entry<Long, Proposal> entry : myQueuedProposals.entrySet())
+            {
+                if (entry.getKey() == lastProcessedSequenceNumber + 1) {
+                    myWAL.addProposal(
+                        replayMessage.getTermID(), entry.getKey(), entry.getValue());
+                    termLog.put(entry.getKey(), entry.getValue());
+                    removedKeys.add(entry.getKey());
+                }
+                else {
+                    break;
+                }
+            }
+            
+            if (!removedKeys.isEmpty()) {
+                
+                removedKeys.forEach(new TLongProcedure() {
+                    
+                    @Override
+                    public boolean execute(long sequenceNo)
+                    {
+                        myQueuedProposals.remove(sequenceNo);
+                        return true;
+                    }
+                });
+                
+                getEventBus().publish(
+                    ActorID.CONSENSUS_MANAGER,
+                    SendMessageEvent.create(
+                        replayMessage.getSenderId(),
+                        RaftReplicationResponse.create(
+                            getNodeID(),
+                            replayMessage.getUnitID(),
+                            true,
+                            replayMessage.getTermID(),
+                            lastProcessedSequenceNumber)));
+            }
+
         }
     }
 
