@@ -20,6 +20,7 @@
 
 package org.hit.fs;
 
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -66,5 +67,11 @@ public class StandardFileSystem implements FileSystemFacacde
         File file = new File(path);
         return file.mkdirs();
     }
+
+	@Override
+	public DataInputStream openFileForRead(String path) {
+		// TODO Auto-generated method stub
+		return null;
+	}
   
 }
